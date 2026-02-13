@@ -97,7 +97,12 @@
                                     <!-- Populated by JS -->
                                 </select>
                             </div>
-                            <button type="submit" class="btn btn-primary btn-block">Publish Course</button>
+                            <div class="form-group">
+                                <label>Course Image (JPG/PNG)</label>
+                                <input type="file" id="courseImage" class="form-control" accept="image/jpeg, image/png">
+                                <small class="text-muted">Max recommended size: 500KB</small>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">Create Course</button>
                         </form>
                     </div>
                 </div>
@@ -156,31 +161,45 @@
             var title = document.getElementById('courseTitle').value;
             var desc = document.getElementById('courseDesc').value;
             var cat = document.getElementById('courseCategory').value;
+            var fileInput = document.getElementById('courseImage');
+            var file = fileInput.files[0];
 
-            var data = getData();
-            var newCourse = {
-                id: Date.now(),
-                title: title,
-                description: desc,
-                category: cat,
-                department: 'All',
-                thumbnail: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-1.2.1',
-                materials: []
-            };
+            function saveCourse(imgData) {
+                var data = getData();
+                var newCourse = {
+                    id: Date.now(),
+                    title: title,
+                    description: desc,
+                    category: cat,
+                    department: 'All',
+                    thumbnail: imgData || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-1.2.1',
+                    materials: []
+                };
 
-            data.courses.push(newCourse);
-            data.quizzes.push({
-                id: Date.now() + 1,
-                courseId: newCourse.id,
-                title: 'Final Quiz',
-                questions: [{ id: 1, text: "Is this a new course?", options: ["Yes", "No"], answer: 0 }],
-                passingScore: 50
-            });
+                data.courses.push(newCourse);
+                data.quizzes.push({
+                    id: Date.now() + 1,
+                    courseId: newCourse.id,
+                    title: 'Final Quiz',
+                    questions: [{ id: 1, text: "Is this a new course?", options: ["Yes", "No"], answer: 0 }],
+                    passingScore: 50
+                });
 
-            saveData(data);
-            alert('Course Created Successfully!');
-            closeCourseModal();
-            location.reload();
+                saveData(data);
+                alert('Course Created Successfully!');
+                closeCourseModal();
+                location.reload();
+            }
+
+            if (file) {
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    saveCourse(e.target.result); // Pass Base64 string
+                };
+                reader.readAsDataURL(file);
+            } else {
+                saveCourse(null);
+            }
         });
 
         function renderCourses(filter) {
