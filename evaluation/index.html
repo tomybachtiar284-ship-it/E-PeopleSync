@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance - Kompetenza</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-icon">K</div><span>Kompetenza</span>
+            </div>
+            <div class="nav-links">
+                <div class="nav-label">Main Menu</div>
+                <a href="../admin/index.html" class="nav-link"><i class="fas fa-th-large"></i>
+                    <span>Dashboard</span></a>
+                <a href="../recruitment/index.html" class="nav-link"><i class="fas fa-user-plus"></i>
+                    <span>Recruitment</span></a>
+                <a href="../learning/index.html" class="nav-link"><i class="fas fa-graduation-cap"></i> <span>Learning
+                        Hub</span></a>
+                <a href="../evaluation/index.html" class="nav-link active"><i class="fas fa-chart-line"></i>
+                    <span>Performance</span></a>
+                <br>
+                <a href="#" onclick="logout()" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span></a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-header">
+                <div class="search-bar"><i class="fas fa-search"></i><input type="text" placeholder="Search..."></div>
+                <div class="header-right">
+                    <div class="user-profile">
+                        <h4 id="userName">User</h4>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-area">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2>Performance Tracker</h2>
+                        <p style="color: #666;">Monitor your professional growth and competency evaluations.</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="generateAISummary()"><i class="fas fa-magic"></i> Generate
+                        AI Summary</button>
+                </div>
+
+                <div class="grid-2">
+                    <!-- Radar Chart -->
+                    <div class="card">
+                        <h3>Competency Radar</h3>
+                        <p style="color:#888; font-size:13px;">Visual breakdown of skill areas</p>
+                        <canvas id="radarChart"></canvas>
+                    </div>
+
+                    <!-- History Line Chart -->
+                    <div class="card">
+                        <h3>KPI Score History</h3>
+                        <p style="color:#888; font-size:13px;">Quarterly performance trend (1.0 - 5.0)</p>
+                        <canvas id="historyChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="grid-2 mt-4">
+                    <!-- Current Objectives -->
+                    <div class="card">
+                        <h3>Current Objectives</h3>
+                        <div class="mt-3">
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span style="font-weight:500">Migrate legacy Auth to OAuth2</span>
+                                    <span class="badge-status badge-green">On Track</span>
+                                </div>
+                                <div style="height:6px; background:#eee; border-radius:3px; overflow:hidden;">
+                                    <div style="width:75%; background:#00796b; height:100%;"></div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span style="font-weight:500">Reduce API Latency by 20%</span>
+                                    <span class="badge-status badge-red">Warning</span>
+                                </div>
+                                <div style="height:6px; background:#eee; border-radius:3px; overflow:hidden;">
+                                    <div style="width:40%; background:#e53935; height:100%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Manager Feedback -->
+                    <div class="card">
+                        <h3>Manager Feedback</h3>
+                        <div
+                            style="background:#fff3e0; padding:15px; border-radius:8px; display:flex; gap:10px; margin-top:15px;">
+                            <i class="fas fa-exclamation-circle" style="color:#ef6c00; margin-top:3px;"></i>
+                            <div>
+                                <h4 style="font-size:14px; margin-bottom:5px;">Monthly One-on-One</h4>
+                                <p style="font-size:13px; color:#555; line-height:1.4;">
+                                    "Great work on the last sprint. Let's focus on the documentation quality for the
+                                    next release."
+                                </p>
+                                <div style="font-size:11px; color:#888; margin-top:5px;">Oct 14, 2024 • By Sarah Admin
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/utils.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = checkAuth(['employee', 'manager', 'admin']);
+            if (user) document.getElementById('userName').textContent = user.name;
+
+            // Radar Chart
+            new Chart(document.getElementById('radarChart'), {
+                type: 'radar',
+                data: {
+                    labels: ['Technical', 'Communication', 'Leadership', 'Productivity', 'Innovation', 'Teamwork'],
+                    datasets: [{
+                        label: 'Current Skills',
+                        data: [85, 90, 70, 80, 75, 95],
+                        fill: true,
+                        backgroundColor: 'rgba(0, 121, 107, 0.2)',
+                        borderColor: '#00796b',
+                        pointBackgroundColor: '#00796b',
+                    }]
+                },
+                options: { elements: { line: { borderWidth: 3 } } }
+            });
+
+            // History Chart
+            new Chart(document.getElementById('historyChart'), {
+                type: 'line',
+                data: {
+                    labels: ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [{
+                        label: 'KPI Score',
+                        data: [3.8, 4.0, 4.2, 4.1, 4.5, 4.6],
+                        borderColor: '#00796b',
+                        tension: 0.4,
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    scales: { y: { min: 0, max: 5 } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        });
+
+        async function generateAISummary() {
+            const btn = document.querySelector('button[onclick="generateAISummary()"]');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Genkit Analyzing...';
+
+            // Dynamic import
+            const { aiPerformanceReviewSummary } = await import('../js/ai_flows.js');
+
+            const result = await aiPerformanceReviewSummary("Employee", {});
+
+            const container = document.getElementById('aiSummaryContainer');
+            container.innerHTML = `
+                <div class="card" style="border-left: 4px solid var(--primary-color); animation: fadeIn 0.5s;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3><i class="fas fa-magic" style="color:var(--primary-color)"></i> Genkit Performance Review</h3>
+                        <span class="badge badge-success">Generated by Gemini 1.5</span>
+                    </div>
+                    <p style="margin-top:10px; font-size:1.1em; line-height:1.6;">"${result.narrative}"</p>
+                    
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-top:20px;">
+                        <div style="background:#e0f2f1; padding:15px; border-radius:8px;">
+                            <strong style="color:#00695c; display:block; margin-bottom:5px;">TOP STRENGTH</strong>
+                            <i class="fas fa-arrow-up" style="color:#00695c"></i> ${result.structured.strength}
+                        </div>
+                        <div style="background:#ffebee; padding:15px; border-radius:8px;">
+                            <strong style="color:#c62828; display:block; margin-bottom:5px;">DEVELOPMENT AREA</strong>
+                            <i class="fas fa-exclamation-circle" style="color:#c62828"></i> ${result.structured.area}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            btn.innerHTML = '<i class="fas fa-magic"></i> Regenerate AI Summary';
+        }
+    </script>
+</body>
+
+</html>

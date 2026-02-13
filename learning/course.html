@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Detail</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap"
+        rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+</head>
+
+<body>
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-icon">K</div><span>Kompetenza</span>
+            </div>
+            <div class="nav-links">
+                <div class="nav-label">Main Menu</div>
+                <a href="../admin/index.html" class="nav-link"><i class="fas fa-th-large"></i>
+                    <span>Dashboard</span></a>
+                <a href="../recruitment/index.html" class="nav-link"><i class="fas fa-user-plus"></i>
+                    <span>Recruitment</span></a>
+                <a href="../learning/index.html" class="nav-link active"><i class="fas fa-graduation-cap"></i>
+                    <span>Learning Hub</span></a>
+                <a href="../evaluation/index.html" class="nav-link"><i class="fas fa-chart-line"></i>
+                    <span>Performance</span></a>
+                <br>
+                <a href="#" onclick="logout()" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span></a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="card">
+                <a href="index.html" class="btn btn-secondary btn-sm mb-3">&larr; Back to Courses</a>
+                <h2 id="courseTitle">Course Title</h2>
+                <hr>
+
+                <div id="materialContainer" class="mt-4">
+                    <!-- Materials Loaded Here -->
+                </div>
+
+                <div class="mt-5 text-center">
+                    <button class="btn btn-primary btn-lg" onclick="startQuiz()">Take Final Quiz</button>
+                </div>
+
+                <div id="quizArea" class="card mt-4" style="display: none; background: #fff;">
+                    <!-- Quiz Loaded Here -->
+                </div>
+
+                <div id="certificateArea" class="card mt-4 text-center"
+                    style="display: none; padding: 40px; border: 2px dashed #4caf50;">
+                    <i class="fas fa-award" style="font-size: 64px; color: #4caf50; margin-bottom: 20px;"></i>
+                    <h3 style="color: #4caf50;">Course Completed!</h3>
+                    <p>Congratulations, you have successfully passed this course.</p>
+                    <button class="btn btn-success btn-lg mt-3" onclick="downloadCertificate()">Download
+                        Certificate</button>
+                    <a href="index.html" class="btn btn-secondary mt-3">Back to Learning Hub</a>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/utils.js"></script>
+    <script src="../js/learning.js"></script>
+</body>
+
+</html>

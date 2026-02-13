@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learning Hub - Kompetenza</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-icon">K</div><span>Kompetenza</span>
+            </div>
+            <div class="nav-links">
+                <div class="nav-label">Main Menu</div>
+                <a href="../admin/index.html" class="nav-link"><i class="fas fa-th-large"></i>
+                    <span>Dashboard</span></a>
+                <a href="../recruitment/index.html" class="nav-link"><i class="fas fa-user-plus"></i>
+                    <span>Recruitment</span></a>
+                <a href="../learning/index.html" class="nav-link active"><i class="fas fa-graduation-cap"></i>
+                    <span>Learning Hub</span></a>
+                <a href="../evaluation/index.html" class="nav-link"><i class="fas fa-chart-line"></i>
+                    <span>Performance</span></a>
+                <br>
+                <a href="#" onclick="logout()" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span></a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-header">
+                <div class="search-bar"><i class="fas fa-search"></i><input type="text" placeholder="Search courses...">
+                </div>
+                <div class="header-right">
+                    <div
+                        style="margin-right: 20px; color: #fbc02d; font-weight: 600; display: flex; align-items: center; gap: 5px;">
+                        <i class="fas fa-certificate"></i>
+                        <span>3 Certificates</span>
+                    </div>
+                    <div class="user-profile">
+                        <h4 id="userName">User</h4>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-area">
+                <!-- Admin Analytics (Hidden by default) -->
+                <div class="grid-3 mb-4" id="adminAnalytics" style="display: none;">
+                    <div class="card stat-card">
+                        <div class="stat-header"><span>Total Courses</span></div>
+                        <div class="stat-value" id="statTotalCourses">0</div>
+                    </div>
+                    <div class="card stat-card">
+                        <div class="stat-header"><span>Active Learners</span></div>
+                        <div class="stat-value" id="statActiveLearners">0</div>
+                    </div>
+                    <div class="card stat-card">
+                        <div class="stat-header"><span>Certificates Issued</span></div>
+                        <div class="stat-value" id="statCertificates">0</div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2>Learning Hub</h2>
+                        <p style="color: #666;">Expand your knowledge and master new competencies.</p>
+                    </div>
+                    <div>
+                        <button class="btn btn-primary" id="btnCreateCourse" style="display: none;"
+                            onclick="openCourseModal()">+ Create Course</button>
+                    </div>
+                </div>
+
+                <!-- Create Course Modal -->
+                <div id="createCourseModal" class="modal"
+                    style="display:none; position:fixed; z-index:1; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
+                    <div class="modal-content"
+                        style="background-color:#fefefe; margin:15% auto; padding:20px; border:1px solid #888; width:50%; border-radius:8px;">
+                        <span class="close" onclick="closeCourseModal()"
+                            style="color:#aaa; float:right; font-size:28px; font-weight:bold; cursor:pointer;">&times;</span>
+                        <h2>Create New Course</h2>
+                        <form id="createCourseForm" class="mt-4">
+                            <div class="form-group">
+                                <label>Course Title</label>
+                                <input type="text" id="courseTitle" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea id="courseDesc" class="form-control" rows="3"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Category</label>
+                                <select id="courseCategory" class="form-control">
+                                    <!-- Populated by JS -->
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">Publish Course</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Filter Tags -->
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="filterCourses('all')">All Courses</button>
+                    <button class="tab-btn" onclick="filterCourses('progress')">In Progress</button>
+                    <button class="tab-btn" onclick="filterCourses('completed')">Completed</button>
+                </div>
+
+                <!-- Course Grid -->
+                <div class="grid-3" id="courseGrid">
+                    <!-- JS will populate this -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/utils.js"></script>
+    <script>
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function () {
+            updateSidebarForRole();
+            var user = checkAuth(['employee', 'manager', 'admin', 'candidate']);
+            var data = getData();
+
+            if (user) {
+                document.getElementById('userName').textContent = user.name;
+
+                // Admin Features
+                if (user.role === 'admin' || user.role === 'manager') {
+                    document.getElementById('btnCreateCourse').style.display = 'block';
+                    document.getElementById('adminAnalytics').style.display = 'grid';
+
+                    // Populate Analytics
+                    document.getElementById('statTotalCourses').textContent = data.courses ? data.courses.length : 0;
+                    document.getElementById('statActiveLearners').textContent = data.enrollments ? data.enrollments.length : 0;
+                    document.getElementById('statCertificates').textContent = data.certificates ? data.certificates.length : 0;
+                }
+            }
+            renderCourses();
+        });
+
+        // Modal Logic
+        function openCourseModal() {
+            var data = getData();
+            populateDropdown('courseCategory', data.courseCategories || ['Onboarding', 'Skill'], 'Category');
+            document.getElementById('createCourseModal').style.display = 'block';
+        }
+        function closeCourseModal() { document.getElementById('createCourseModal').style.display = 'none'; }
+
+        // Create Course Logic
+        document.getElementById('createCourseForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            var title = document.getElementById('courseTitle').value;
+            var desc = document.getElementById('courseDesc').value;
+            var cat = document.getElementById('courseCategory').value;
+
+            var data = getData();
+            var newCourse = {
+                id: Date.now(),
+                title: title,
+                description: desc,
+                category: cat,
+                department: 'All',
+                thumbnail: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-1.2.1',
+                materials: []
+            };
+
+            data.courses.push(newCourse);
+            data.quizzes.push({
+                id: Date.now() + 1,
+                courseId: newCourse.id,
+                title: 'Final Quiz',
+                questions: [{ id: 1, text: "Is this a new course?", options: ["Yes", "No"], answer: 0 }],
+                passingScore: 50
+            });
+
+            saveData(data);
+            alert('Course Created Successfully!');
+            closeCourseModal();
+            location.reload();
+        });
+
+        function renderCourses(filter) {
+            if (!filter) filter = 'all';
+            var grid = document.getElementById('courseGrid');
+            var data = getData();
+            var user = JSON.parse(localStorage.getItem('currentUser'));
+
+            grid.innerHTML = '';
+
+            var courses = data.courses;
+            if (filter === 'progress') {
+                courses = courses.filter(function (c) {
+                    var e = data.enrollments.find(function (en) { return en.courseId === c.id && en.userId === user.id; });
+                    return e && e.status === 'in-progress';
+                });
+            } else if (filter === 'completed') {
+                courses = courses.filter(function (c) {
+                    var e = data.enrollments.find(function (en) { return en.courseId === c.id && en.userId === user.id; });
+                    return e && e.status === 'completed';
+                });
+            }
+
+            if (courses.length === 0) {
+                grid.innerHTML = '<p class="text-center col-12">No courses found.</p>';
+                return;
+            }
+
+            courses.forEach(function (course) {
+                var enrollment = data.enrollments.find(function (e) { return e.courseId === course.id && e.userId === user.id; });
+
+                var quiz = data.quizzes.find(function (q) { return q.courseId === course.id; });
+                var attempts = quiz ? (data.quizAttempts ? data.quizAttempts.filter(function (a) { return a.quizId === quiz.id && a.userId === user.id; }) : []) : [];
+                var latestAttempt = attempts.sort(function (a, b) { return b.id - a.id; })[0];
+
+                var progress = enrollment ? enrollment.progress : 0;
+                var btnText = 'Start Course';
+                var btnClass = 'btn-primary';
+                var statusBadge = '';
+
+                if (enrollment) {
+                    if (enrollment.status === 'completed') {
+                        btnText = 'Review Course';
+                        btnClass = 'btn-success';
+                        progress = 100;
+                    } else if (latestAttempt && latestAttempt.status === 'pending_review') {
+                        btnText = 'Pending Review';
+                        btnClass = 'btn-warning';
+                        statusBadge = '<span class="badge badge-warning" style="font-size:10px; margin-left:5px;">In Review</span>';
+                    } else if (latestAttempt && latestAttempt.status === 'graded' && latestAttempt.score < quiz.passingScore) {
+                        btnText = 'Retake Quiz';
+                        btnClass = 'btn-danger';
+                        statusBadge = '<span class="badge badge-danger" style="font-size:10px; margin-left:5px;">Failed</span>';
+                    } else {
+                        btnText = 'Continue Learning';
+                        btnClass = 'btn-primary';
+                    }
+                }
+
+                var editBtn = '';
+                if (user.role === 'admin' || user.role === 'manager') {
+                    editBtn = '<a href="course_editor.html?id=' + course.id + '" class="btn btn-sm btn-secondary" style="background:#6c757d; color:white; text-align:center; padding:8px; text-decoration:none; border-radius:6px; width: 40px; display: flex; align-items: center; justify-content: center;" title="Manage Course"><i class="fas fa-edit"></i></a>';
+                }
+
+                grid.innerHTML += '<div class="course-card">' +
+                    '<div class="course-img" style="background-image: url(\'' + course.thumbnail + '\')">' +
+                    '<span class="course-tag">' + (course.category || 'General') + '</span>' +
+                    '</div>' +
+                    '<div class="course-body">' +
+                    '<h4 style="margin-bottom:5px; font-weight:600;">' + course.title + '</h4>' +
+                    '<p style="font-size:13px; color:#666; margin-bottom:15px; line-height:1.4;">' + (course.description || 'Master this new competency.') + '</p>' +
+                    '<div class="d-flex justify-content-between" style="font-size:11px; font-weight:600; margin-bottom:5px;">' +
+                    '<span>YOUR PROGRESS ' + statusBadge + '</span>' +
+                    '<span>' + progress + '%</span>' +
+                    '</div>' +
+                    '<div class="progress-bar" style="height:4px; background:#e0f2f1; width:100%; border-radius:2px; margin-bottom:15px;">' +
+                    '<div style="width:' + progress + '%; background:var(--primary-color); height:100%; border-radius:2px;"></div>' +
+                    '</div>' +
+                    '<div class="d-flex" style="gap: 5px;">' +
+                    '<a href="course.html?id=' + course.id + '" class="btn btn-sm btn-block ' + btnClass + '" style="color:white; text-align:center; padding:8px; text-decoration:none; border-radius:6px; flex: 1;">' + btnText + '</a>' +
+                    editBtn +
+                    '</div>' +
+                    '</div>' +
+                    '</div>';
+            });
+        }
+
+        function filterCourses(status) {
+            var tabs = document.querySelectorAll('.tab-btn');
+            for (var i = 0; i < tabs.length; i++) {
+                tabs[i].classList.remove('active');
+                var onclick = tabs[i].getAttribute('onclick');
+                if (onclick && onclick.indexOf("'" + status + "'") !== -1) {
+                    tabs[i].classList.add('active');
+                }
+            }
+            renderCourses(status);
+        }
+    </script>
+</body>
+
+</html>

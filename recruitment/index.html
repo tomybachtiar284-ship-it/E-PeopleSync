@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recruitment Hub - Kompetenza</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-icon">K</div><span>Kompetenza</span>
+            </div>
+            <div class="nav-links">
+                <div class="nav-label">Main Menu</div>
+                <a href="../admin/index.html" class="nav-link"><i class="fas fa-th-large"></i>
+                    <span>Dashboard</span></a>
+                <a href="../recruitment/index.html" class="nav-link active"><i class="fas fa-user-plus"></i>
+                    <span>Recruitment</span></a>
+                <a href="../learning/index.html" class="nav-link"><i class="fas fa-graduation-cap"></i> <span>Learning
+                        Hub</span></a>
+                <a href="../evaluation/index.html" class="nav-link"><i class="fas fa-chart-line"></i>
+                    <span>Performance</span></a>
+                <div class="nav-label" style="margin-top: 20px;">Settings</div>
+                <a href="#" class="nav-link"><i class="fas fa-cog"></i> <span>Administration</span></a>
+                <br>
+                <a href="#" onclick="logout()" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span></a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-header">
+                <div class="search-bar"><i class="fas fa-search"></i><input type="text" placeholder="Search..."></div>
+                <div class="header-right">
+                    <div class="user-profile">
+                        <h4 id="userName">User</h4>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-area">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2>Recruitment Hub</h2>
+                        <p style="color: #666;">Manage active job openings and candidate screening.</p>
+                    </div>
+                    <div id="adminControls">
+                        <button class="btn btn-secondary" onclick="runAIRanker()"><i class="fas fa-robot"></i> Run AI
+                            Ranker</button>
+                        <button class="btn btn-primary" onclick="openJobModal()">+ Create Job Post</button>
+                    </div>
+                </div>
+
+                <div class="grid-3" id="adminStats">
+                    <div class="card stat-card">
+                        <div class="stat-header"><span>Active Jobs</span></div>
+                        <div class="stat-value" id="statActiveJobs">-</div>
+                    </div>
+                    <div class="card stat-card">
+                        <div class="stat-header"><span>Total Applicants</span></div>
+                        <div class="stat-value" id="statTotalApplicants">-</div>
+                    </div>
+                    <div class="card stat-card">
+                        <div class="stat-header"><span>Hired This Month</span></div>
+                        <div class="stat-value" id="statHired">-</div>
+                    </div>
+                </div>
+
+                <!-- Admin View: Active Jobs -->
+                <div class="card mt-4" id="adminJobsTable">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3>Active Job Postings</h3>
+                    </div>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Job Title</th>
+                                <th>Department</th>
+                                <th>Location</th>
+                                <th>Type</th>
+                                <th>Applicants</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="jobListAdmin">
+                            <!-- Loaded via JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card mt-4" id="adminTable">
+                    <h3>Candidates List</h3>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Candidate Name</th>
+                                <th>Applied Role</th>
+                                <th>Date</th>
+                                <th>Test Score</th>
+                                <th>AI Suitability</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="candidateTable">
+                            <!-- Loaded via JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Create Job Modal -->
+                <div id="createJobModal" class="modal"
+                    style="display:none; position:fixed; z-index:1; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.4);">
+                    <div class="modal-content"
+                        style="background-color:#fefefe; margin:15% auto; padding:20px; border:1px solid #888; width:50%; border-radius:8px;">
+                        <span class="close" onclick="closeJobModal()"
+                            style="color:#aaa; float:right; font-size:28px; font-weight:bold; cursor:pointer;">&times;</span>
+                        <h2>Create New Job Post</h2>
+                        <form id="createJobForm" class="mt-4">
+                            <div class="form-group">
+                                <label>Job Title</label>
+                                <input type="text" id="jobTitle" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Department</label>
+                                <select id="jobDept" class="form-control">
+                                    <!-- Populated by JS -->
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Location</label>
+                                <select id="jobLoc" class="form-control">
+                                    <!-- Populated by JS -->
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Type</label>
+                                <select id="jobType" class="form-control">
+                                    <!-- Populated by JS -->
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">Publish Job</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Candidate Detail Modal -->
+                <div id="candidateModal" class="modal"
+                    style="display:none; position:fixed; z-index:100; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.5);">
+                    <div class="modal-content"
+                        style="background-color:#fff; margin:10% auto; padding:20px; border-radius:8px; width:60%;">
+                        <span class="close" onclick="closeCandidateModal()"
+                            style="float:right; font-size:28px; cursor:pointer;">&times;</span>
+                        <div id="candidateModalContent"></div>
+                    </div>
+                </div>
+
+                <!-- Candidate View (Hidden by Default) -->
+                <div id="candidateView" style="display: none;">
+
+                    <!-- My Applications -->
+                    <div class="card mt-4">
+                        <h3>My Applications</h3>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Role</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th>Next Step</th>
+                                </tr>
+                            </thead>
+                            <tbody id="myApplicationsTable">
+                                <!-- Loaded via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Available Jobs -->
+                    <h3 class="mt-4 mb-3">Open Positions</h3>
+                    <div class="grid-3" id="jobList">
+                        <!-- Loaded via js/recruitment.js -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/utils.js"></script>
+    <script src="../js/recruitment.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            updateSidebarForRole();
+            const data = getData();
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (currentUser) document.getElementById('userName').textContent = currentUser.name + ` (${currentUser.role})`;
+
+            // View Control
+            if (currentUser && currentUser.role === 'candidate') {
+                document.querySelector('h2').textContent = 'Job Board';
+                document.querySelector('p').textContent = 'Browse open positions and track your applications.';
+                // Hide Admin Elements
+                document.getElementById('adminStats').style.display = 'none';
+                document.getElementById('adminTable').style.display = 'none';
+                document.getElementById('adminControls').style.display = 'none';
+
+                // Show Candidate Elements
+                document.getElementById('candidateView').style.display = 'block';
+
+                // Render My Applications
+                const myApps = data.applications.filter(app => app.candidateId === currentUser.id);
+                const myTable = document.getElementById('myApplicationsTable');
+
+                if (myApps.length === 0) {
+                    myTable.innerHTML = '<tr><td colspan="4" class="text-center">No active applications</td></tr>';
+                } else {
+                    myApps.forEach(app => {
+                        const job = data.jobs.find(j => j.id === app.jobId);
+                        let statusText = app.status;
+                        let badgeClass = 'badge-warning';
+                        let nextStep = 'Wait...';
+
+                        if (app.status === 'Applied') { statusText = 'Proses'; badgeClass = 'badge-primary'; nextStep = 'Menunggu Review HR'; }
+                        else if (app.status === 'Review') { statusText = 'Sedang Ditinjau'; badgeClass = 'badge-warning'; nextStep = 'Menunggu Review HR'; }
+                        else if (app.status === 'Interview') { statusText = 'Wawancara'; badgeClass = 'badge-warning'; nextStep = 'Cek Email Undangan'; }
+                        else if (app.status === 'Offer') { statusText = 'Penawaran'; badgeClass = 'badge-info'; nextStep = 'Cek Email Penawaran'; }
+                        else if (app.status === 'Hired') { statusText = 'Diterima'; badgeClass = 'badge-success'; nextStep = 'Lapor Diri (Onboarding)'; }
+                        else if (app.status === 'Rejected') { statusText = 'Ditolak'; badgeClass = 'badge-danger'; nextStep = '-'; }
+                        else if (app.status === 'Recommended') { statusText = 'Wawancara (AI)'; badgeClass = 'badge-info'; nextStep = 'Cek Email Undangan'; }
+
+                        myTable.innerHTML += `
+                            <tr>
+                                <td><strong style="color:var(--primary-color)">${job ? job.title : 'Internal Role'}</strong></td>
+                                <td>${formatDate(app.date)}</td>
+                                <td><span class="badge ${badgeClass}">${statusText}</span></td>
+                                <td>${nextStep}</td>
+                            </tr>
+                        `;
+                    });
+                }
+
+            } else {
+                // Admin View (Default)
+                // Calculate Stats
+                document.getElementById('statActiveJobs').textContent = data.jobs.length;
+                document.getElementById('statTotalApplicants').textContent = data.applications.length;
+                document.getElementById('statHired').textContent = data.applications.filter(a => a.status === 'Hired').length;
+
+                // Render Active Jobs
+                const jobBody = document.getElementById('jobListAdmin');
+                data.jobs.forEach(job => {
+                    const applicantCount = data.applications.filter(a => a.jobId === job.id).length;
+                    jobBody.innerHTML += `
+                        <tr>
+                            <td><strong>${job.title}</strong></td>
+                            <td>${job.department}</td>
+                            <td>${job.location}</td>
+                            <td><span class="badge badge-primary">${job.type}</span></td>
+                            <td>${applicantCount} Candidates</td>
+                            <td>
+                                <button class="btn btn-sm btn-danger" onclick="deleteJob(${job.id})"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                const tbody = document.getElementById('candidateTable');
+                data.applications.forEach(app => {
+                    const user = data.users.find(u => u.id === app.candidateId);
+                    const job = data.jobs.find(j => j.id === app.jobId);
+
+                    let badgeClass = 'badge-warning';
+                    let statusText = app.status;
+
+                    // Map statuses to Indonesian Concept
+                    if (app.status === 'Applied') { statusText = 'Proses'; badgeClass = 'badge-primary'; }
+                    else if (app.status === 'Review') { statusText = 'Sedang Ditinjau'; badgeClass = 'badge-warning'; }
+                    else if (app.status === 'Interview') { statusText = 'Wawancara'; badgeClass = 'badge-warning'; }
+                    else if (app.status === 'Offer') { statusText = 'Penawaran'; badgeClass = 'badge-info'; }
+                    else if (app.status === 'Hired') { statusText = 'Diterima'; badgeClass = 'badge-success'; }
+                    else if (app.status === 'Rejected') { statusText = 'Ditolak'; badgeClass = 'badge-danger'; }
+                    else if (app.status === 'Recommended') { statusText = 'Wawancara (AI)'; badgeClass = 'badge-info'; }
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>
+                                <div class="user-profile">
+                                    <img src="https://ui-avatars.com/api/?name=${user ? user.name : 'Unknown'}&background=random" class="user-avatar" alt="Avatar">
+                                    <div class="user-details">
+                                        <h4>${user ? user.name : 'Unknown'}</h4>
+                                        <small class="text-muted">${user ? user.role : ''}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><strong>${job ? job.title : 'N/A'}</strong></td>
+                            <td>${formatDate(app.date)}</td>
+                            <td>
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <div style="width:50px; height:4px; background:#eee; border-radius:2px;"><div style="width:${app.testScore || 0}%; background:var(--primary-color); height:100%;"></div></div>
+                                    ${app.testScore || '-'}
+                                </div>
+                            </td>
+                            <td>
+                                ${app.aiAnalysis ? `<span class="badge badge-info" title="${app.aiAnalysis.analysis.strengths.join(', ')}">${app.aiAnalysis.score}/100</span>` : '-'}
+                            </td>
+                            <td><span class="badge ${badgeClass}">${statusText}</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-secondary" onclick="openCandidateModal(${app.id})"><i class="fas fa-eye"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+        });
+
+        // Candidate Modal Logic
+        function openCandidateModal(appId) {
+            const data = getData();
+            const app = data.applications.find(a => a.id === appId);
+            if (!app) return;
+
+            const user = data.users.find(u => u.id === app.candidateId);
+            const job = data.jobs.find(j => j.id === app.jobId);
+
+            const modal = document.getElementById('candidateModal');
+            const content = document.getElementById('candidateModalContent');
+
+            content.innerHTML = `
+                <div class="text-center mb-4">
+                    <img src="https://ui-avatars.com/api/?name=${user.name}&background=random&size=100" class="rounded-circle mb-3">
+                    <h3>${user.name}</h3>
+                    <p class="text-muted">${user.role}</p>
+                    <p>
+                        <a href="https://mail.google.com/mail/?view=cm&fs=1&to=${user.email || user.username + '@gmail.com'}" target="_blank" class="btn btn-outline-danger data-email">
+                            <i class="fab fa-google"></i> Kirim Email (Gmail)
+                        </a>
+                    </p>
+                    <small class="text-muted">${user.email || user.username + '@gmail.com'}</small>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Application Details</h5>
+                        <p><strong>Role:</strong> ${job ? job.title : 'N/A'}</p>
+                        <p><strong>Date:</strong> ${formatDate(app.date)}</p>
+                        <p><strong>Status:</strong> <span class="badge badge-info">${app.status}</span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Assessment</h5>
+                        <p><strong>Test Score:</strong> ${app.testScore || 'Not taken'}</p>
+                        <p><strong>AI Score:</strong> ${app.aiAnalysis ? app.aiAnalysis.score : 'N/A'}</p>
+                    </div>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-end flex-wrap" style="gap: 10px;">
+                    <button class="btn btn-warning" onclick="updateStatus(${app.id}, 'Review')">Mark as Review</button>
+                    <button class="btn btn-info" onclick="updateStatus(${app.id}, 'Interview')">Call for Interview</button>
+                    <button class="btn btn-primary" onclick="updateStatus(${app.id}, 'Offer')">Send Offer</button>
+                    <button class="btn btn-success" onclick="updateStatus(${app.id}, 'Hired')">Hire Candidate</button>
+                    <button class="btn btn-danger" onclick="updateStatus(${app.id}, 'Rejected')">Reject</button>
+                </div>
+            `;
+
+            modal.style.display = 'block';
+        }
+
+        function closeCandidateModal() {
+            document.getElementById('candidateModal').style.display = 'none';
+        }
+
+        function updateStatus(appId, newStatus) {
+            if (!confirm(`Are you sure you want to set status to ${newStatus}?`)) return;
+
+            const data = getData();
+            const app = data.applications.find(a => a.id === appId);
+            if (app) {
+                app.status = newStatus;
+                saveData(data);
+                alert('Status updated!');
+                location.reload();
+            }
+        }
+
+
+        async function runAIRanker() {
+            const btn = document.querySelector('button[onclick="runAIRanker()"]');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Genkit Analyzing...';
+
+            // Dynamic import to use the module
+            const { aiCandidateScreening } = await import('../js/ai_flows.js');
+            const data = getData();
+            let updatedCount = 0;
+
+            // Process all Applied candidates
+            const updates = data.applications.map(async (app) => {
+                if (app.status === 'Applied' && app.testScore) {
+                    const result = await aiCandidateScreening(app, "Generic Job");
+                    if (result.status === 'Recommended') {
+                        app.status = 'Recommended'; // Internal status
+                        app.aiAnalysis = result; // Store the detailed analysis
+                        updatedCount++;
+                    }
+                }
+            });
+
+            await Promise.all(updates);
+
+            saveData(data);
+            alert(`Genkit Analysis Complete!\n\nGemini 1.5 Flash has screened all CVs.\n${updatedCount} candidates marked as "Recommended".\n\nReloading to show AI Scores...`);
+            location.reload();
+        }
+
+        // --- Dynamic Dropdown Logic ---
+        function openJobModal() {
+            // Populate Departments
+            const data = getData();
+            populateDropdown('jobDept', data.departments || ['Sales', 'IT'], 'Department');
+            populateDropdown('jobLoc', data.locations || ['Jakarta', 'Remote'], 'Location');
+            populateDropdown('jobType', data.jobTypes || ['Full-time', 'Contract'], 'Job Type');
+
+            document.getElementById('createJobModal').style.display = 'block';
+        }
+
+        function closeJobModal() {
+            document.getElementById('createJobModal').style.display = 'none';
+        }
+
+        function populateDropdown(elementId, items, typeName) {
+            const select = document.getElementById(elementId);
+            select.innerHTML = '';
+
+            items.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item;
+                option.textContent = item;
+                select.appendChild(option);
+            });
+
+            // Add "Add New" option
+            const addNew = document.createElement('option');
+            addNew.value = 'ADD_NEW';
+            addNew.textContent = `[ + Add New ${typeName} ]`;
+            addNew.style.fontWeight = 'bold';
+            addNew.style.color = 'blue';
+            select.appendChild(addNew);
+
+            // Event Listener for "Add New"
+            select.onchange = function () {
+                if (this.value === 'ADD_NEW') {
+                    const newValue = prompt(`Enter new ${typeName}:`);
+                    if (newValue && newValue.trim() !== '') {
+                        // Save to Data
+                        const currentData = getData();
+
+                        let key;
+                        if (typeName === 'Department') key = 'departments';
+                        else if (typeName === 'Location') key = 'locations';
+                        else if (typeName === 'Job Type') key = 'jobTypes';
+
+                        // Initialize if undefined (safety)
+                        if (!currentData[key]) currentData[key] = [];
+
+                        // Add if not exists
+                        if (!currentData[key].includes(newValue)) {
+                            currentData[key].push(newValue);
+                            saveData(currentData);
+
+                            // Re-populate
+                            populateDropdown(elementId, currentData[key], typeName);
+                            // Select the new item
+                            this.value = newValue;
+                        } else {
+                            alert(`${typeName} already exists!`);
+                            this.value = newValue; // Select existing
+                        }
+                    } else {
+                        // Revert to first option if cancelled
+                        this.selectedIndex = 0;
+                    }
+                }
+            };
+        }
+    </script>
+</body>
+
+</html>

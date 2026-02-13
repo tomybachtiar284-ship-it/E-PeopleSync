@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Kompetenza</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-icon">K</div>
+                <span>Kompetenza</span>
+            </div>
+            <div class="nav-links">
+                <div class="nav-label">Main Menu</div>
+                <a href="../admin/index.html" class="nav-link active"><i class="fas fa-th-large"></i>
+                    <span>Dashboard</span></a>
+                <a href="../recruitment/index.html" class="nav-link"><i class="fas fa-user-plus"></i>
+                    <span>Recruitment</span></a>
+                <a href="../learning/index.html" class="nav-link"><i class="fas fa-graduation-cap"></i>
+                    <span>Learning Hub</span></a>
+                <a href="../evaluation/index.html" class="nav-link"><i class="fas fa-chart-line"></i>
+                    <span>Performance</span></a>
+                <div class="nav-label" style="margin-top: 20px;">Settings</div>
+                <a href="#" class="nav-link"><i class="fas fa-cog"></i> <span>Administration</span></a>
+                <br>
+                <a href="#" onclick="logout()" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span></a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="top-header">
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search platform...">
+                </div>
+                <div class="header-right">
+                    <div class="notification">
+                        <i class="far fa-bell" style="font-size: 20px; color: #666;"></i>
+                        <div class="badge">3</div>
+                    </div>
+                    <div class="user-profile">
+                        <div class="user-details">
+                            <h4 id="userName">Sarah Admin</h4>
+                            <span id="userRole">ADMIN HR</span>
+                        </div>
+                        <img src="https://i.pravatar.cc/150?img=1" class="user-avatar" alt="Profile">
+                    </div>
+                </div>
+            </header>
+
+            <!-- Overview Content -->
+            <div class="content-area">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2>Welcome back, <span id="welcomeName">Admin</span></h2>
+                        <p style="color: #666;">Here's an overview of your organization's activity today.</p>
+                    </div>
+                    <div>
+                        <button class="btn btn-secondary" onclick="downloadReport()"><i class="fas fa-download"></i>
+                            Download Report</button>
+                        <button class="btn btn-primary" onclick="showTab('jobs')"><i class="fas fa-plus"></i> Add New
+                            Task</button>
+                    </div>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="grid-4">
+                    <div class="card stat-card">
+                        <div class="stat-header">
+                            <span>Total Employees</span>
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-value" id="statEmployees">1,248</div>
+                        <div class="stat-trend positive">↑ 12% from last month</div>
+                    </div>
+                    <div class="card stat-card">
+                        <div class="stat-header">
+                            <span>New Applications</span>
+                            <i class="fas fa-user-clock"></i>
+                        </div>
+                        <div class="stat-value" id="statApplications">48</div>
+                        <div class="stat-trend positive">↑ 5% from yesterday</div>
+                    </div>
+                    <div class="card stat-card">
+                        <div class="stat-header">
+                            <span>Training Completion</span>
+                            <i class="fas fa-book-reader"></i>
+                        </div>
+                        <div class="stat-value">84.2%</div>
+                        <div class="progress-bar"
+                            style="height: 6px; background: #e0f2f1; border-radius: 3px; margin-top: 10px;">
+                            <div
+                                style="width: 84%; background: var(--primary-color); height: 100%; border-radius: 3px;">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card stat-card">
+                        <div class="stat-header">
+                            <span>Avg. KPI Score</span>
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <div class="stat-value">4.2/5.0</div>
+                        <div class="stat-trend positive">↑ 0.1 improvement</div>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="grid-3 mt-4" style="grid-template-columns: 2fr 1fr;">
+                    <div class="card">
+                        <h3>Skill Development Trend</h3>
+                        <p style="color: #888; font-size: 13px; mb-3">Monthly average competency scores</p>
+                        <canvas id="skillChart"></canvas>
+                    </div>
+                    <div class="card">
+                        <h3>Recruitment Funnel</h3>
+                        <p style="color: #888; font-size: 13px; mb-3">Hiring pipeline performance</p>
+                        <canvas id="funnelChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="../js/utils.js"></script>
+    <script src="../js/admin.js"></script>
+    <script>
+        // Init Charts
+        document.addEventListener('DOMContentLoaded', () => {
+            const ctx1 = document.getElementById('skillChart').getContext('2d');            // Skill Development Trend (Area Chart)
+            new Chart(document.getElementById('skillChart'), {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Avg Competency Score',
+                        data: [65, 70, 68, 75, 80, 85],
+                        borderColor: '#00796b',
+                        backgroundColor: 'rgba(0, 121, 107, 0.1)',
+                        fill: true, // Area Chart effect
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    scales: { y: { beginAtZero: false, min: 50, max: 100 } }
+                }
+            });
+
+            // Recruitment Funnel (Pie Chart)
+            new Chart(document.getElementById('funnelChart'), {
+                type: 'pie', // Changed from doughnut to pie
+                data: {
+                    labels: ['Applied', 'Interview', 'Hired', 'Rejected'],
+                    datasets: [{
+                        data: [120, 45, 12, 63],
+                        backgroundColor: ['#00796b', '#4db6ac', '#81c784', '#e0e0e0']
+                    }]
+                }
+            });
+
+            // Link Data
+            const currentUser = checkAuth(['admin']);
+            if (currentUser) {
+                document.getElementById('welcomeName').textContent = currentUser.name;
+                document.getElementById('userName').textContent = currentUser.name;
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Editor - Kompetenza</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <style>
+        .editor-container {
+            padding: 20px;
+        }
+
+        .module-list {
+            margin-top: 20px;
+        }
+
+        .module-item {
+            background: white;
+            border: 1px solid #eee;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .question-list {
+            margin-top: 15px;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+
+        .question-item {
+            background: #f9f9f9;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .option-group {
+            margin-left: 20px;
+            margin-top: 5px;
+        }
+
+        .modal-lg {
+            width: 70%;
+            margin: 5% auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-icon">K</div><span>Kompetenza</span>
+            </div>
+            <div class="nav-links">
+                <div class="nav-label">Main Menu</div>
+                <a href="../admin/index.html" class="nav-link"><i class="fas fa-th-large"></i>
+                    <span>Dashboard</span></a>
+                <a href="../recruitment/index.html" class="nav-link"><i class="fas fa-user-plus"></i>
+                    <span>Recruitment</span></a>
+                <a href="../learning/index.html" class="nav-link active"><i class="fas fa-graduation-cap"></i>
+                    <span>Learning Hub</span></a>
+                <a href="../evaluation/index.html" class="nav-link"><i class="fas fa-chart-line"></i>
+                    <span>Performance</span></a>
+                <br>
+                <a href="#" onclick="logout()" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span></a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-header">
+                <div class="d-flex align-items-center">
+                    <a href="index.html" class="btn btn-sm btn-secondary mr-3"><i class="fas fa-arrow-left"></i>
+                        Back</a>
+                    <h2 id="courseTitle">Loading Course...</h2>
+                </div>
+                <div class="header-right">
+                    <div class="user-profile">
+                        <h4 id="userName">User</h4>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-area editor-container">
+                <!-- Tabs -->
+                <div class="tabs mb-3">
+                    <button class="tab-btn active" onclick="switchTab('modules')">Modules & Quizzes</button>
+                    <button class="tab-btn" onclick="switchTab('submissions')">Student Submissions</button>
+                </div>
+
+                <!-- Module Tab -->
+                <div id="modulesTab">
+                    <div class="card mb-4">
+                        <h3>Course Modules & Quizzes</h3>
+                        <p class="text-muted">Manage the content and assessments for this course.</p>
+                        <div id="moduleList" class="module-list">
+                            <!-- Modules will be loaded here -->
+                        </div>
+                        <button class="btn btn-primary mt-3" onclick="addModule()"><i class="fas fa-plus"></i> Add
+                            Module</button>
+                        <button class="btn btn-secondary mt-3" onclick="addQuiz()"><i class="fas fa-pencil-alt"></i> Add
+                            Quiz</button>
+                    </div>
+                </div>
+
+                <!-- Submissions Tab -->
+                <div id="submissionsTab" style="display:none;">
+                    <div class="card mb-4">
+                        <h3>Student Submissions</h3>
+                        <p class="text-muted">Review and grade student quiz attempts.</p>
+                        <div id="submissionList">
+                            <!-- Submissions loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+
+    <!-- Module Editor Modal -->
+    <div id="moduleModal" class="modal"
+        style="display:none; position:fixed; z-index:100; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.5);">
+        <div class="modal-content"
+            style="background-color:#fff; margin:10% auto; padding:20px; border-radius:8px; width: 50%;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 id="moduleModalTitle">Edit Module</h3>
+                <span class="close" onclick="closeModuleModal()" style="font-size:24px; cursor:pointer;">&times;</span>
+            </div>
+            <form id="moduleForm">
+                <input type="hidden" id="editModuleId">
+                <div class="form-group">
+                    <label>Module Title</label>
+                    <input type="text" id="modTitle" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Type</label>
+                    <select id="modType" class="form-control" onchange="toggleModuleType()">
+                        <option value="video">Video</option>
+                        <option value="text">Text / Article</option>
+                        <option value="pdf">PDF Document</option>
+                    </select>
+                </div>
+                <div class="form-group" id="modUrlGroup">
+                    <label>Video/Document URL</label>
+                    <input type="text" id="modUrl" class="form-control" placeholder="https://youtube.com/...">
+                </div>
+                <div class="form-group" id="modContentGroup" style="display:none;">
+                    <label>Text Content</label>
+                    <textarea id="modContent" class="form-control" rows="5"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Duration (e.g. "5 min")</label>
+                    <input type="text" id="modDuration" class="form-control" required>
+                </div>
+                <div class="text-right mt-4">
+                    <button type="button" class="btn btn-danger mr-auto" onclick="deleteModule()"
+                        id="btnDeleteModule">Delete</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModuleModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Module</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- Grading Modal -->
+    <div id="gradingModal" class="modal"
+        style="display:none; position:fixed; z-index:100; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.5);">
+        <div class="modal-content modal-lg" style="background-color:#fff; padding:20px; border-radius:8px;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3>Grade Submission</h3>
+                <span class="close" onclick="closeGradingModal()" style="font-size:24px; cursor:pointer;">&times;</span>
+            </div>
+            <div id="gradingContent"></div>
+        </div>
+    </div>
+
+    <script src="../js/utils.js"></script>
+    <script>
+        let currentCourseId = null;
+        let currentQuizId = null;
+        let editingQuiz = null;
+        let editingModuleId = null;
+        let currentAttemptId = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = checkAuth(['admin', 'manager']);
+            if (user) document.getElementById('userName').textContent = user.name;
+
+            const urlParams = new URLSearchParams(window.location.search);
+            currentCourseId = parseInt(urlParams.get('id'));
+
+            if (!currentCourseId) {
+                alert('Invalid Course ID');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            loadCourseData();
+        });
+
+        function loadCourseData() {
+            const data = getData();
+            const course = data.courses.find(c => c.id === currentCourseId);
+
+            if (!course) {
+                alert('Course not found');
+                return;
+            }
+
+            document.getElementById('courseTitle').textContent = `Editing: ${course.title}`;
+            renderModules(data);
+        }
+
+        function renderModules(data) {
+            const list = document.getElementById('moduleList');
+            list.innerHTML = '';
+
+            // Modules
+            const modules = data.modules.filter(m => m.courseId === currentCourseId);
+            modules.forEach(mod => {
+                let icon = 'fa-file-alt';
+                if (mod.type === 'video') icon = 'fa-file-video';
+                else if (mod.type === 'pdf') icon = 'fa-file-pdf';
+
+                list.innerHTML += `
+                    <div class="module-item">
+                        <div>
+                            <strong><i class="fas ${icon} text-primary"></i> ${mod.title}</strong>
+                            <div class="text-muted small">${mod.type.toUpperCase()} - ${mod.duration}</div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-primary" onclick="openModuleEditor(${mod.id})">Edit</button>
+                    </div>
+                `;
+            });
+
+            // Quizzes
+            const quizzes = data.quizzes.filter(q => q.courseId === currentCourseId);
+            quizzes.forEach(quiz => {
+                list.innerHTML += `
+                    <div class="module-item" style="border-left: 4px solid #fbc02d;">
+                        <div>
+                            <strong><i class="fas fa-question-circle text-warning"></i> ${quiz.title}</strong>
+                            <div class="text-muted small">${quiz.questions.length} Questions - Pass Score: ${quiz.passingScore}</div>
+                        </div>
+                        <button class="btn btn-sm btn-primary" onclick="openQuizEditor(${quiz.id})">Manage Questions</button>
+                    </div>
+                `;
+            });
+        }
+
+        // --- Module Editor Logic ---
+        function addModule() {
+            openModuleEditor(null);
+        }
+
+        function openModuleEditor(moduleId) {
+            editingModuleId = moduleId;
+            const modal = document.getElementById('moduleModal');
+            const title = document.getElementById('moduleModalTitle');
+            const data = getData();
+            const form = document.getElementById('moduleForm');
+            const btnDelete = document.getElementById('btnDeleteModule');
+
+            modal.style.display = 'block';
+            form.reset();
+
+            if (moduleId) {
+                // Edit Mode
+                const module = data.modules.find(m => m.id === moduleId);
+                title.textContent = "Edit Module";
+                document.getElementById('editModuleId').value = module.id;
+                document.getElementById('modTitle').value = module.title;
+                document.getElementById('modType').value = module.type;
+                document.getElementById('modDuration').value = module.duration;
+
+                if (module.type === 'video' || module.type === 'pdf') {
+                    document.getElementById('modUrl').value = module.url || '';
+                } else {
+                    document.getElementById('modContent').value = module.content || '';
+                }
+
+                toggleModuleType();
+                btnDelete.style.display = 'inline-block';
+            } else {
+                // Add Mode
+                title.textContent = "Add New Module";
+                document.getElementById('editModuleId').value = '';
+                toggleModuleType();
+                btnDelete.style.display = 'none';
+            }
+        }
+
+        function closeModuleModal() {
+            document.getElementById('moduleModal').style.display = 'none';
+        }
+
+        function toggleModuleType() {
+            const type = document.getElementById('modType').value;
+            if (type === 'text') {
+                document.getElementById('modUrlGroup').style.display = 'none';
+                document.getElementById('modContentGroup').style.display = 'block';
+            } else {
+                document.getElementById('modUrlGroup').style.display = 'block';
+                document.getElementById('modContentGroup').style.display = 'none';
+            }
+        }
+
+        document.getElementById('moduleForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const id = document.getElementById('editModuleId').value;
+            const title = document.getElementById('modTitle').value;
+            const type = document.getElementById('modType').value;
+            const duration = document.getElementById('modDuration').value;
+            const url = document.getElementById('modUrl').value;
+            const content = document.getElementById('modContent').value;
+
+            const data = getData();
+
+            if (id) {
+                // Update
+                const modIndex = data.modules.findIndex(m => m.id == id);
+                if (modIndex > -1) {
+                    data.modules[modIndex].title = title;
+                    data.modules[modIndex].type = type;
+                    data.modules[modIndex].duration = duration;
+                    if (type === 'text') {
+                        data.modules[modIndex].content = content;
+                        delete data.modules[modIndex].url;
+                    } else {
+                        data.modules[modIndex].url = url;
+                        delete data.modules[modIndex].content;
+                    }
+                }
+            } else {
+                // Create
+                const newMod = {
+                    id: Date.now(),
+                    courseId: currentCourseId,
+                    title: title,
+                    type: type,
+                    duration: duration
+                };
+                if (type === 'text') newMod.content = content;
+                else newMod.url = url;
+
+                data.modules.push(newMod);
+            }
+
+            saveData(data);
+            alert('Module Saved!');
+            closeModuleModal();
+            renderModules(data);
+        });
+
+        function deleteModule() {
+            if (editingModuleId && confirm('Delete this module?')) {
+                const data = getData();
+                data.modules = data.modules.filter(m => m.id !== editingModuleId);
+                saveData(data);
+                closeModuleModal();
+                renderModules(data);
+            }
+        }
+
+        // --- Quiz Editor Logic ---
+
+        function openQuizEditor(quizId) {
+            currentQuizId = quizId;
+            const data = getData();
+            editingQuiz = data.quizzes.find(q => q.id === quizId);
+
+            document.getElementById('questionModal').style.display = 'block';
+            renderQuestionList();
+            hideQuestionForm();
+        }
+
+        function closeQuestionModal() {
+            document.getElementById('questionModal').style.display = 'none';
+        }
+
+        function renderQuestionList() {
+            const container = document.getElementById('existingQuestions');
+            container.innerHTML = '';
+
+            editingQuiz.questions.forEach((q, index) => {
+                const typeLabel = q.type === 'essay' ? '<span class="badge badge-info">Essay</span>' : '<span class="badge badge-success">MC</span>';
+                container.innerHTML += `
+                    <div class="question-item" style="cursor:pointer;" onclick="editQuestion(${index})">
+                        <div class="d-flex justify-content-between">
+                            <small>Question ${index + 1}</small>
+                            ${typeLabel}
+                        </div>
+                        <div style="font-weight:500; margin-top:5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${q.text}</div>
+                    </div>
+                `;
+            });
+        }
+
+        function showAddQuestionForm() {
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('questionFormContainer').style.display = 'block';
+            document.getElementById('formTitle').textContent = 'Add New Question';
+            document.getElementById('questionForm').reset();
+            document.getElementById('editQuestionId').value = -1; // New
+
+            // Reset options
+            document.getElementById('optionsContainer').innerHTML = '';
+            addOption('Option 1');
+            addOption('Option 2');
+            toggleQuestionType();
+        }
+
+        function hideQuestionForm() {
+            document.getElementById('questionFormContainer').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'block';
+        }
+
+        function toggleQuestionType() {
+            const type = document.getElementById('questionType').value;
+            const mcContainer = document.getElementById('multipleChoiceOptions');
+            const essayContainer = document.getElementById('essayOptions');
+
+            if (type === 'multiple-choice') {
+                mcContainer.style.display = 'block';
+                essayContainer.style.display = 'none';
+            } else {
+                mcContainer.style.display = 'none';
+                essayContainer.style.display = 'block';
+            }
+        }
+
+        function addOption(value = '', isCorrect = false) {
+            const container = document.getElementById('optionsContainer');
+            const index = container.children.length;
+
+            const div = document.createElement('div');
+            div.className = 'input-group mb-2 d-flex align-items-center';
+            div.innerHTML = `
+                <input type="radio" name="correctAnswer" value="${index}" ${isCorrect ? 'checked' : ''} style="margin-right:10px;">
+                <input type="text" class="form-control option-input" value="${value}" placeholder="Option ${index + 1}" required>
+                <button type="button" class="btn btn-sm btn-danger ml-2" onclick="removeOption(this)">&times;</button>
+            `;
+            container.appendChild(div);
+
+            // Update radio values
+            updateRadioValues();
+        }
+
+        function removeOption(btn) {
+            btn.parentElement.remove();
+            updateRadioValues();
+        }
+
+        function updateRadioValues() {
+            const radios = document.querySelectorAll('input[name="correctAnswer"]');
+            radios.forEach((radio, index) => {
+                radio.value = index;
+            });
+        }
+
+        function editQuestion(index) {
+            const q = editingQuiz.questions[index];
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('questionFormContainer').style.display = 'block';
+            document.getElementById('formTitle').textContent = 'Edit Question ' + (index + 1);
+            document.getElementById('editQuestionId').value = index;
+
+            document.getElementById('questionType').value = q.type || 'multiple-choice';
+            document.getElementById('questionText').value = q.text;
+
+            if (q.type === 'essay') {
+                document.getElementById('questionKeywords').value = q.keywords ? q.keywords.join(', ') : '';
+            } else {
+                const container = document.getElementById('optionsContainer');
+                container.innerHTML = '';
+                q.options.forEach((opt, i) => {
+                    addOption(opt, i === q.answer);
+                });
+            }
+
+            toggleQuestionType();
+        }
+
+        document.getElementById('questionForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const index = parseInt(document.getElementById('editQuestionId').value);
+            const type = document.getElementById('questionType').value;
+            const text = document.getElementById('questionText').value;
+
+            let newQuestion = {
+                id: Date.now(),
+                type: type,
+                text: text
+            };
+
+            if (type === 'multiple-choice') {
+                const optionInputs = document.querySelectorAll('.option-input');
+                const options = Array.from(optionInputs).map(input => input.value);
+                const correctRadio = document.querySelector('input[name="correctAnswer"]:checked');
+
+                if (!correctRadio) {
+                    alert('Please select a correct answer for multiple choice questions.');
+                    return;
+                }
+
+                newQuestion.options = options;
+                newQuestion.answer = parseInt(correctRadio.value);
+            } else if (type === 'essay') {
+                const keywords = document.getElementById('questionKeywords').value;
+                newQuestion.keywords = keywords ? keywords.split(',').map(k => k.trim()) : [];
+            }
+
+            const data = getData();
+            const quizIndex = data.quizzes.findIndex(q => q.id === currentQuizId);
+
+            if (index === -1) {
+                // Add new
+                data.quizzes[quizIndex].questions.push(newQuestion);
+            } else {
+                // Update existing
+                // Preserve ID if editing
+                newQuestion.id = editingQuiz.questions[index].id;
+                data.quizzes[quizIndex].questions[index] = newQuestion;
+            }
+
+            saveData(data);
+            editingQuiz = data.quizzes[quizIndex]; // Update local ref
+
+            renderQuestionList();
+            hideQuestionForm();
+            alert('Question saved!');
+        });
+
+        // Add Module dummy
+        function addQuiz() {
+            alert('Add Quiz feature coming soon!');
+        }
+
+        // Tab Switching
+        function switchTab(tabName) {
+            document.getElementById('modulesTab').style.display = tabName === 'modules' ? 'block' : 'none';
+            document.getElementById('submissionsTab').style.display = tabName === 'submissions' ? 'block' : 'none';
+
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            if (tabName === 'modules') document.querySelector('.tab-btn:first-child').classList.add('active');
+            else {
+                document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
+                loadSubmissions();
+            }
+        }
+
+        // --- Grading Logic ---
+        function loadSubmissions() {
+            const data = getData();
+            // Get quizzes for this course
+            const courseQuizIds = data.quizzes.filter(q => q.courseId === currentCourseId).map(q => q.id);
+
+            // Get attempts
+            const attempts = data.quizAttempts ? data.quizAttempts.filter(a => courseQuizIds.includes(a.quizId)) : [];
+
+            const list = document.getElementById('submissionList');
+            list.innerHTML = '';
+
+            if (attempts.length === 0) {
+                list.innerHTML = '<p class="text-muted">No submissions yet.</p>';
+                return;
+            }
+
+            attempts.forEach(attempt => {
+                const user = data.users.find(u => u.id === attempt.userId);
+                const quiz = data.quizzes.find(q => q.id === attempt.quizId);
+                const badge = attempt.status === 'graded' ? '<span class="badge badge-success">Graded</span>' : '<span class="badge badge-warning">Pending Review</span>';
+
+                list.innerHTML += `
+                    <div class="module-item">
+                        <div>
+                            <strong>${user ? user.name : 'Unknown User'}</strong> - ${quiz.title}
+                            <br>
+                            <small class="text-muted">Date: ${attempt.date}</small>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            ${badge}
+                            <span class="ml-3 font-weight-bold" style="margin-right:15px; font-size:16px;">${attempt.score.toFixed(0)}</span>
+                            <button class="btn btn-sm btn-primary" onclick="openGradingModal(${attempt.id})">Grade</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+
+
+        function openGradingModal(attemptId) {
+            try {
+                // Ensure ID types match
+                currentAttemptId = typeof attemptId === 'string' ? parseInt(attemptId) : attemptId;
+
+                const data = getData();
+                const attempt = data.quizAttempts.find(a => a.id === currentAttemptId);
+
+                if (!attempt) throw new Error(`Submission #${currentAttemptId} not found in database.`);
+
+                const quiz = data.quizzes.find(q => q.id === attempt.quizId);
+                if (!quiz) throw new Error(`Quiz (ID: ${attempt.quizId}) associated with this submission is missing.`);
+
+                const user = data.users.find(u => u.id === attempt.userId);
+
+                const content = document.getElementById('gradingContent');
+                const userName = user ? user.name : 'Unknown User (Deleted)';
+                let html = `<h5>Student: ${userName}</h5><hr>`;
+
+                if (!attempt.answers || attempt.answers.length === 0) {
+                    html += '<p>No answers recorded for this attempt.</p>';
+                    content.innerHTML = html;
+                    document.getElementById('gradingModal').style.display = 'block';
+                    return;
+                }
+
+                attempt.answers.forEach((ans, index) => {
+                    const q = quiz.questions ? quiz.questions.find(quest => quest.id === ans.questionId) : null;
+
+                    if (!q) {
+                        html += `
+                            <div class="mb-4 p-3 bg-light border rounded">
+                                <p class="text-danger">Question deleted or not found.</p>
+                                <p class="text-muted">Recorded Answer: ${ans.answer}</p>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    const isEssay = q.type === 'essay';
+
+                    html += `
+                        <div class="mb-4 p-3" style="background:${isEssay ? '#fff3e0' : '#f9f9f9'}; border-radius:5px;">
+                            <p><strong>Q${index + 1}: ${q.text}</strong></p>
+                            <p class="text-muted">Student Answer:</p>
+                            <div class="p-2 border rounded bg-white mb-2">
+                                ${isEssay ? ans.answer : (q.options && q.options[ans.answer] ? q.options[ans.answer] : ans.answer)}
+                            </div>
+                    `;
+
+                    if (isEssay) {
+                        const keywordsHtml = q.keywords && q.keywords.length > 0
+                            ? q.keywords.map(k => `<span class="badge badge-secondary mr-1">${k}</span>`).join('')
+                            : '<span class="text-muted font-italic">No keywords defined</span>';
+
+                        html += `
+                            <div class="d-flex align-items-center mb-2">
+                                 <small class="mr-2">Keywords:</small> 
+                                 ${keywordsHtml}
+                            </div>
+                            <div class="form-group row">
+                                <label class="col-sm-4 col-form-label">Score (Max ${ans.maxScore})</label>
+                                <div class="col-sm-8">
+                                    <input type="number" class="form-control score-input" data-qid="${ans.questionId}" value="${ans.score}" max="${ans.maxScore}">
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        html += `<p class="small ${ans.score > 0 ? 'text-success' : 'text-danger'}">Auto-Score: ${ans.score}/${ans.maxScore}</p>`;
+                    }
+
+                    html += `</div>`;
+                });
+
+                html += `<button class="btn btn-success btn-block mt-3" onclick="saveGrade()">Finalize & Save Grade</button>`;
+                content.innerHTML = html;
+
+                document.getElementById('gradingModal').style.display = 'block';
+            } catch (error) {
+                console.error('Grading Error:', error);
+                alert('Sistem mengalami masalah: ' + error.message);
+            }
+        }
+
+        function closeGradingModal() {
+            document.getElementById('gradingModal').style.display = 'none';
+        }
+
+        function saveGrade() {
+            const data = getData();
+            const attemptIndex = data.quizAttempts.findIndex(a => a.id === currentAttemptId);
+            const attempt = data.quizAttempts[attemptIndex];
+
+            const inputs = document.querySelectorAll('.score-input');
+            let totalEarned = 0;
+            let totalMax = 0;
+
+            // Update scores from inputs
+            inputs.forEach(input => {
+                const qId = parseInt(input.dataset.qid);
+                const newScore = parseFloat(input.value);
+                const ansIndex = attempt.answers.findIndex(a => a.questionId === qId);
+                if (ansIndex > -1) {
+                    attempt.answers[ansIndex].score = newScore;
+                }
+            });
+
+            // Recalculate Total
+            attempt.answers.forEach(a => {
+                totalEarned += a.score;
+                totalMax += a.maxScore;
+            });
+
+            attempt.score = (totalEarned / totalMax) * 100;
+            attempt.status = 'graded';
+
+            saveData(data);
+
+            // If passed, maybe update enrollment?
+            checkCourseCompletion(attempt);
+
+            closeGradingModal();
+            loadSubmissions();
+            alert('Grade updated successfully!');
+        }
+
+        function checkCourseCompletion(attempt) {
+            const data = getData();
+            const quiz = data.quizzes.find(q => q.id === attempt.quizId);
+
+            if (attempt.score >= quiz.passingScore) {
+                // Find enrollment
+                let enrollment = data.enrollments.find(e => e.courseId === quiz.courseId && e.userId === attempt.userId);
+
+                if (!enrollment) {
+                    // Create if not exists (e.g. user took quiz directly)
+                    enrollment = {
+                        id: Date.now(),
+                        userId: attempt.userId,
+                        courseId: quiz.courseId,
+                        progress: 100,
+                        status: 'completed',
+                        completionDate: new Date().toISOString().split('T')[0]
+                    };
+                    data.enrollments.push(enrollment);
+                } else {
+                    enrollment.status = 'completed';
+                    enrollment.progress = 100;
+                    enrollment.completionDate = new Date().toISOString().split('T')[0];
+                }
+
+                // ALSO Generate Certificate HERE if missing
+                // Check if cert already exists
+                const existingCert = data.certificates.find(c => c.enrollmentId === enrollment.id || (c.userId === attempt.userId && c.courseName === data.courses.find(co => co.id === quiz.courseId).title));
+
+                if (!existingCert) {
+                    const course = data.courses.find(co => co.id === quiz.courseId);
+                    const certCode = `CERT-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`;
+                    data.certificates.push({
+                        id: Date.now(),
+                        enrollmentId: enrollment.id,
+                        userId: attempt.userId, // Use attempt.userId not 'user.id' (admin is logged in)
+                        courseName: course.title,
+                        date: enrollment.completionDate,
+                        code: certCode
+                    });
+                }
+
+                saveData(data);
+                console.log('Course marked as completed and certificate generated.');
+            }
+        }
+    </script>
+</body>
+
+</html>
+</body>
+
+</html>

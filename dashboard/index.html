@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - HR Platform</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h3>HR Portal</h3>
+            <nav class="nav-links">
+                <a href="index.html" class="nav-link active">Dashboard</a>
+                <a href="../recruitment/index.html" class="nav-link">Recruitment</a>
+                <a href="../learning/index.html" class="nav-link">Learning (LMS)</a>
+                <a href="../evaluation/index.html" class="nav-link">Performance</a>
+                <a href="#" onclick="logout()" class="nav-link text-danger">Logout</a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="header">
+                <h2>Welcome, <span id="userName">User</span></h2>
+                <div class="user-info">
+                    <span class="badge badge-success" id="userRole">Employee</span>
+                </div>
+            </header>
+
+            <div class="grid-container"
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                <div class="card clickable-card" onclick="showHistory('learning')">
+                    <h3>My Learning</h3>
+                    <p>Completed Courses: <strong id="completedCourses">0</strong> <i class="fas fa-external-link-alt"
+                            style="font-size:12px; color:#666;"></i></p>
+                    <div class="progress-bar" style="background:#eee; height:10px; border-radius:5px; margin-top:10px;">
+                        <div id="learningProgress"
+                            style="width:0%; background:var(--primary-color); height:100%; border-radius:5px;"></div>
+                    </div>
+                </div>
+                <div class="card clickable-card" onclick="alert('KPI History coming soon for employees!')">
+                    <h3>KPI Score</h3>
+                    <p class="display-4" id="kpiScore">-</p>
+                    <small>Last Evaluation</small>
+                </div>
+                <!-- 
+                <div class="card clickable-card" onclick="showHistory('assessment')">
+                     Use Assessment history for employee if they take quizzes too? 
+                     Usually employees have 'My Learning'. Let's map 'My Learning' to showHistory('learning').
+                     The 3rd card 'Announcements' doesn't really have history.
+                -->
+                <div class="card">
+                    <h3>Announcements</h3>
+                    <p>No new announcements.</p>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <h3>Performance History</h3>
+                <canvas id="performanceChart"></canvas>
+            </div>
+        </main>
+    </div>
+
+    <style>
+        /* Simple Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .close-modal {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close-modal:hover,
+        .close-modal:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .history-table th,
+        .history-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .history-table th {
+            background-color: #f2f2f2;
+        }
+
+        .clickable-card {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .clickable-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+
+    <!-- History Modal -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeHistoryModal()">&times;</span>
+            <h3 id="modalTitle"
+                style="border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-bottom: 15px;">
+                History</h3>
+            <div id="modalBody">Loading...</div>
+        </div>
+    </div>
+
+    <script src="../js/utils.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            updateSidebarForRole(); // Update sidebar
+            const user = checkAuth(['employee', 'manager', 'admin', 'candidate']); // Allow candidate
+            if (!user) return;
+
+            document.getElementById('userName').textContent = user.name;
+            document.getElementById('userRole').textContent = user.role.toUpperCase();
+
+            // Load Dashboard Data
+            loadDashboardData(user);
+        });
+
+        function loadDashboardData(user) {
+            const data = getData();
+
+            if (user.role === 'candidate') {
+                // Personal Learning Dashboard for Candidate
+                document.querySelector('h2').innerHTML = `My Learning Journey`;
+
+                // --- SMART DATA RECOVERY Check ---
+                if (user.id === 99999) {
+                    // (Simplified recover logic kept implicitly or removed if already passed)
+                }
+
+                // Logic to calculate stats
+                const myAttempts = data.quizAttempts ? data.quizAttempts.filter(a => a.userId === user.id) : [];
+                const myEnrollments = data.enrollments.filter(e => e.userId === user.id);
+
+                let completedCount = 0;
+                let pendingCount = 0;
+
+                // Check each course for completion via quiz
+                data.courses.forEach(course => {
+                    const quiz = data.quizzes.find(q => q.courseId === course.id);
+                    if (quiz) {
+                        const attempts = myAttempts.filter(a => a.quizId === quiz.id);
+                        if (attempts.length > 0) {
+                            attempts.sort((a, b) => b.score - a.score);
+                            const best = attempts[0];
+                            if (best.score >= quiz.passingScore || best.status === 'graded') {
+                                if (best.score >= quiz.passingScore) completedCount++;
+                            } else if (best.status === 'pending_review') {
+                                pendingCount++;
+                            }
+                        }
+                    }
+                });
+
+                let learningStatus = `${completedCount} Course${completedCount !== 1 ? 's' : ''} Completed`;
+                if (pendingCount > 0) learningStatus += `<br><span class="badge badge-warning mt-1">Pending Review: ${pendingCount}</span>`;
+
+                const totalProgress = myEnrollments.length > 0
+                    ? Math.round(myEnrollments.reduce((acc, curr) => acc + curr.progress, 0) / myEnrollments.length)
+                    : (completedCount > 0 ? 100 : 0);
+
+                // Application Status
+                const application = data.applications.find(a => a.candidateId === user.id);
+                const interviewStatus = application ? application.status : 'No Active Application';
+                let interviewBadge = 'badge-secondary';
+                if (application) {
+                    if (['Interview', 'Recommended'].includes(application.status)) interviewBadge = 'badge-warning';
+                    else if (application.status === 'Hired') interviewBadge = 'badge-success';
+                    else if (application.status === 'Rejected') interviewBadge = 'badge-danger';
+                    else if (application.status === 'Applied') interviewBadge = 'badge-primary';
+                }
+
+                // Assessment Logic
+                let displayScore = '-';
+                let displayStatus = 'Pending';
+                let scoreBadge = 'badge-secondary';
+
+                if (application && application.testScore) {
+                    displayScore = application.testScore;
+                    displayStatus = displayScore >= 70 ? 'Passed' : 'Failed';
+                } else if (myAttempts.length > 0) {
+                    const bestScore = Math.max(...myAttempts.map(a => a.score));
+                    displayScore = bestScore.toFixed(0);
+                    displayStatus = bestScore >= 70 ? 'Passed' : 'Failed';
+                }
+                if (displayStatus === 'Passed') scoreBadge = 'badge-success';
+                else if (displayStatus === 'Failed') scoreBadge = 'badge-danger';
+
+                // Render Grid with Clickable Cards
+                const grid = document.querySelector('.grid-container');
+                grid.innerHTML = `
+                    <div class="card clickable-card" onclick="showHistory('learning')">
+                        <h3><i class="fas fa-book-reader" style="color:var(--primary-color)"></i> Learning & Dev</h3>
+                        <p style="margin-top:10px; color:#666;">Explore courses to upgrade your skills. <i class="fas fa-external-link-alt" style="font-size:12px"></i></p>
+                        <div class="mt-3">
+                            <div style="font-size:1.2rem; font-weight:bold; margin-bottom:5px;">${learningStatus}</div>
+                            <div class="progress-bar" style="background:#eee; height:8px; border-radius:4px; margin-top:5px;">
+                                <div style="width:${totalProgress}%; background:var(--primary-color); height:100%; border-radius:4px;"></div>
+                            </div>
+                            <small>${totalProgress}% Total Progress</small>
+                        </div>
+                    </div>
+                    <div class="card clickable-card" onclick="showHistory('assessment')">
+                        <h3><i class="fas fa-award" style="color:#fbc02d"></i> Assessment Score</h3>
+                        <p style="margin-top:10px; color:#666;">General / Course Test <i class="fas fa-external-link-alt" style="font-size:12px"></i></p>
+                        <h2 style="color:var(--primary-color)">${displayScore} / 100</h2>
+                        <span class="badge ${scoreBadge}">${displayStatus}</span>
+                    </div>
+                    <div class="card clickable-card" onclick="showHistory('application')">
+                        <h3><i class="fas fa-comment-dots" style="color:#1976d2"></i> Application Status</h3>
+                        <p style="margin-top:10px;">Position: <strong>${application ? 'Software Engineer' : '-'}</strong> <i class="fas fa-external-link-alt" style="font-size:12px"></i></p>
+                        <span class="badge ${interviewBadge}">${interviewStatus}</span>
+                    </div>
+                `;
+
+                // Hide typical employee chart
+                const perfChart = document.getElementById('performanceChart');
+                if (perfChart) perfChart.parentElement.style.display = 'none';
+                return;
+            }
+
+            // Employee/Admin Logic (Unchanged)
+            const myEnrollments = data.enrollments.filter(e => e.userId === user.id);
+            const completedCount = myEnrollments.filter(e => e.status === 'completed').length;
+            const avgProgress = myEnrollments.length > 0 ? Math.round(myEnrollments.reduce((acc, curr) => acc + curr.progress, 0) / myEnrollments.length) : 0;
+
+            document.getElementById('completedCourses').textContent = completedCount;
+            document.getElementById('learningProgress').style.width = avgProgress + "%";
+
+            const eval = data.evaluations.find(e => e.employeeId === user.id);
+            if (eval) document.getElementById('kpiScore').textContent = eval.kpiScore;
+
+            // ... (Chart logic omitted for brevity in this replace, existing persistence handles it if I check lines carefully)
+            // Actually, I need to keep the chart logic or it will break for employees.
+            // Re-adding chart logic.
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'KPI Score',
+                        data: [70, 75, 78, 80, 82, 85],
+                        borderColor: '#007bff',
+                        tension: 0.4
+                    }]
+                }
+            });
+        }
+
+        // --- History Modal Functions ---
+        function showHistory(type) {
+            const modal = document.getElementById('historyModal');
+            const title = document.getElementById('modalTitle');
+            const body = document.getElementById('modalBody');
+            const data = getData();
+            const user = JSON.parse(localStorage.getItem('currentUser'));
+
+            modal.style.display = "block";
+
+            if (type === 'learning') {
+                title.textContent = "Learning History";
+                const myEnrollments = data.enrollments.filter(e => e.userId === user.id);
+                if (myEnrollments.length === 0) {
+                    body.innerHTML = "<p>No courses enrolled yet.</p>";
+                    return;
+                }
+
+                let html = `<table class="history-table"><thead><tr><th>Course</th><th>Progress</th><th>Status</th><th>Cert</th></tr></thead><tbody>`;
+                myEnrollments.forEach(e => {
+                    const course = data.courses.find(c => c.id === e.courseId);
+                    const hasCert = data.certificates.some(c => c.enrollmentId === e.id || (c.userId === user.id && c.courseName === course.title));
+                    html += `
+                        <tr>
+                            <td>${course ? course.title : 'Unknown'}</td>
+                            <td>${e.progress}%</td>
+                            <td><span class="badge ${e.status === 'completed' ? 'badge-success' : 'badge-primary'}">${e.status}</span></td>
+                            <td>${hasCert ? '<i class="fas fa-certificate text-warning"></i> Yes' : '-'}</td>
+                        </tr>
+                    `;
+                });
+                html += `</tbody></table>`;
+                body.innerHTML = html;
+            }
+            else if (type === 'assessment') {
+                title.textContent = "Assessment History";
+                const myAttempts = data.quizAttempts ? data.quizAttempts.filter(a => a.userId === user.id) : [];
+                if (myAttempts.length === 0) {
+                    body.innerHTML = "<p>No assessments taken yet.</p>";
+                    return;
+                }
+
+                let html = `<table class="history-table"><thead><tr><th>Quiz</th><th>Date</th><th>Score</th><th>Status</th></tr></thead><tbody>`;
+                myAttempts.sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort latest first
+                myAttempts.forEach(a => {
+                    const quiz = data.quizzes.find(q => q.id === a.quizId);
+                    html += `
+                        <tr>
+                            <td>${quiz ? quiz.title : 'Unknown'}</td>
+                            <td>${a.date || '-'}</td>
+                            <td><strong>${a.score.toFixed(0)}</strong></td>
+                            <td><span class="badge ${a.score >= (quiz?.passingScore || 70) ? 'badge-success' : (a.status === 'pending_review' ? 'badge-warning' : 'badge-danger')}">${a.status === 'pending_review' ? 'Pending' : (a.score >= 70 ? 'Passed' : 'Failed')}</span></td>
+                        </tr>
+                    `;
+                });
+                html += `</tbody></table>`;
+                body.innerHTML = html;
+            }
+            else if (type === 'application') {
+                title.textContent = "Application Status";
+                const app = data.applications.find(a => a.candidateId === user.id);
+                if (!app) {
+                    body.innerHTML = "<p>No active job application.</p>";
+                    return;
+                }
+
+                body.innerHTML = `
+                    <div style="background:#f9f9f9; padding:15px; border-radius:5px;">
+                        <h4>Software Engineer</h4>
+                        <p><strong>Job ID:</strong> ${app.jobId || 'JOB-001'}</p>
+                        <p><strong>Status:</strong> <span class="badge badge-primary">${app.status}</span></p>
+                        <p><strong>Applied Date:</strong> ${app.appliedDate || '-'}</p>
+                        <p><strong>Test Score:</strong> ${app.testScore || 'N/A'}</p>
+                        <hr>
+                        <small>Recruitment team will contact you for the next steps.</small>
+                    </div>
+                `;
+            }
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('historyModal').style.display = "none";
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function (event) {
+            const modal = document.getElementById('historyModal');
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+    </script>
+</body>
+
+</html>
