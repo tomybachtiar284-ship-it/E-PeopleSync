@@ -9,8 +9,16 @@
 </head>
 
 <body>
-    <div style="display: flex; height: 100vh; align-items: center; justify-content: center; background: #f4f6f8;">
-        <div class="card" style="width: 400px; padding: 40px; text-align: center;">
+    <div
+        style="display: flex; height: 100vh; align-items: center; justify-content: center; background: url('../assets/hero-bg.png') no-repeat center center; background-size: cover; position: relative;">
+        <!-- Overlay for readability -->
+        <div
+            style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 121, 107, 0.7); z-index: 1;">
+        </div>
+
+        <div class="card"
+            style="width: 400px; padding: 40px; text-align: center; position: relative; z-index: 2; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+
             <img src="../assets/logo.png" alt="E-PeopleSync Logo"
                 style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #eee; margin-bottom: 20px;">
             <h2 style="margin-bottom: 5px;">Admin Portal</h2>
