@@ -34,10 +34,7 @@ const FIELD_MAP = {
 
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth(['admin']);
-    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    if (currentUser) {
-        document.getElementById('userName').textContent = currentUser.name;
-    }
+    initUserProfile();
     loadEmployees();
     populateDeptAndLocation();
 });

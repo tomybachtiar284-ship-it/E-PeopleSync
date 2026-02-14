@@ -168,6 +168,29 @@ function updateSidebarForRole() {
     }
 }
 
+// Helper: Initialize Dynamic Global Profile (Header)
+function initUserProfile() {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    if (!currentUser) return;
+
+    // Update Name
+    const nameEl = document.getElementById('userName');
+    if (nameEl) nameEl.textContent = currentUser.name;
+
+    // Update Role
+    const roleEl = document.getElementById('userRole');
+    if (roleEl) roleEl.textContent = currentUser.role.toUpperCase() + (currentUser.department ? ` - ${currentUser.department}` : '');
+
+    // Update Avatar
+    const avatarImg = document.querySelector('.user-avatar');
+    if (avatarImg && currentUser.avatar) {
+        avatarImg.src = currentUser.avatar;
+    } else if (avatarImg && currentUser.role === 'admin' && !currentUser.avatar) {
+        // Fallback for local admin if no Google photo
+        avatarImg.src = 'https://i.pravatar.cc/150?u=admin_epeoplesync';
+    }
+}
+
 // Helper: Logout
 function logout() {
     localStorage.removeItem('currentUser');

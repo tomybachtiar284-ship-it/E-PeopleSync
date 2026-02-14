@@ -47,6 +47,7 @@ function handleGoogleLogin() {
             role: 'employee', // Default role
             name: name,
             email: email,
+            avatar: `https://i.pravatar.cc/150?u=${email}`, // Simulated Google Photo
             source: 'google_oauth'
         };
 

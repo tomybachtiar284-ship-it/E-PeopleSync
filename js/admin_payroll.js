@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('payrollYear').value = now.getFullYear();
 
     loadPayrollData();
+    initUserProfile();
 });
 
 function refreshPayrollWithLoading() {

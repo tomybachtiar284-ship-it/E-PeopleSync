@@ -163,7 +163,7 @@
             var data = getData();
 
             if (user) {
-                document.getElementById('userName').textContent = user.name;
+                initUserProfile();
 
                 // Admin Features
                 if (user.role === 'admin' || user.role === 'manager') {

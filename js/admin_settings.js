@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadUsers();
     loadMasterData();
     populateDropdown('uDept', getData().departments);
+    initUserProfile();
 });
 
 function switchTab(tab) {

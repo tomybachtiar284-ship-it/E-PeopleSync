@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadEmployees();
     loadCoursesAdmin();
     updateNotifications();
+    initUserProfile();
 
     // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {

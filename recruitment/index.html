@@ -268,8 +268,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             updateSidebarForRole();
             const data = getData();
-            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-            if (currentUser) document.getElementById('userName').textContent = currentUser.name + ` (${currentUser.role})`;
+            if (currentUser) initUserProfile();
 
             // View Control
             if (currentUser && currentUser.role === 'candidate') {

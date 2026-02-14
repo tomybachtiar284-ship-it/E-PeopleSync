@@ -127,8 +127,7 @@
     <script src="../js/utils.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const user = checkAuth(['employee', 'manager', 'admin']);
-            if (user) document.getElementById('userName').textContent = user.name;
+            if (user) initUserProfile();
 
             // Radar Chart
             new Chart(document.getElementById('radarChart'), {
