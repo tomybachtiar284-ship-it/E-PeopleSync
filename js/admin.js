@@ -10,6 +10,16 @@ document.addEventListener('DOMContentLoaded', () => {
     loadJobs();
     loadEmployees();
     loadCoursesAdmin();
+    updateNotifications();
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        const dropdown = document.getElementById('notifDropdown');
+        const container = document.getElementById('notifContainer');
+        if (dropdown && !container.contains(e.target)) {
+            dropdown.classList.remove('active');
+        }
+    });
 
     // Event Listeners
     const jobForm = document.getElementById('addJobForm');
@@ -26,6 +36,61 @@ window.showTab = function (tabId) {
 
     document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
     document.getElementById('nav-' + tabId).classList.add('active');
+};
+
+/**
+ * Notifications Logic
+ */
+function updateNotifications() {
+    const data = getData();
+    const badge = document.getElementById('notifBadge');
+    const body = document.getElementById('notifBody');
+    const countText = document.getElementById('notifCountText');
+
+    if (!badge || !body) return;
+
+    // Filter New Applications
+    const newApps = data.applications.filter(a => a.status === 'Applied');
+    const count = newApps.length;
+
+    // Update Badge
+    if (count > 0) {
+        badge.textContent = count;
+        badge.style.display = 'flex';
+        countText.textContent = `${count} New`;
+    } else {
+        badge.style.display = 'none';
+        countText.textContent = `No New`;
+    }
+
+    // Populate Body
+    if (count > 0) {
+        body.innerHTML = '';
+        // Show last 5
+        newApps.slice(-5).reverse().forEach(app => {
+            const item = document.createElement('div');
+            item.className = 'notif-item';
+            item.onclick = () => window.location.href = '../recruitment/index.html';
+            item.innerHTML = `
+                <i class="fas fa-user-plus"></i>
+                <div class="notif-content">
+                    <div class="notif-title">New Application: <b>${app.name}</b></div>
+                    <div class="notif-time">Position: ${app.jobTitle}</div>
+                </div>
+            `;
+            body.appendChild(item);
+        });
+    } else {
+        body.innerHTML = '<div class="notif-empty">No new notifications</div>';
+    }
+}
+
+window.toggleNotifDropdown = function (e) {
+    e.stopPropagation();
+    const dropdown = document.getElementById('notifDropdown');
+    if (dropdown) {
+        dropdown.classList.toggle('active');
+    }
 };
 
 /**

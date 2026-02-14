@@ -47,12 +47,36 @@
                     <h2>System Administration</h2>
                     <p class="text-muted">Manage users, roles, and master data.</p>
                 </div>
-                <div class="user-profile">
-                    <div class="user-details">
-                        <h4 id="userName">Admin</h4>
-                        <span id="userRole">ADMIN HR</span>
+                <div class="header-right">
+                    <div class="notification" id="notifContainer" onclick="toggleNotifDropdown(event)">
+                        <i class="far fa-bell" style="font-size: 20px; color: #666;"></i>
+                        <div class="badge" id="notifBadge" style="display: none;">0</div>
+
+                        <!-- Notification Dropdown -->
+                        <div id="notifDropdown" class="notif-dropdown">
+                            <div class="notif-header">
+                                <span>Notifications</span>
+                                <span id="notifCountText" style="font-size: 12px; font-weight: normal; color: #888;">0
+                                    New</span>
+                            </div>
+                            <div class="notif-body" id="notifBody">
+                                <!-- Notifications will be injected here -->
+                                <div class="notif-empty">No new notifications</div>
+                            </div>
+                            <div style="padding: 10px; text-align: center; border-top: 1px solid #f0f0f0;">
+                                <a href="../recruitment/index.html"
+                                    style="font-size: 12px; color: var(--primary-color); font-weight: 600;">View All
+                                    Applications</a>
+                            </div>
+                        </div>
                     </div>
-                    <img src="https://i.pravatar.cc/150?img=1" class="user-avatar" alt="Profile">
+                    <div class="user-profile">
+                        <div class="user-details">
+                            <h4 id="userName">Admin</h4>
+                            <span id="userRole">ADMIN HR</span>
+                        </div>
+                        <img src="https://i.pravatar.cc/150?img=1" class="user-avatar" alt="Profile">
+                    </div>
                 </div>
             </header>
 
