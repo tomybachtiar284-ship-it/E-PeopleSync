@@ -13,6 +13,35 @@ document.addEventListener('DOMContentLoaded', () => {
     loadPayrollData();
 });
 
+function refreshPayrollWithLoading() {
+    const btn = document.getElementById('refreshBtn');
+    const originalHTML = btn.innerHTML;
+
+    // Set loading state
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memuat Data...';
+    btn.style.opacity = '0.8';
+
+    // Simulate network/processing delay for professional feel
+    setTimeout(() => {
+        loadPayrollData();
+
+        // Restore button
+        btn.innerHTML = '<i class="fas fa-check"></i> Selesai Sinkron';
+        btn.classList.add('btn-success');
+        btn.classList.remove('btn-primary');
+
+        // Final restore after 1.5s
+        setTimeout(() => {
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-primary');
+            btn.style.opacity = '1';
+        }, 1500);
+    }, 800);
+}
+
 function getPayrollKey() {
     const m = document.getElementById('payrollMonth').value;
     const y = document.getElementById('payrollYear').value;
@@ -35,6 +64,7 @@ function loadPayrollData() {
                 id: e.id,
                 name: e.name,
                 nid: e.nid,
+                email: e.emailCompany || e.emailPersonal || '-',
                 position: e.position,
                 baseSalary: parseFloat(e.baseSalary) || 0,
                 fixedAllowance: parseFloat(e.fixedAllowance) || 0,
@@ -43,7 +73,8 @@ function loadPayrollData() {
                 otRate: Math.round((parseFloat(e.baseSalary) || 0) / 173),
                 bonus: 0,
                 deduction: 0,
-                status: 'Draft'
+                status: 'Draft',
+                emailStatus: 'Not Sent'
             };
         });
     } else {
@@ -54,6 +85,7 @@ function loadPayrollData() {
                     id: e.id,
                     name: e.name,
                     nid: e.nid,
+                    email: e.emailCompany || e.emailPersonal || '-',
                     position: e.position,
                     baseSalary: parseFloat(e.baseSalary) || 0,
                     fixedAllowance: parseFloat(e.fixedAllowance) || 0,
@@ -62,30 +94,63 @@ function loadPayrollData() {
                     otRate: Math.round((parseFloat(e.baseSalary) || 0) / 173),
                     bonus: 0,
                     deduction: 0,
-                    status: 'Draft'
+                    status: 'Draft',
+                    emailStatus: 'Not Sent'
                 };
+            } else {
+                // ALWAYS Sync Master Data if still in Draft, or update critical info
+                const item = payrollRecord[e.id];
+                item.name = e.name;
+                item.nid = e.nid;
+                item.position = e.position;
+                item.email = e.emailCompany || e.emailPersonal || '-';
+
+                // Always sync salary info to reflect latest master data
+                const oldBase = item.baseSalary;
+                item.baseSalary = parseFloat(e.baseSalary) || 0;
+                item.fixedAllowance = parseFloat(e.fixedAllowance) || 0;
+                item.transportAllowance = parseFloat(e.transportAllowance) || 0;
+                item.otRate = Math.round((item.baseSalary) / 173);
+
+                // If Master Data (Salary) changed and it was already processed, mark it!
+                if (item.status === 'Processed' && oldBase !== item.baseSalary) {
+                    item.status = 'Modified'; // Needs re-calculation
+                }
             }
         });
     }
+
+    // Persist the synced record (especially for Drafts/Modified that got updated salaries)
+    if (!data.payrolls) data.payrolls = {};
+    data.payrolls[key] = payrollRecord;
+    saveData(data);
 
     renderPayrollTable(payrollRecord);
     updateSummary(payrollRecord);
 }
 
 function renderPayrollTable(record) {
-    consttbody = document.getElementById('payrollTableBody');
-    const tbody = document.getElementById('payrollTableBody'); // Fix typo
+    const tbody = document.getElementById('payrollTableBody');
     tbody.innerHTML = '';
 
     Object.values(record).forEach(item => {
         const salary = formatRupiah(item.baseSalary);
-        const thp = item.thp ? formatRupiah(item.thp) : '-'; // Only show if processed
+        // Fix: Properly handle 0 or negative THP (don't show '-' if it's 0)
+        const thp = (item.thp !== undefined && item.thp !== null) ? formatRupiah(item.thp) : '-';
+
+        let statusClass = 'text-muted';
+        if (item.status === 'Processed') statusClass = 'text-success';
+        if (item.status === 'Modified') statusClass = 'text-warning';
+
+        const emailStatusText = item.emailStatus === 'Sent' ? '<small class="text-success"><i class="fas fa-check-circle"></i> Sent</small>' : '';
+        const modifiedText = item.status === 'Modified' ? '<br><small class="text-warning"><i class="fas fa-exclamation-triangle"></i> Gaji Berubah - Mohon Hitung Ulang</small>' : '';
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>
                 <strong>${item.name}</strong><br>
-                <small class="text-muted">${item.nid || 'No NID'}</small>
+                <small class="text-muted">${item.nid || 'No NID'}</small><br>
+                <small class="text-muted" style="font-size:11px;">${item.email}</small>
             </td>
             <td>${item.position || '-'}</td>
             <td>${salary}</td>
@@ -103,11 +168,14 @@ function renderPayrollTable(record) {
             </td>
             <td>
                 <strong style="color:var(--primary-color); font-size:14px;">${thp}</strong><br>
-                <small>${item.status}</small>
+                <small>${item.status}</small> ${emailStatusText}
             </td>
             <td>
-                <button class="btn btn-sm btn-success" onclick="processItem('${item.id}')"><i class="fas fa-calculator"></i></button>
-                ${item.status === 'Processed' ? `<button class="btn btn-sm btn-info" onclick="viewPayslip('${item.id}')"><i class="fas fa-file-invoice"></i></button>` : ''}
+                <button class="btn btn-sm btn-success" onclick="processItem('${item.id}')" title="Calculate"><i class="fas fa-calculator"></i></button>
+                ${item.status === 'Processed' ? `
+                    <button class="btn btn-sm btn-info" onclick="viewPayslip('${item.id}')" title="View/Print"><i class="fas fa-file-invoice"></i></button>
+                    <button class="btn btn-sm btn-primary" id="btnEmail_${item.id}" onclick="sendPayslipEmail('${item.id}')" title="Send via Email"><i class="fas fa-envelope"></i></button>
+                ` : ''}
             </td>
         `;
         tbody.appendChild(tr);
@@ -378,4 +446,81 @@ function closePayslipModal() {
 
 function formatRupiah(amount) {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
+}
+
+function sendPayslipEmail(id) {
+    const data = getData();
+    const key = getPayrollKey();
+    const record = data.payrolls[key][id];
+    const user = data.users.find(u => u.id == id);
+
+    if (!record || record.status !== 'Processed') {
+        alert('Please process payroll first before sending email.');
+        return;
+    }
+
+    // Ensure we have the latest email from the user object
+    const email = user ? (user.emailCompany || user.emailPersonal) : record.email;
+
+    if (!email || email === '-') {
+        alert('Employee email not found. Please update employee profile.');
+        return;
+    }
+
+    // Period formatting
+    const m = document.getElementById('payrollMonth').options[document.getElementById('payrollMonth').selectedIndex].text;
+    const y = document.getElementById('payrollYear').value;
+    const period = `${m} ${y}`;
+
+    // Subject & Body Preview
+    const subject = `Slip Gaji Kompetenza - ${record.name} - ${period}`;
+    const body = `
+        Halo <b>${record.name}</b>,<br><br>
+        Terlampir adalah rincian slip gaji Anda untuk periode <b>${period}</b>.<br>
+        Total Gaji Bersih (THP): <b>${formatRupiah(record.thp)}</b>.<br><br>
+        Silakan cek rincian lengkapnya melalui sistem atau hubungi HR jika ada pertanyaan.<br><br>
+        Salam,<br>
+        <b>Finance Dept - Kompetenza Indonesia</b>
+    `;
+
+    // Populate Modal
+    document.getElementById('emailTargetDisplay').textContent = email;
+    document.getElementById('emailSubjectInput').value = subject;
+    document.getElementById('emailBodyDisplay').innerHTML = body;
+    document.getElementById('emailConfirmModal').style.display = 'block';
+
+    // Set click handler for confirmation button
+    document.getElementById('confirmSendBtn').onclick = () => {
+        closeEmailConfirm();
+        performEmailSend(id, email);
+    };
+}
+
+function closeEmailConfirm() {
+    document.getElementById('emailConfirmModal').style.display = 'none';
+}
+
+function performEmailSend(id, email) {
+    const key = getPayrollKey();
+    const btn = document.getElementById(`btnEmail_${id}`);
+    const originalContent = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+    // Simulate sending delay
+    setTimeout(() => {
+        btn.innerHTML = originalContent;
+        btn.disabled = false;
+
+        // Update status in data
+        const freshData = getData();
+        if (freshData.payrolls && freshData.payrolls[key] && freshData.payrolls[key][id]) {
+            freshData.payrolls[key][id].emailStatus = 'Sent';
+            freshData.payrolls[key][id].email = email; // Finalize email in record
+            saveData(freshData);
+        }
+
+        loadPayrollData();
+        alert(`Sukses! Slip gaji periode ini telah dikirim ke: ${email}`);
+    }, 1500);
 }

@@ -205,7 +205,9 @@
                         <label>Year</label>
                         <input type="number" id="payrollYear" class="form-control" style="width:100px;" value="2026">
                     </div>
-                    <button class="btn btn-primary" onclick="loadPayrollData()">Load / Refresh Data</button>
+                    <button id="refreshBtn" class="btn btn-primary" onclick="refreshPayrollWithLoading()">
+                        <i class="fas fa-sync-alt"></i> Load / Refresh Data
+                    </button>
                     <button class="btn btn-success" onclick="processAllPayroll()"><i class="fas fa-cogs"></i> Process
                         All</button>
                     <button class="btn btn-danger" onclick="resetPayroll()"><i class="fas fa-trash"></i> Reset
@@ -252,6 +254,47 @@
 
             <div class="payslip-container" id="payslipContent">
                 <!-- Content injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Confirmation Modal -->
+    <div id="emailConfirmModal" class="modal"
+        style="display:none; position:fixed; z-index:200; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.5);">
+        <div class="modal-content"
+            style="background:#fff; margin:15% auto; padding:0; border-radius:10px; width:550px; overflow:hidden; box-shadow:0 5px 20px rgba(0,0,0,0.2);">
+            <div
+                style="background:var(--primary-color); color:#fff; padding:15px 20px; display:flex; align-items:center; gap:10px;">
+                <i class="fas fa-paper-plane"></i>
+                <h3 style="margin:0; font-size:18px;">Email Preview & Konfirmasi</h3>
+            </div>
+
+            <div style="padding:20px;">
+                <p style="color:#666; margin-bottom:20px; font-size:14px;">Silakan tinjau isi email sebelum dikirim ke
+                    karyawan.</p>
+
+                <div
+                    style="display:grid; grid-template-columns: 80px 1fr; gap:10px; margin-bottom:15px; border-bottom:1px solid #f0f0f0; padding-bottom:15px;">
+                    <div style="color:#888; font-weight:500; align-self: center;">Kepada:</div>
+                    <div id="emailTargetDisplay" style="font-weight:600; color:var(--primary-color); padding: 5px 0;">
+                        user@example.com</div>
+
+                    <div style="color:#888; font-weight:500; align-self: center;">Subjek:</div>
+                    <input type="text" id="emailSubjectInput"
+                        style="width: 100%; border: 1px solid #ddd; border-radius: 4px; padding: 5px 8px; font-weight: 600; font-family: inherit; font-size: 14px;"
+                        value="Slip Gaji - Periode - Nama">
+                </div>
+
+                <div style="background:#f8f9fa; border:1px solid #e9ecef; border-radius:6px; padding:15px; font-size:13px; color:#444; line-height:1.6; max-height:200px; overflow-y:auto; outline: none; transition: border-color 0.2s;"
+                    id="emailBodyDisplay" contenteditable="true" title="Klik untuk mengedit pesan">
+                    <!-- Dynamic Content -->
+                </div>
+
+                <div style="margin-top:25px; display:flex; justify-content:flex-end; gap:12px;">
+                    <button class="btn btn-secondary" onclick="closeEmailConfirm()">Batal</button>
+                    <button class="btn btn-primary" id="confirmSendBtn"
+                        style="padding-left:20px; padding-right:20px;">Kirim Sekarang</button>
+                </div>
             </div>
         </div>
     </div>
