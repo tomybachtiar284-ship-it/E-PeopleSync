@@ -61,6 +61,7 @@
                 <div class="tabs mb-4">
                     <button class="btn btn-outline-primary active" onclick="switchTab('users')">User Management</button>
                     <button class="btn btn-outline-primary" onclick="switchTab('master')">Master Data</button>
+                    <button class="btn btn-outline-primary" onclick="switchTab('payroll')">Payroll Settings</button>
                 </div>
 
                 <!-- User Management Section -->
@@ -123,6 +124,63 @@
                                 <ul id="typeList" class="list-group"></ul>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Payroll Settings Section -->
+                <div id="tab-payroll" style="display: none;">
+                    <div class="card" style="max-width: 600px;">
+                        <h3 class="mb-4">Global Payroll Settings</h3>
+                        <form id="payrollSettingsForm">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>BPJS JHT Employee (%)</label>
+                                        <input type="number" step="0.1" id="set_bpjs_jht" class="form-control" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>BPJS JP Employee (%)</label>
+                                        <input type="number" step="0.1" id="set_bpjs_jp" class="form-control" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>BPJS Kesehatan (%)</label>
+                                        <input type="number" step="0.1" id="set_bpjs_kes" class="form-control" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>OT Hourly Index (1/N)</label>
+                                        <input type="number" id="set_ot_index" class="form-control" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Biaya Jabatan Limit (Monthly)</label>
+                                        <input type="number" id="set_tax_limit" class="form-control" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>PTKP TK/0 (Yearly)</label>
+                                        <input type="number" id="set_ptkp0" class="form-control" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Update
+                                    Settings</button>
+                                <button type="button" class="btn btn-outline-danger"
+                                    onclick="resetPayrollSettings()">Reset to Default</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>

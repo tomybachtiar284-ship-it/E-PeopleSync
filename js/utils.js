@@ -72,7 +72,15 @@ const defaultData = {
         { id: 1, text: "Which HTML tag is used to define an internal style sheet?", options: ["<script>", "<css>", "<style>"], answer: 2 },
         { id: 2, text: "Which property is used to change the background color?", options: ["color", "bgcolor", "background-color"], answer: 2 },
         { id: 3, text: "How do you create a function in JavaScript?", options: ["function myFunction()", "function:myFunction()", "function = myFunction()"], answer: 0 }
-    ]
+    ],
+    payrollSettings: {
+        bpjs_jht_emp: 2,
+        bpjs_jp_emp: 1,
+        bpjs_kes_emp: 1,
+        ot_index: 173,
+        tax_office_limit: 500000,
+        ptkp0: 54000000
+    }
 };
 
 // Initialize Data if empty
@@ -90,6 +98,7 @@ function initData() {
         if (!data.courseCategories) { data.courseCategories = defaultData.courseCategories; changed = true; }
         if (!data.courseLevels) { data.courseLevels = defaultData.courseLevels; changed = true; }
         if (!data.recruitmentQuestions) { data.recruitmentQuestions = defaultData.recruitmentQuestions; changed = true; }
+        if (!data.payrollSettings) { data.payrollSettings = defaultData.payrollSettings; changed = true; }
         if (changed) {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
             console.log('Data migrated with new fields.');

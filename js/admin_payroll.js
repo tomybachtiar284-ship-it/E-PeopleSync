@@ -215,6 +215,16 @@ function processAllPayroll() {
     if (!data.payrolls) data.payrolls = {};
     let record = data.payrolls[key] || {};
 
+    // Get Dynamic Settings
+    const settings = data.payrollSettings || {
+        bpjs_jht_emp: 2,
+        bpjs_jp_emp: 1,
+        bpjs_kes_emp: 1,
+        ot_index: 173,
+        tax_office_limit: 500000,
+        ptkp0: 54000000
+    };
+
     employees.forEach(e => {
         // Get existing inputs or defaults
         const existing = record[e.id] || {};
@@ -230,32 +240,30 @@ function processAllPayroll() {
         const manualDeduction = existing.deduction || 0;
 
         // CALCULATIONS
-        // 1. Overtime (1/173 rule)
-        const otPay = Math.round((base / 173) * otHours);
+        // 1. Overtime (Dynamic index rule)
+        const otPay = Math.round((base / settings.ot_index) * otHours);
 
         // 2. Gross Salary
         const gross = base + fixed + transport + otPay + bonus;
 
-        // 3. BPJS Calculations
-        // JHT (2%), JP (1%), Kes (1%) - Paid by Employee
-        const bpjsJHT = Math.round(base * 0.02);
-        const bpjsJP = Math.round(base * 0.01);
-        const bpjsKes = Math.round(base * 0.01);
+        // 3. BPJS Calculations (Dynamic rates)
+        const bpjsJHT = Math.round(base * (settings.bpjs_jht_emp / 100));
+        const bpjsJP = Math.round(base * (settings.bpjs_jp_emp / 100));
+        const bpjsKes = Math.round(base * (settings.bpjs_kes_emp / 100));
         const totalBPJS = bpjsJHT + bpjsJP + bpjsKes;
 
         // 4. PPh 21 Calculation (Simplified Progressive)
-        // Biaya Jabatan (5% max 500k)
+        // Biaya Jabatan (5% max [tax_office_limit])
         let biayaJabatan = gross * 0.05;
-        if (biayaJabatan > 500000) biayaJabatan = 500000;
+        if (biayaJabatan > settings.tax_office_limit) biayaJabatan = settings.tax_office_limit;
 
         const netMonth = gross - biayaJabatan - totalBPJS;
         const netYear = netMonth * 12;
 
         // PTKP (Status Nikah)
-        const marital = e.maritalStatus || 'Belum Menikah'; // Simplified
-        let ptkp = 54000000; // TK/0
+        const marital = e.maritalStatus || 'Belum Menikah';
+        let ptkp = settings.ptkp0; // Dynamic PTKP TK/0
         if (marital === 'Menikah') ptkp += 4500000;
-        // Tanggungan anak not yet in data, assume 0 for safe calc
 
         let pkp = netYear - ptkp;
         if (pkp < 0) pkp = 0;
@@ -523,4 +531,12 @@ function performEmailSend(id, email) {
         loadPayrollData();
         alert(`Sukses! Slip gaji periode ini telah dikirim ke: ${email}`);
     }, 1500);
+}
+
+function openGuideModal() {
+    document.getElementById('payrollGuideModal').style.display = 'block';
+}
+
+function closeGuideModal() {
+    document.getElementById('payrollGuideModal').style.display = 'none';
 }
