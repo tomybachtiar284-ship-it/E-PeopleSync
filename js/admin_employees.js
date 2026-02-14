@@ -296,3 +296,145 @@ document.getElementById('empForm').addEventListener('submit', async (e) => {
     closeEmpModal();
     loadEmployees();
 });
+
+// === Excel Import/Export Logic ===
+
+function downloadTemplate() {
+    // 1. Prepare Headers (Human Readable)
+    const headers = [
+        "NID", "Name", "Birth Place", "Birth Date (YYYY-MM-DD)", "Gender", "Marital Status",
+        "Religion", "Citizenship", "KTP Number", "NPWP", "Address Domicile", "Address KTP",
+        "Phone", "Phone Emergency", "Email Personal", "Email Company", "Join Date (YYYY-MM-DD)",
+        "Employee Status", "Contract Period", "Position", "Department", "Supervisor",
+        "Location", "Shift", "Grade", "Level", "Active Status", "BPJS Health", "BPJS Labor",
+        "Base Salary", "Fixed Allowance", "Transport Allowance", "Bank Name", "Bank Account",
+        "Bank Holder", "Education", "Major", "Graduation Year", "Skills", "Certifications",
+        "Training History", "Competency Level", "Position History", "Promotion History",
+        "Mutation History", "Previous Company", "KPI Score", "Eval History", "Discipline Status", "HR Notes"
+    ];
+
+    // 2. Create Sheet
+    const ws = XLSX.utils.aoa_to_sheet([headers]);
+
+    // Add some sample data for guidance
+    XLSX.utils.sheet_add_aoa(ws, [[
+        "EMP-0001", "John Doe", "Jakarta", "1990-01-01", "Male", "Single",
+        "Islam", "WNI", "1234567890", "09.123.456.7", "St. Example 1", "St. Example 1",
+        "08123456789", "08123456780", "john@personal.com", "john@company.com", "2024-01-01",
+        "Tetap", "Permanent", "Developer", "IT", "Jane Manager",
+        "Jakarta", "Shift A", "G3", "Staff", "Aktif", "12345", "67890",
+        "5000000", "500000", "300000", "BCA", "987654321", "John Doe",
+        "S1", "Informatics", "2012", "JS, Python", "AWS Certified",
+        "Basic Training", "High", "Junior", "Mid", "None", "Company A", "4.5", "Good", "None", "Great employee"
+    ]], { origin: "A2" });
+
+    // Formatting: Adjust column widths
+    const wscols = headers.map(h => ({ wch: h.length + 5 }));
+    ws['!cols'] = wscols;
+
+    // 3. Create Workbook and Download
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Employees");
+    XLSX.writeFile(wb, "E-PeopleSync_Employee_Template.xlsx");
+}
+
+function triggerImport() {
+    document.getElementById('importExcelInput').click();
+}
+
+async function handleImportExcel(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+        if (jsonData.length === 0) {
+            alert("File Excel kosong atau tidak terbaca.");
+            return;
+        }
+
+        importJSONToDatabase(jsonData);
+        input.value = ''; // Reset input
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function importJSONToDatabase(rows) {
+    const data = getData();
+    let importedCount = 0;
+    let skippedCount = 0;
+
+    // Map Excel Headers back to internal keys
+    const headerMap = {
+        "NID": "nid", "Name": "name", "Birth Place": "birthPlace", "Birth Date (YYYY-MM-DD)": "birthDate",
+        "Gender": "gender", "Marital Status": "maritalStatus", "Religion": "religion",
+        "Citizenship": "citizenship", "KTP Number": "ktpNumber", "NPWP": "npwp",
+        "Address Domicile": "addressDomicile", "Address KTP": "addressKTP",
+        "Phone": "phone", "Phone Emergency": "phoneEmergency", "Email Personal": "emailPersonal",
+        "Email Company": "emailCompany", "Join Date (YYYY-MM-DD)": "joinDate",
+        "Employee Status": "employeeStatus", "Contract Period": "contractPeriod",
+        "Position": "position", "Department": "department", "Supervisor": "supervisor",
+        "Location": "location", "Shift": "shift", "Grade": "grade", "Level": "level",
+        "Active Status": "activeStatus", "BPJS Health": "bpjsHealth", "BPJS Labor": "bpjsLabor",
+        "Base Salary": "baseSalary", "Fixed Allowance": "fixedAllowance", "Transport Allowance": "transportAllowance",
+        "Bank Name": "bankName", "Bank Account": "bankAccount", "Bank Holder": "bankHolder",
+        "Education": "education", "Major": "major", "Graduation Year": "gradYear",
+        "Skills": "skills", "Certifications": "certifications", "Training History": "trainingHistory",
+        "Competency Level": "competencyLevel", "Position History": "positionHistory",
+        "Promotion History": "promotionHistory", "Mutation History": "mutationHistory",
+        "Previous Company": "previousCompany", "KPI Score": "kpiScore", "Eval History": "evalHistory",
+        "Discipline Status": "disciplineStatus", "HR Notes": "hrNotes"
+    };
+
+    rows.forEach(row => {
+        const nid = row["NID"] ? row["NID"].toString().trim() : null;
+        const name = row["Name"] ? row["Name"].toString().trim() : null;
+
+        if (!nid || !name) {
+            skippedCount++;
+            return;
+        }
+
+        // Check for duplicates
+        if (data.users.some(u => u.nid === nid)) {
+            skippedCount++;
+            return;
+        }
+
+        // Build User Object
+        let newUser = {
+            id: Date.now() + Math.floor(Math.random() * 1000),
+            password: 'password', // Default password
+            role: (row["Level"] === 'Manager' || row["Level"] === 'Director') ? 'manager' : 'employee',
+            source: 'excel_import'
+        };
+
+        // Map all fields from row
+        for (const [excelHeader, internalKey] of Object.entries(headerMap)) {
+            if (row[excelHeader] !== undefined) {
+                newUser[internalKey] = row[excelHeader].toString().trim();
+            }
+        }
+
+        // Fallback for username
+        if (!newUser.username) {
+            newUser.username = newUser.emailCompany || newUser.emailPersonal || nid.toLowerCase().replace(/-/g, '_');
+        }
+
+        data.users.push(newUser);
+        importedCount++;
+    });
+
+    if (importedCount > 0) {
+        saveData(data);
+        alert(`Impor Selesai!\n\n${importedCount} karyawan berhasil ditambahkan.\n${skippedCount} baris dilewati (duplikat atau data tidak lengkap).`);
+        loadEmployees();
+    } else {
+        alert("Tidak ada data baru yang diimpor. Pastikan NID belum terdaftar dan format sudah sesuai.");
+    }
+}

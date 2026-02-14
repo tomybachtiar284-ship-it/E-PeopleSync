@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Employee Management - E-PeopleSync</title>
     <link rel="stylesheet" href="../css/styles.css">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <style>
         /* Tab Styles */
@@ -180,8 +181,16 @@
                         <input type="text" id="searchEmployee" placeholder="Search name / department..."
                             onkeyup="filterEmployees()">
                     </div>
-                    <button class="btn btn-primary" onclick="openCreateEmp()"><i class="fas fa-plus"></i> Add
-                        Employee</button>
+                    <div class="d-flex" style="gap: 10px;">
+                        <input type="file" id="importExcelInput" hidden accept=".xlsx, .xls"
+                            onchange="handleImportExcel(this)">
+                        <button class="btn btn-outline-success" onclick="downloadTemplate()"><i
+                                class="fas fa-file-excel"></i> Download Template</button>
+                        <button class="btn btn-outline-primary" onclick="triggerImport()"><i class="fas fa-upload"></i>
+                            Import Excel</button>
+                        <button class="btn btn-primary" onclick="openCreateEmp()"><i class="fas fa-plus"></i> Add
+                            Employee</button>
+                    </div>
                 </div>
                 <div class="card">
                     <table class="table">
