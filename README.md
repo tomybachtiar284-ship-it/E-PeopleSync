@@ -1,8 +1,8 @@
-# Kompetenza HR Platform
+# E-PeopleSync HR Platform
 **Integrated Human Capital Management System**
 
 ## 1. Project Overview
-**Kompetenza** is a comprehensive human capital management platform designed to streamline the entire employee lifecycle—from recruitment to continuous development and performance tracking.
+**E-PeopleSync** is a comprehensive human capital management platform designed to streamline the entire employee lifecycle—from recruitment to continuous development and performance tracking.
 
 ### 1.1 Architectural Vision
 The platform is designed with a modern tech stack (Prototype matches this visually):

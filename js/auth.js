@@ -63,7 +63,7 @@ function handleGoogleLogin() {
  * Instantly logs in as a trial candidate for testing.
  */
 function handleCandidateTrial() {
-    const email = "candidate_trial@kompetenza.com";
+    const email = "candidate_trial@epeoplesync.com";
     const data = getData();
     let user = data.users.find(u => u.username === email);
 

@@ -377,7 +377,7 @@ function viewPayslip(id) {
 
     const html = `
         <div class="payslip-header">
-            <h2>KOMPETENZA INDONESIA</h2>
+            <h2>E-PEOPLESYNC INDONESIA</h2>
             <p>SLIP GAJI KARYAWAN</p>
             <p>Periode: ${m} ${y}</p>
         </div>
@@ -481,14 +481,14 @@ function sendPayslipEmail(id) {
     const period = `${m} ${y}`;
 
     // Subject & Body Preview
-    const subject = `Slip Gaji Kompetenza - ${record.name} - ${period}`;
+    const subject = `Slip Gaji E-PeopleSync - ${record.name} - ${period}`;
     const body = `
         Halo <b>${record.name}</b>,<br><br>
         Terlampir adalah rincian slip gaji Anda untuk periode <b>${period}</b>.<br>
         Total Gaji Bersih (THP): <b>${formatRupiah(record.thp)}</b>.<br><br>
         Silakan cek rincian lengkapnya melalui sistem atau hubungi HR jika ada pertanyaan.<br><br>
         Salam,<br>
-        <b>Finance Dept - Kompetenza Indonesia</b>
+        <b>Finance Dept - E-PeopleSync Indonesia</b>
     `;
 
     // Populate Modal
