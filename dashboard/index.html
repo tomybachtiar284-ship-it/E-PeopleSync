@@ -236,27 +236,61 @@
                 // Render Grid with Clickable Cards
                 const grid = document.querySelector('.grid-container');
                 grid.innerHTML = `
-                    <div class="card clickable-card" onclick="showHistory('learning')">
-                        <h3><i class="fas fa-book-reader" style="color:var(--primary-color)"></i> Learning & Dev</h3>
-                        <p style="margin-top:10px; color:#666;">Explore courses to upgrade your skills. <i class="fas fa-external-link-alt" style="font-size:12px"></i></p>
-                        <div class="mt-3">
-                            <div style="font-size:1.2rem; font-weight:bold; margin-bottom:5px;">${learningStatus}</div>
-                            <div class="progress-bar" style="background:#eee; height:8px; border-radius:4px; margin-top:5px;">
-                                <div style="width:${totalProgress}%; background:var(--primary-color); height:100%; border-radius:4px;"></div>
+                    <!-- Learning Card -->
+                    <div class="card clickable-card" onclick="showHistory('learning')" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 220px;">
+                        <div>
+                            <div class="d-flex align-items-center mb-4">
+                                <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(0, 150, 136, 0.1); display: flex; align-items: center; justify-content: center; margin-right: 15px;">
+                                    <i class="fas fa-book-reader" style="color: var(--primary-color); font-size: 18px;"></i>
+                                </div>
+                                <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: #444;">Learning & Dev</h3>
                             </div>
-                            <small>${totalProgress}% Total Progress</small>
+                            <div class="mb-1">
+                                <span style="font-size: 32px; font-weight: 700; color: #2c3e50; line-height: 1;">${completedCount}</span>
+                                <span style="font-size: 14px; color: #7f8c8d; margin-left: 5px;">Courses Completed</span>
+                            </div>
+                            <div style="font-size: 13px; color: #95a5a6; margin-bottom: 20px;">
+                                ${pendingCount > 0 ? `<span class="text-warning"><i class="fas fa-clock"></i> ${pendingCount} Course(s) Pending Review</span>` : 'Keep up the good work!'}
+                            </div>
+                        </div>
+                        <div>
+                            <div class="d-flex justify-content-between" style="font-size: 12px; font-weight: 600; color: #7f8c8d; margin-bottom: 8px;">
+                                <span>Total Progress</span>
+                                <span>${totalProgress}%</span>
+                            </div>
+                            <div class="progress-bar" style="height: 6px; background: #ecf0f1; border-radius: 3px;">
+                                <div style="width: ${totalProgress}%; background: var(--primary-color); height: 100%; border-radius: 3px;"></div>
+                            </div>
                         </div>
                     </div>
-                    <div class="card clickable-card" onclick="showHistory('assessment')">
-                        <h3><i class="fas fa-award" style="color:#fbc02d"></i> Assessment Score</h3>
-                        <p style="margin-top:10px; color:#666;">General / Course Test <i class="fas fa-external-link-alt" style="font-size:12px"></i></p>
-                        <h2 style="color:var(--primary-color)">${displayScore} / 100</h2>
-                        <span class="badge ${scoreBadge}">${displayStatus}</span>
+
+                    <!-- Assessment Card -->
+                    <div class="card clickable-card text-center" onclick="showHistory('assessment')" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 220px;">
+                        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(251, 192, 45, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+                            <i class="fas fa-award" style="color: #fbc02d; font-size: 22px;"></i>
+                        </div>
+                        <h3 style="font-size: 15px; margin-bottom: 5px; color: #7f8c8d; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Assessment Score</h3>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <span style="font-size: 42px; font-weight: 700; color: #2c3e50;">${displayScore}</span>
+                            <span style="font-size: 16px; color: #95a5a6;">/100</span>
+                        </div>
+                        <span class="badge ${scoreBadge}" style="padding: 8px 16px; border-radius: 20px; font-size: 12px; letter-spacing: 0.5px; font-weight: 600;">${displayStatus.toUpperCase()}</span>
                     </div>
-                    <div class="card clickable-card" onclick="showHistory('application')">
-                        <h3><i class="fas fa-comment-dots" style="color:#1976d2"></i> Application Status</h3>
-                        <p style="margin-top:10px;">Position: <strong>${application ? 'Software Engineer' : '-'}</strong> <i class="fas fa-external-link-alt" style="font-size:12px"></i></p>
-                        <span class="badge ${interviewBadge}">${interviewStatus}</span>
+
+                    <!-- Application Status Card -->
+                    <div class="card clickable-card text-center" onclick="showHistory('application')" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 220px;">
+                        <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(25, 118, 210, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+                            <i class="fas fa-briefcase" style="color: #1976d2; font-size: 20px;"></i>
+                        </div>
+                        <h3 style="font-size: 15px; margin-bottom: 5px; color: #7f8c8d; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Application Status</h3>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <p style="font-size: 16px; font-weight: 700; color: #2c3e50; margin-bottom: 2px;">${application ? 'Software Engineer' : 'No Active Application'}</p>
+                            <p style="font-size: 12px; color: #95a5a6;">${application ? (application.jobId || 'JOB-001') : '-'}</p>
+                        </div>
+
+                        <span class="badge ${interviewBadge}" style="padding: 8px 16px; border-radius: 20px; font-size: 12px; letter-spacing: 0.5px; font-weight: 600;">${interviewStatus.toUpperCase()}</span>
                     </div>
                 `;
 

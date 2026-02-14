@@ -21,6 +21,10 @@
                 <div class="nav-label">Main Menu</div>
                 <a href="../admin/index.html" class="nav-link active"><i class="fas fa-th-large"></i>
                     <span>Dashboard</span></a>
+                <a href="employees.html" class="nav-link"><i class="fas fa-users"></i>
+                    <span>Employee Management</span></a>
+                <a href="payroll.html" class="nav-link"><i class="fas fa-money-bill-wave"></i>
+                    <span>Payroll</span></a>
                 <a href="../recruitment/index.html" class="nav-link"><i class="fas fa-user-plus"></i>
                     <span>Recruitment</span></a>
                 <a href="../learning/index.html" class="nav-link"><i class="fas fa-graduation-cap"></i>
@@ -28,7 +32,7 @@
                 <a href="../evaluation/index.html" class="nav-link"><i class="fas fa-chart-line"></i>
                     <span>Performance</span></a>
                 <div class="nav-label" style="margin-top: 20px;">Settings</div>
-                <a href="#" class="nav-link"><i class="fas fa-cog"></i> <span>Administration</span></a>
+                <a href="settings.html" class="nav-link"><i class="fas fa-cog"></i> <span>Administration</span></a>
                 <br>
                 <a href="#" onclick="logout()" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i>
                     <span>Logout</span></a>
@@ -96,11 +100,11 @@
                             <span>Training Completion</span>
                             <i class="fas fa-book-reader"></i>
                         </div>
-                        <div class="stat-value">84.2%</div>
+                        <div class="stat-value" id="statTrainingCompletion">0%</div>
                         <div class="progress-bar"
                             style="height: 6px; background: #e0f2f1; border-radius: 3px; margin-top: 10px;">
-                            <div
-                                style="width: 84%; background: var(--primary-color); height: 100%; border-radius: 3px;">
+                            <div id="statTrainingProgressBar"
+                                style="width: 0%; background: var(--primary-color); height: 100%; border-radius: 3px;">
                             </div>
                         </div>
                     </div>
@@ -109,8 +113,8 @@
                             <span>Avg. KPI Score</span>
                             <i class="fas fa-chart-bar"></i>
                         </div>
-                        <div class="stat-value">4.2/5.0</div>
-                        <div class="stat-trend positive">↑ 0.1 improvement</div>
+                        <div class="stat-value" id="statAvgKPI">0.0/5.0</div>
+                        <div class="stat-trend positive" id="statKPITrend">-</div>
                     </div>
                 </div>
 
@@ -134,40 +138,9 @@
     <script src="../js/utils.js"></script>
     <script src="../js/admin.js"></script>
     <script>
-        // Init Charts
+        // Link Data
         document.addEventListener('DOMContentLoaded', () => {
-            const ctx1 = document.getElementById('skillChart').getContext('2d');            // Skill Development Trend (Area Chart)
-            new Chart(document.getElementById('skillChart'), {
-                type: 'line',
-                data: {
-                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                    datasets: [{
-                        label: 'Avg Competency Score',
-                        data: [65, 70, 68, 75, 80, 85],
-                        borderColor: '#00796b',
-                        backgroundColor: 'rgba(0, 121, 107, 0.1)',
-                        fill: true, // Area Chart effect
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    scales: { y: { beginAtZero: false, min: 50, max: 100 } }
-                }
-            });
-
-            // Recruitment Funnel (Pie Chart)
-            new Chart(document.getElementById('funnelChart'), {
-                type: 'pie', // Changed from doughnut to pie
-                data: {
-                    labels: ['Applied', 'Interview', 'Hired', 'Rejected'],
-                    datasets: [{
-                        data: [120, 45, 12, 63],
-                        backgroundColor: ['#00796b', '#4db6ac', '#81c784', '#e0e0e0']
-                    }]
-                }
-            });
-
-            // Link Data
+            // Data loading moved to js/admin.js
             const currentUser = checkAuth(['admin']);
             if (currentUser) {
                 document.getElementById('welcomeName').textContent = currentUser.name;

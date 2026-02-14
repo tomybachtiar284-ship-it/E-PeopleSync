@@ -18,12 +18,19 @@
                 <div class="nav-label">Main Menu</div>
                 <a href="../admin/index.html" class="nav-link"><i class="fas fa-th-large"></i>
                     <span>Dashboard</span></a>
+                <a href="../admin/employees.html" class="nav-link"><i class="fas fa-users"></i>
+                    <span>Employee Management</span></a>
+                <a href="../admin/payroll.html" class="nav-link"><i class="fas fa-money-bill-wave"></i>
+                    <span>Payroll</span></a>
                 <a href="../recruitment/index.html" class="nav-link"><i class="fas fa-user-plus"></i>
                     <span>Recruitment</span></a>
                 <a href="../learning/index.html" class="nav-link active"><i class="fas fa-graduation-cap"></i>
                     <span>Learning Hub</span></a>
                 <a href="../evaluation/index.html" class="nav-link"><i class="fas fa-chart-line"></i>
                     <span>Performance</span></a>
+                <div class="nav-label" style="margin-top: 20px;">Settings</div>
+                <a href="../admin/settings.html" class="nav-link"><i class="fas fa-cog"></i>
+                    <span>Administration</span></a>
                 <br>
                 <a href="#" onclick="logout()" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i>
                     <span>Logout</span></a>
@@ -98,6 +105,12 @@
                                 </select>
                             </div>
                             <div class="form-group">
+                                <label>Difficulty Level</label>
+                                <select id="courseLevel" class="form-control">
+                                    <!-- Populated by JS -->
+                                </select>
+                            </div>
+                            <div class="form-group">
                                 <label>Course Image (JPG/PNG)</label>
                                 <input type="file" id="courseImage" class="form-control" accept="image/jpeg, image/png">
                                 <small class="text-muted">Max recommended size: 500KB</small>
@@ -107,11 +120,30 @@
                     </div>
                 </div>
 
-                <!-- Filter Tags -->
-                <div class="tabs">
-                    <button class="tab-btn active" onclick="filterCourses('all')">All Courses</button>
-                    <button class="tab-btn" onclick="filterCourses('progress')">In Progress</button>
-                    <button class="tab-btn" onclick="filterCourses('completed')">Completed</button>
+                <!-- Filter Section -->
+                <div class="d-flex justify-content-between align-items-center mb-4 pb-2"
+                    style="border-bottom: 1px solid #eee;">
+                    <!-- Left: Status Tabs -->
+                    <div class="tabs">
+                        <button class="tab-btn active" onclick="filterCourses('all')">All Courses</button>
+                        <button class="tab-btn" onclick="filterCourses('progress')">In Progress</button>
+                        <button class="tab-btn" onclick="filterCourses('completed')">Completed</button>
+                    </div>
+
+                    <!-- Right: Level Filter -->
+                    <div class="d-flex align-items-center">
+                        <label for="filterLevel" class="mr-2 mb-0"
+                            style="font-size: 14px; color: #666; font-weight: 500;">Difficulty:</label>
+                        <select id="filterLevel" class="form-control"
+                            style="width: 160px; height: auto; padding: 8px 10px; border-radius: 6px; border: 1px solid #ddd; font-size: 14px; cursor: pointer; background-color: #fff;"
+                            onchange="filterCourses(document.querySelector('.tab-btn.active').getAttribute('onclick').match(/'(.*)'/)[1])">
+                            <option value="">All Levels</option>
+                            <option value="Foundation">Foundation</option>
+                            <option value="Practitioner">Practitioner</option>
+                            <option value="Specialist">Specialist</option>
+                            <option value="Mastery">Mastery</option>
+                        </select>
+                    </div>
                 </div>
 
                 <!-- Course Grid -->
@@ -151,6 +183,7 @@
         function openCourseModal() {
             var data = getData();
             populateDropdown('courseCategory', data.courseCategories || ['Onboarding', 'Skill'], 'Category');
+            populateDropdown('courseLevel', data.courseLevels || ['Foundation', 'Practitioner', 'Specialist', 'Mastery'], 'Level');
             document.getElementById('createCourseModal').style.display = 'block';
         }
         function closeCourseModal() { document.getElementById('createCourseModal').style.display = 'none'; }
@@ -161,6 +194,7 @@
             var title = document.getElementById('courseTitle').value;
             var desc = document.getElementById('courseDesc').value;
             var cat = document.getElementById('courseCategory').value;
+            var level = document.getElementById('courseLevel').value;
             var fileInput = document.getElementById('courseImage');
             var file = fileInput.files[0];
 
@@ -171,6 +205,7 @@
                     title: title,
                     description: desc,
                     category: cat,
+                    level: level,
                     department: 'All',
                     thumbnail: imgData || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-1.2.1',
                     materials: []
@@ -207,10 +242,13 @@
             var grid = document.getElementById('courseGrid');
             var data = getData();
             var user = JSON.parse(localStorage.getItem('currentUser'));
+            var levelFilter = document.getElementById('filterLevel').value;
 
             grid.innerHTML = '';
 
             var courses = data.courses;
+
+            // 1. Filter by Status (Tab)
             if (filter === 'progress') {
                 courses = courses.filter(function (c) {
                     var e = data.enrollments.find(function (en) { return en.courseId === c.id && en.userId === user.id; });
@@ -223,8 +261,15 @@
                 });
             }
 
+            // 2. Filter by Level (Dropdown)
+            if (levelFilter) {
+                courses = courses.filter(function (c) {
+                    return c.level === levelFilter;
+                });
+            }
+
             if (courses.length === 0) {
-                grid.innerHTML = '<p class="text-center col-12">No courses found.</p>';
+                grid.innerHTML = '<p class="text-center col-12">No courses found matching criteria.</p>';
                 return;
             }
 
@@ -238,6 +283,12 @@
                 var progress = enrollment ? enrollment.progress : 0;
                 var btnText = 'Start Course';
                 var btnClass = 'btn-primary';
+
+                // Admin/Manager View Logic
+                if (!enrollment && (user.role === 'admin' || user.role === 'manager')) {
+                    btnText = 'Preview Course';
+                    btnClass = 'btn-outline-primary';
+                }
                 var statusBadge = '';
 
                 if (enrollment) {
@@ -264,9 +315,17 @@
                     editBtn = '<a href="course_editor.html?id=' + course.id + '" class="btn btn-sm btn-secondary" style="background:#6c757d; color:white; text-align:center; padding:8px; text-decoration:none; border-radius:6px; width: 40px; display: flex; align-items: center; justify-content: center;" title="Manage Course"><i class="fas fa-edit"></i></a>';
                 }
 
+                // Level Badge Color
+                var levelColor = '#888';
+                var levelLabel = course.level || 'Foundation'; // Default
+                if (levelLabel === 'Practitioner') levelColor = '#17a2b8';
+                if (levelLabel === 'Specialist') levelColor = '#ffc107';
+                if (levelLabel === 'Mastery') levelColor = '#dc3545';
+
                 grid.innerHTML += '<div class="course-card">' +
                     '<div class="course-img" style="background-image: url(\'' + course.thumbnail + '\')">' +
                     '<span class="course-tag">' + (course.category || 'General') + '</span>' +
+                    '<span class="course-tag" style="left: auto; right: 10px; background-color:' + levelColor + '">' + levelLabel + '</span>' +
                     '</div>' +
                     '<div class="course-body">' +
                     '<h4 style="margin-bottom:5px; font-weight:600;">' + course.title + '</h4>' +

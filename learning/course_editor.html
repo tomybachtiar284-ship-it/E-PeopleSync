@@ -81,6 +81,9 @@
                     <a href="index.html" class="btn btn-sm btn-secondary mr-3"><i class="fas fa-arrow-left"></i>
                         Back</a>
                     <h2 id="courseTitle">Loading Course...</h2>
+                    <button class="btn btn-sm btn-outline-primary ml-3" onclick="openCourseSettings()">
+                        <i class="fas fa-cog"></i> Settings
+                    </button>
                 </div>
                 <div class="header-right">
                     <div class="user-profile">
@@ -170,6 +173,82 @@
             </form>
         </div>
     </div>
+    <!-- Question Editor Modal -->
+    <div id="questionModal" class="modal"
+        style="display:none; position:fixed; z-index:100; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.5);">
+        <div class="modal-content modal-lg"
+            style="background-color:#fff; padding:20px; border-radius:8px; width: 80%; max-width: 900px;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3>Manage Questions</h3>
+                <span class="close" onclick="closeQuestionModal()"
+                    style="font-size:24px; cursor:pointer;">&times;</span>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4" style="border-right: 1px solid #eee;">
+                    <h5>Questions</h5>
+                    <div id="existingQuestions" style="max-height: 400px; overflow-y: auto;">
+                        <!-- JS Populated -->
+                    </div>
+                    <button class="btn btn-sm btn-success btn-block mt-3" onclick="showAddQuestionForm()">+ Add New
+                        Question</button>
+                </div>
+                <div class="col-md-8">
+                    <div id="emptyState" class="text-center p-5 text-muted">
+                        <i class="fas fa-arrow-left"></i> Select a question to edit or click "Add New"
+                    </div>
+
+                    <div id="questionFormContainer" style="display: none;">
+                        <h4 id="formTitle" class="mb-3">Edit Question</h4>
+                        <form id="questionForm">
+                            <input type="hidden" id="editQuestionId">
+
+                            <div class="form-group">
+                                <label>Question Type</label>
+                                <select id="questionType" class="form-control" onchange="toggleQuestionType()">
+                                    <option value="multiple-choice">Multiple Choice</option>
+                                    <option value="essay">Essay / Long Answer</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Question Text</label>
+                                <textarea id="questionText" class="form-control" rows="3" required></textarea>
+                            </div>
+
+                            <!-- Multiple Choice Options -->
+                            <div id="multipleChoiceOptions">
+                                <label>Options (Select correct answer)</label>
+                                <div id="optionsContainer">
+                                    <!-- JS Populated -->
+                                </div>
+                                <button type="button" class="btn btn-sm btn-secondary mt-2" onclick="addOption()">+ Add
+                                    Option</button>
+                            </div>
+
+                            <!-- Essay Options -->
+                            <div id="essayOptions" style="display: none;">
+                                <div class="form-group">
+                                    <label>Keywords for Auto-Grading (Optional)</label>
+                                    <input type="text" id="questionKeywords" class="form-control"
+                                        placeholder="comma, separated, keywords">
+                                    <small class="text-muted">If student answer contains these words, they get points
+                                        (hybrid grading).</small>
+                                </div>
+                            </div>
+
+                            <div class="text-right mt-4">
+                                <button type="button" class="btn btn-secondary"
+                                    onclick="hideQuestionForm()">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Save Question</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Grading Modal -->
     <div id="gradingModal" class="modal"
         style="display:none; position:fixed; z-index:100; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.5);">
@@ -179,6 +258,53 @@
                 <span class="close" onclick="closeGradingModal()" style="font-size:24px; cursor:pointer;">&times;</span>
             </div>
             <div id="gradingContent"></div>
+        </div>
+    </div>
+
+    <!-- Course Settings Modal -->
+    <div id="courseSettingsModal" class="modal"
+        style="display:none; position:fixed; z-index:100; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.5);">
+        <div class="modal-content"
+            style="background-color:#fff; margin:10% auto; padding:20px; border-radius:8px; width: 50%;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3>Edit Course Settings</h3>
+                <span class="close" onclick="closeCourseSettings()"
+                    style="font-size:24px; cursor:pointer;">&times;</span>
+            </div>
+            <form id="courseSettingsForm">
+                <div class="form-group">
+                    <label>Course Title</label>
+                    <input type="text" id="editCourseTitle" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="editCourseDesc" class="form-control" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="editCourseCategory" class="form-control">
+                        <!-- JS populated -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Difficulty Level</label>
+                    <select id="editCourseLevel" class="form-control">
+                        <!-- JS populated -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Thumbnail URL</label>
+                    <input type="text" id="editCourseThumbnail" class="form-control">
+                    <small class="text-muted">Or upload new image (future feature)</small>
+                </div>
+                <div class="text-right mt-4 d-flex justify-content-between">
+                    <button type="button" class="btn btn-danger" onclick="deleteCourse()">Delete Course</button>
+                    <div>
+                        <button type="button" class="btn btn-secondary" onclick="closeCourseSettings()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -378,12 +504,37 @@
             editingQuiz = data.quizzes.find(q => q.id === quizId);
 
             document.getElementById('questionModal').style.display = 'block';
+
+            // Populate Settings
+            document.getElementById('quizTitleInput').value = editingQuiz.title;
+            document.getElementById('quizPassScoreInput').value = editingQuiz.passingScore;
+
             renderQuestionList();
             hideQuestionForm();
         }
 
+        function saveQuizSettings() {
+            const title = document.getElementById('quizTitleInput').value;
+            const score = parseInt(document.getElementById('quizPassScoreInput').value);
+
+            if (!title || isNaN(score)) {
+                alert('Please enter valid Title and Pass Score');
+                return;
+            }
+
+            editingQuiz.title = title;
+            editingQuiz.passingScore = score;
+
+            const data = getData();
+            const qIndex = data.quizzes.findIndex(q => q.id === editingQuiz.id);
+            data.quizzes[qIndex] = editingQuiz;
+            saveData(data);
+            alert('Quiz Settings Updated!');
+        }
+
         function closeQuestionModal() {
             document.getElementById('questionModal').style.display = 'none';
+            loadCourseData(); // Refresh main view to show updated question count
         }
 
         function renderQuestionList() {
@@ -556,6 +707,87 @@
                 document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
                 loadSubmissions();
             }
+        }
+
+        // --- Course Settings Logic ---
+        function openCourseSettings() {
+            const data = getData();
+            const course = data.courses.find(c => c.id === currentCourseId);
+
+            if (!course) return;
+
+            // Populate Dropdowns
+            populateDropdown('editCourseCategory', data.courseCategories || ['Onboarding', 'Skill'], 'Category');
+            populateDropdown('editCourseLevel', data.courseLevels || ['Foundation', 'Practitioner', 'Specialist', 'Mastery'], 'Level');
+
+            // Populate Fields
+            document.getElementById('editCourseTitle').value = course.title;
+            document.getElementById('editCourseDesc').value = course.description || '';
+            document.getElementById('editCourseCategory').value = course.category || '';
+            document.getElementById('editCourseLevel').value = course.level || 'Foundation';
+            document.getElementById('editCourseThumbnail').value = course.thumbnail || '';
+
+            document.getElementById('courseSettingsModal').style.display = 'block';
+        }
+
+        function closeCourseSettings() {
+            document.getElementById('courseSettingsModal').style.display = 'none';
+        }
+
+        document.getElementById('courseSettingsForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const title = document.getElementById('editCourseTitle').value;
+            const desc = document.getElementById('editCourseDesc').value;
+            const cat = document.getElementById('editCourseCategory').value;
+            const level = document.getElementById('editCourseLevel').value;
+            const thumb = document.getElementById('editCourseThumbnail').value;
+
+            const data = getData();
+            const index = data.courses.findIndex(c => c.id === currentCourseId);
+
+            if (index > -1) {
+                data.courses[index].title = title;
+                data.courses[index].description = desc;
+                data.courses[index].category = cat;
+                data.courses[index].level = level;
+                data.courses[index].thumbnail = thumb;
+
+                saveData(data);
+                alert('Course Settings Updated!');
+                closeCourseSettings();
+
+                // Refresh View
+                document.getElementById('courseTitle').textContent = `Editing: ${title}`;
+            }
+        });
+
+        function deleteCourse() {
+            if (!confirm('Are you sure you want to delete this course? This action cannot be undone and will remove all modules, quizzes, and student enrollments associated with it.')) {
+                return;
+            }
+
+            const data = getData();
+
+            // 1. Remove Course
+            data.courses = data.courses.filter(c => c.id !== currentCourseId);
+
+            // 2. Remove Modules
+            data.modules = data.modules.filter(m => m.courseId !== currentCourseId);
+
+            // 3. Remove Quizzes & Attempts
+            const courseQuizIds = data.quizzes.filter(q => q.courseId === currentCourseId).map(q => q.id);
+            data.quizzes = data.quizzes.filter(q => q.courseId !== currentCourseId);
+            if (data.quizAttempts) {
+                data.quizAttempts = data.quizAttempts.filter(a => !courseQuizIds.includes(a.quizId));
+            }
+
+            // 4. Remove Enrollments
+            data.enrollments = data.enrollments.filter(e => e.courseId !== currentCourseId);
+
+            saveData(data);
+            alert('Course deleted successfully.');
+            window.location.href = 'index.html';
         }
 
         // --- Grading Logic ---

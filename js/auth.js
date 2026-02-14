@@ -14,7 +14,49 @@ document.addEventListener('DOMContentLoaded', () => {
  * Mock Google Login
  * Prompts user for email to simulate OAuth logic
  */
-// function handleGoogleLogin() { ... } // Deprecated for Trial
+/**
+ * Mock Google Login
+ * Prompts user for email/name to simulate OAuth logic and auto-registers employees.
+ */
+function handleGoogleLogin() {
+    // 1. Simulate Google OAuth Popup
+    const email = prompt("Simulating Google Login...\n\nPlease enter your Email Address:");
+
+    if (!email || !email.includes('@')) {
+        if (email) alert("Please enter a valid email address.");
+        return;
+    }
+
+    const data = getData();
+    let user = data.users.find(u => u.username === email);
+
+    if (user) {
+        // User exists - Login
+        alert(`Welcome back, ${user.name}!`);
+        loginSuccess(user);
+    } else {
+        // New User - Auto Registration
+        const name = prompt("Email not found. Registering new Employee...\n\nEnter your Full Name:");
+
+        if (!name) return;
+
+        const newUser = {
+            id: Date.now(),
+            username: email,
+            password: 'google_auth_token', // Dummy password for OAuth users
+            role: 'employee', // Default role
+            name: name,
+            email: email,
+            source: 'google_oauth'
+        };
+
+        data.users.push(newUser);
+        saveData(data);
+
+        alert(`Account created successfully!\nWelcome, ${name}.`);
+        loginSuccess(newUser);
+    }
+}
 
 /**
  * Trial Candidate Login
@@ -86,7 +128,8 @@ function handleAdminLogin(e) {
     const password = document.getElementById('adminPass').value;
 
     const data = getData();
-    const user = data.users.find(u => u.username === username && u.password === password && u.role === 'admin');
+    // Allow admin, manager, and employee to login via this form
+    const user = data.users.find(u => u.username === username && u.password === password && ['admin', 'manager', 'employee'].includes(u.role));
 
     if (user) {
         loginSuccess(user);

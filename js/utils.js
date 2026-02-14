@@ -66,7 +66,13 @@ const defaultData = {
     departments: ['Sales', 'IT', 'HR', 'Marketing'], // Default Departments
     locations: ['Jakarta', 'Surabaya', 'Remote', 'Bandung'], // Default Locations
     jobTypes: ['Full-time', 'Contract', 'Internship', 'Part-time'], // Default Job Types
-    courseCategories: ['Onboarding', 'Skill', 'Compliance', 'Leadership'] // Default Course Categories
+    courseCategories: ['Onboarding', 'Skill', 'Compliance', 'Leadership'], // Default Course Categories
+    courseLevels: ['Foundation', 'Practitioner', 'Specialist', 'Mastery'], // Default Course Levels
+    recruitmentQuestions: [
+        { id: 1, text: "Which HTML tag is used to define an internal style sheet?", options: ["<script>", "<css>", "<style>"], answer: 2 },
+        { id: 2, text: "Which property is used to change the background color?", options: ["color", "bgcolor", "background-color"], answer: 2 },
+        { id: 3, text: "How do you create a function in JavaScript?", options: ["function myFunction()", "function:myFunction()", "function = myFunction()"], answer: 0 }
+    ]
 };
 
 // Initialize Data if empty
@@ -82,6 +88,8 @@ function initData() {
         if (!data.locations) { data.locations = defaultData.locations; changed = true; }
         if (!data.jobTypes) { data.jobTypes = defaultData.jobTypes; changed = true; }
         if (!data.courseCategories) { data.courseCategories = defaultData.courseCategories; changed = true; }
+        if (!data.courseLevels) { data.courseLevels = defaultData.courseLevels; changed = true; }
+        if (!data.recruitmentQuestions) { data.recruitmentQuestions = defaultData.recruitmentQuestions; changed = true; }
         if (changed) {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
             console.log('Data migrated with new fields.');

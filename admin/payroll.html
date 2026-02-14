@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payroll Management - Kompetenza</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <style>
+        .summary-card {
+            padding: 20px;
+            border-radius: 8px;
+            color: #fff;
+            margin-bottom: 20px;
+        }
+
+        .bg-blue {
+            background: linear-gradient(45deg, #4099ff, #73b4ff);
+        }
+
+        .bg-green {
+            background: linear-gradient(45deg, #2ed8b6, #59e0c5);
+        }
+
+        .bg-orange {
+            background: linear-gradient(45deg, #FFB64D, #ffcb80);
+        }
+
+        .payroll-controls {
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+            margin-bottom: 20px;
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .payroll-input {
+            font-size: 13px;
+            width: 80px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        /* Modal Payslip */
+        .payslip-container {
+            background: #fff;
+            padding: 30px;
+            max-width: 800px;
+            margin: 0 auto;
+            border: 1px solid #eee;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .payslip-header {
+            text-align: center;
+            border-bottom: 2px dashed #333;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+        }
+
+        .payslip-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .payslip-section {
+            margin-top: 15px;
+            border-top: 1px dashed #ddd;
+            padding-top: 10px;
+        }
+
+        .payslip-total {
+            font-weight: bold;
+            border-top: 2px dashed #333;
+            border-bottom: 2px dashed #333;
+            padding: 10px 0;
+            margin-top: 15px;
+            font-size: 16px;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+
+            #payslipModal,
+            #payslipModal * {
+                visibility: visible;
+            }
+
+            #payslipModal {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                background: #fff;
+            }
+
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-icon">K</div>
+                <span>Kompetenza</span>
+            </div>
+            <div class="nav-links">
+                <div class="nav-label">Main Menu</div>
+                <a href="../admin/index.html" class="nav-link"><i class="fas fa-th-large"></i>
+                    <span>Dashboard</span></a>
+                <a href="employees.html" class="nav-link"><i class="fas fa-users"></i> <span>Employee
+                        Management</span></a>
+                <a href="payroll.html" class="nav-link active"><i class="fas fa-money-bill-wave"></i>
+                    <span>Payroll</span></a>
+                <a href="../recruitment/index.html" class="nav-link"><i class="fas fa-user-plus"></i>
+                    <span>Recruitment</span></a>
+                <a href="../learning/index.html" class="nav-link"><i class="fas fa-graduation-cap"></i> <span>Learning
+                        Hub</span></a>
+                <a href="../evaluation/index.html" class="nav-link"><i class="fas fa-chart-line"></i>
+                    <span>Performance</span></a>
+                <div class="nav-label" style="margin-top: 20px;">Settings</div>
+                <a href="../admin/settings.html" class="nav-link"><i class="fas fa-cog"></i>
+                    <span>Administration</span></a>
+                <br>
+                <a href="#" onclick="logout()" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span></a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <div>
+                    <h2>Payroll Management</h2>
+                    <p class="text-muted">Process monthly salaries and generate payslips.</p>
+                </div>
+                <div class="user-profile">
+                    <div class="user-details">
+                        <h4 id="userName">Admin</h4>
+                        <span id="userRole">ADMIN HR</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-area">
+                <!-- Summary Cards -->
+                <div class="row" style="display: flex; gap: 20px;">
+                    <div class="col-md-4" style="flex:1;">
+                        <div class="summary-card bg-blue">
+                            <h5>Total Payroll Cost</h5>
+                            <h2 id="totalCost">Rp 0</h2>
+                            <small id="periodLabel">Period: -</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4" style="flex:1;">
+                        <div class="summary-card bg-green">
+                            <h5>Processed Employees</h5>
+                            <h2 id="processedCount">0</h2>
+                            <small>Successfully calculated</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4" style="flex:1;">
+                        <div class="summary-card bg-orange">
+                            <h5>Pending Payroll</h5>
+                            <h2 id="pendingCount">0</h2>
+                            <small>Needs review</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="payroll-controls">
+                    <div class="form-group">
+                        <label>Month</label>
+                        <select id="payrollMonth" class="form-control" style="width:150px;">
+                            <option value="0">January</option>
+                            <option value="1">February</option>
+                            <option value="2">March</option>
+                            <option value="3">April</option>
+                            <option value="4">May</option>
+                            <option value="5">June</option>
+                            <option value="6">July</option>
+                            <option value="7">August</option>
+                            <option value="8">September</option>
+                            <option value="9">October</option>
+                            <option value="10">November</option>
+                            <option value="11">December</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Year</label>
+                        <input type="number" id="payrollYear" class="form-control" style="width:100px;" value="2026">
+                    </div>
+                    <button class="btn btn-primary" onclick="loadPayrollData()">Load / Refresh Data</button>
+                    <button class="btn btn-success" onclick="processAllPayroll()"><i class="fas fa-cogs"></i> Process
+                        All</button>
+                    <button class="btn btn-danger" onclick="resetPayroll()"><i class="fas fa-trash"></i> Reset
+                        Period</button>
+                </div>
+
+                <!-- Payroll Table -->
+                <div class="card">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Name / NID</th>
+                                <th>Jabatan</th>
+                                <th>Gaji Pokok</th>
+                                <th width="100">OT (Jam)</th>
+                                <th width="120">Tunjangan</th>
+                                <th width="120">Potongan</th>
+                                <th>THP (Net)</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="payrollTableBody">
+                            <!-- JS Populated -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Payslip Modal -->
+    <div id="payslipModal" class="modal"
+        style="display:none; position:fixed; z-index:100; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.5);">
+        <div class="modal-content" style="background:#fff; margin:2% auto; padding:0; width:800px; max-width:95%;">
+            <div class="no-print"
+                style="padding:15px; background:#f5f5f5; border-bottom:1px solid #ddd; display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0;">Preview Payslip</h3>
+                <div>
+                    <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print"></i> Print / Save
+                        PDF</button>
+                    <button class="btn btn-secondary" onclick="closePayslipModal()">Close</button>
+                </div>
+            </div>
+
+            <div class="payslip-container" id="payslipContent">
+                <!-- Content injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/utils.js"></script>
+    <script src="../js/admin_payroll.js"></script>
+</body>
+
+</html>

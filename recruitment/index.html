@@ -19,6 +19,10 @@
                 <div class="nav-label">Main Menu</div>
                 <a href="../admin/index.html" class="nav-link"><i class="fas fa-th-large"></i>
                     <span>Dashboard</span></a>
+                <a href="../admin/employees.html" class="nav-link"><i class="fas fa-users"></i>
+                    <span>Employee Management</span></a>
+                <a href="../admin/payroll.html" class="nav-link"><i class="fas fa-money-bill-wave"></i>
+                    <span>Payroll</span></a>
                 <a href="../recruitment/index.html" class="nav-link active"><i class="fas fa-user-plus"></i>
                     <span>Recruitment</span></a>
                 <a href="../learning/index.html" class="nav-link"><i class="fas fa-graduation-cap"></i> <span>Learning
@@ -26,7 +30,8 @@
                 <a href="../evaluation/index.html" class="nav-link"><i class="fas fa-chart-line"></i>
                     <span>Performance</span></a>
                 <div class="nav-label" style="margin-top: 20px;">Settings</div>
-                <a href="#" class="nav-link"><i class="fas fa-cog"></i> <span>Administration</span></a>
+                <a href="../admin/settings.html" class="nav-link"><i class="fas fa-cog"></i>
+                    <span>Administration</span></a>
                 <br>
                 <a href="#" onclick="logout()" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i>
                     <span>Logout</span></a>
@@ -50,6 +55,8 @@
                         <p style="color: #666;">Manage active job openings and candidate screening.</p>
                     </div>
                     <div id="adminControls">
+                        <button class="btn btn-info" onclick="openTestModal()"><i class="fas fa-clipboard-list"></i>
+                            Manage Test</button>
                         <button class="btn btn-secondary" onclick="runAIRanker()"><i class="fas fa-robot"></i> Run AI
                             Ranker</button>
                         <button class="btn btn-primary" onclick="openJobModal()">+ Create Job Post</button>
@@ -83,6 +90,7 @@
                                 <th>Department</th>
                                 <th>Location</th>
                                 <th>Type</th>
+                                <th>Closing Date</th>
                                 <th>Applicants</th>
                                 <th>Action</th>
                             </tr>
@@ -143,8 +151,72 @@
                                     <!-- Populated by JS -->
                                 </select>
                             </div>
+                            <div class="form-group">
+                                <label>Closing Date</label>
+                                <input type="date" id="jobClosingDate" class="form-control" required>
+                            </div>
                             <button type="submit" class="btn btn-primary btn-block">Publish Job</button>
                         </form>
+                    </div>
+                </div>
+
+                <!-- Test Management Modal -->
+                <div id="testModal" class="modal"
+                    style="display:none; position:fixed; z-index:100; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.5);">
+                    <div class="modal-content"
+                        style="background-color:#fff; margin:5% auto; padding:20px; border-radius:8px; width:70%;">
+                        <span class="close" onclick="closeTestModal()"
+                            style="float:right; font-size:28px; cursor:pointer;">&times;</span>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h2>Manage Test Questions</h2>
+                            <button class="btn btn-success" onclick="openAddQuestionForm()"><i class="fas fa-plus"></i>
+                                Add Question</button>
+                        </div>
+
+                        <!-- List of Questions -->
+                        <div id="questionsList" style="max-height: 400px; overflow-y: auto;">
+                            <!-- Populated via JS -->
+                        </div>
+
+                        <!-- Add/Edit Question Form (Hidden by default) -->
+                        <div id="questionFormContainer"
+                            style="display:none; margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 8px;">
+                            <h4 id="questionFormTitle">Add New Question</h4>
+                            <form id="questionForm">
+                                <input type="hidden" id="qId">
+                                <div class="form-group">
+                                    <label>Question Text</label>
+                                    <input type="text" id="qText" class="form-control" required>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <label>Option A (Index 0)</label>
+                                        <input type="text" id="qOpt0" class="form-control" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label>Option B (Index 1)</label>
+                                        <input type="text" id="qOpt1" class="form-control" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label>Option C (Index 2)</label>
+                                        <input type="text" id="qOpt2" class="form-control" required>
+                                    </div>
+                                </div>
+                                <div class="form-group mt-2">
+                                    <label>Correct Answer (0, 1, or 2)</label>
+                                    <select id="qAnswer" class="form-control">
+                                        <option value="0">Option A</option>
+                                        <option value="1">Option B</option>
+                                        <option value="2">Option C</option>
+                                    </select>
+                                </div>
+                                <div class="text-right mt-3">
+                                    <button type="button" class="btn btn-secondary"
+                                        onclick="hideQuestionForm()">Cancel</button>
+                                    <button type="submit" class="btn btn-primary">Save Question</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
 
@@ -254,12 +326,31 @@
                 const jobBody = document.getElementById('jobListAdmin');
                 data.jobs.forEach(job => {
                     const applicantCount = data.applications.filter(a => a.jobId === job.id).length;
+                    // Calculate Days Remaining
+                    let durationText = '-';
+                    let rowClass = '';
+                    if (job.closingDate) {
+                        const today = new Date();
+                        const close = new Date(job.closingDate);
+                        const diffTime = close - today;
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                        if (diffDays < 0) {
+                            durationText = '<span class="text-danger">Closed</span>';
+                            rowClass = 'table-secondary'; // Gray out
+                            // job.status = 'Closed'; // Optional: Auto update status
+                        } else {
+                            durationText = `${formatDate(job.closingDate)} <small class="text-muted">(${diffDays} days left)</small>`;
+                        }
+                    }
+
                     jobBody.innerHTML += `
-                        <tr>
+                        <tr class="${rowClass}">
                             <td><strong>${job.title}</strong></td>
                             <td>${job.department}</td>
                             <td>${job.location}</td>
                             <td><span class="badge badge-primary">${job.type}</span></td>
+                            <td>${durationText}</td>
                             <td>${applicantCount} Candidates</td>
                             <td>
                                 <button class="btn btn-sm btn-danger" onclick="deleteJob(${job.id})"><i class="fas fa-trash"></i></button>
@@ -310,6 +401,7 @@
                             <td><span class="badge ${badgeClass}">${statusText}</span></td>
                             <td>
                                 <button class="btn btn-sm btn-secondary" onclick="openCandidateModal(${app.id})"><i class="fas fa-eye"></i></button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteApplication(${app.id})" title="Delete Application"><i class="fas fa-trash"></i></button>
                             </td>
                         </tr>
                     `;
@@ -348,6 +440,13 @@
                             <p class="mb-2"><strong><i class="fas fa-briefcase mr-2"></i>Role:</strong> ${job ? job.title : 'N/A'}</p>
                             <p class="mb-2"><strong><i class="far fa-calendar-alt mr-2"></i>Date:</strong> ${formatDate(app.date)}</p>
                             <p class="mb-0"><strong><i class="fas fa-info-circle mr-2"></i>Status:</strong> <span class="badge badge-info">${app.status}</span></p>
+                            
+                            <div class="mt-3">
+                                <strong><i class="fas fa-file-pdf mr-2"></i>CV / Resume:</strong><br>
+                                ${app.cvData
+                    ? `<a href="${app.cvData}" download="${app.cvName || 'resume.pdf'}" class="btn btn-sm btn-primary mt-1"><i class="fas fa-download"></i> Download CV</a>`
+                    : '<span class="text-muted">No CV Uploaded</span>'}
+                            </div>
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -355,6 +454,10 @@
                             <h5 class="border-bottom pb-2 mb-3">Assessment Results</h5>
                             <p class="mb-2"><strong><i class="fas fa-poll-h mr-2"></i>Test Score:</strong> ${app.testScore || 'Not taken'}</p>
                             <p class="mb-0"><strong><i class="fas fa-robot mr-2"></i>AI Score:</strong> ${app.aiAnalysis ? app.aiAnalysis.score + '/100' : 'N/A'}</p>
+                        </div>
+                        <div class="card p-3 mb-3 bg-light border-0">
+                             <h5 class="border-bottom pb-2 mb-3">Cover Letter</h5>
+                             <p class="text-muted" style="font-style: italic; white-space: pre-wrap;">"${app.coverLetter || 'No cover letter provided.'}"</p>
                         </div>
                     </div>
                 </div>
