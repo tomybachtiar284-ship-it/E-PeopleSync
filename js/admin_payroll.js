@@ -79,7 +79,15 @@ function loadPayrollData() {
             };
         });
     } else {
-        // Merge with current employees (in case new employees added mid-month)
+        // 1. Remove orphaned records (IDs that are no longer in the current active employees list)
+        const activeIds = employees.map(e => e.id.toString());
+        Object.keys(payrollRecord).forEach(id => {
+            if (!activeIds.includes(id)) {
+                delete payrollRecord[id];
+            }
+        });
+
+        // 2. Merge with current employees
         employees.forEach(e => {
             if (!payrollRecord[e.id]) {
                 payrollRecord[e.id] = {
@@ -99,23 +107,21 @@ function loadPayrollData() {
                     emailStatus: 'Not Sent'
                 };
             } else {
-                // ALWAYS Sync Master Data if still in Draft, or update critical info
+                // ALWAYS Sync Master Data
                 const item = payrollRecord[e.id];
                 item.name = e.name;
                 item.nid = e.nid;
                 item.position = e.position;
                 item.email = e.emailCompany || e.emailPersonal || '-';
 
-                // Always sync salary info to reflect latest master data
                 const oldBase = item.baseSalary;
                 item.baseSalary = parseFloat(e.baseSalary) || 0;
                 item.fixedAllowance = parseFloat(e.fixedAllowance) || 0;
                 item.transportAllowance = parseFloat(e.transportAllowance) || 0;
                 item.otRate = Math.round((item.baseSalary) / 173);
 
-                // If Master Data (Salary) changed and it was already processed, mark it!
                 if (item.status === 'Processed' && oldBase !== item.baseSalary) {
-                    item.status = 'Modified'; // Needs re-calculation
+                    item.status = 'Modified';
                 }
             }
         });
@@ -214,7 +220,8 @@ function processAllPayroll() {
     const employees = data.users.filter(u => ['employee', 'manager'].includes(u.role) && u.activeStatus !== 'Resign');
 
     if (!data.payrolls) data.payrolls = {};
-    let record = data.payrolls[key] || {};
+    const existingRecord = data.payrolls[key] || {};
+    let newRecord = {};
 
     // Get Dynamic Settings
     const settings = data.payrollSettings || {
@@ -228,7 +235,7 @@ function processAllPayroll() {
 
     employees.forEach(e => {
         // Get existing inputs or defaults
-        const existing = record[e.id] || {};
+        const existing = existingRecord[e.id] || {};
 
         // Base Data
         const base = parseFloat(e.baseSalary) || 0;
@@ -295,8 +302,8 @@ function processAllPayroll() {
         // Formula: Gross - BPJS (Emp) - Tax - Manual Deduction
         const thp = gross - totalBPJS - pphMonth - manualDeduction;
 
-        // Save Result
-        record[e.id] = {
+        // Save Result to the NEW record (this effectively removes orphans)
+        newRecord[e.id] = {
             ...existing,
             id: e.id,
             name: e.name,
@@ -321,7 +328,7 @@ function processAllPayroll() {
         };
     });
 
-    data.payrolls[key] = record;
+    data.payrolls[key] = newRecord;
     saveData(data);
     loadPayrollData();
     alert('Payroll processed successfully!');
