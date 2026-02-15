@@ -12,47 +12,70 @@
     <div class="login-split">
         <!-- Brand Side -->
         <div class="login-left">
-            <div style="text-align: center; max-width: 450px; padding: 20px;">
-                <img src="../assets/logo.png" alt="E-PeopleSync Logo" class="brand-logo-large">
-                <h1 style="font-size: 3.5rem; font-weight: 800; letter-spacing: -1px; margin-bottom: 5px;">E-PeopleSync
-                </h1>
-                <p style="font-size: 1.2rem; opacity: 0.9; font-weight: 400;">Integrated HR Platform for Recruitment &
-                    Learning</p>
-                <div
-                    style="margin-top: 40px; height: 2px; width: 60px; background: white; margin-left: auto; margin-right: auto; border-radius: 2px;">
+            <div class="brand-content" style="padding-right: 60px;">
+                <img src="../assets/logo.png" alt="E-PeopleSync Logo" class="brand-logo-large"
+                    style="width: 140px; height: 140px; margin-bottom: 30px; border-color: rgba(255,255,255,0.2);">
+                <h1
+                    style="font-size: 4rem; font-weight: 900; letter-spacing: -2px; margin-bottom: 10px; line-height: 1;">
+                    E-PeopleSync</h1>
+                <p style="font-size: 1.25rem; opacity: 0.8; font-weight: 300; max-width: 400px; margin: 0 auto;">
+                    Next-Generation Human Capital Management System</p>
+
+                <div style="margin-top: 50px; display: flex; align-items: center; justify-content: center; gap: 20px;">
+                    <div style="text-align: left;">
+                        <h4 style="margin: 0; font-size: 1.1rem;">Recruitment</h4>
+                        <p style="margin: 0; font-size: 0.85rem; opacity: 0.6;">Streamline global talent acquisition</p>
+                    </div>
+                    <div style="width: 1px; height: 30px; background: rgba(255,255,255,0.2);"></div>
+                    <div style="text-align: left;">
+                        <h4 style="margin: 0; font-size: 1.1rem;">Learning</h4>
+                        <p style="margin: 0; font-size: 0.85rem; opacity: 0.6;">Power up your workforce skills</p>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Login Form Side -->
         <div class="login-right">
-            <div style="width: 100%; max-width: 350px;">
-                <h2 style="margin-bottom: 10px;">Welcome back</h2>
-                <p style="color: #666; margin-bottom: 30px;">Please enter your details to sign in.</p>
-
-                <!-- Google Login (Primary) -->
-                <!-- Trial Candidate Login -->
-                <!-- Google Login Simulation -->
-                <button onclick="handleGoogleLogin()" class="btn btn-block mb-3"
-                    style="background-color: #fff; color: #757575; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 500;">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="G"
-                        style="width: 18px; height: 18px;">
-                    Sign in with Google
-                </button>
-
-                <div class="text-center mb-3">
-                    <span style="font-size: 12px; color: #aaa;">- OR -</span>
+            <div style="width: 100%; max-width: 380px;">
+                <div style="margin-bottom: 40px;">
+                    <h2 style="font-size: 2rem; font-weight: 700; color: var(--premium-navy); margin-bottom: 8px;">
+                        Welcome Back</h2>
+                    <p style="color: #666; font-size: 1rem;">Please enter your credentials to access the platform.</p>
                 </div>
-                <!-- Trial Candidate Login (Secondary) -->
-                <button onclick="handleCandidateTrial()" class="btn btn-block mb-3"
-                    style="background-color: #f0f0f0; color: #666; display: flex; align-items: center; justify-content: center; gap: 10px; border: none;">
-                    <i class="fas fa-user-check"></i>
-                    Trial as Candidate
-                </button>
 
-                <!-- Admin Login Removed -->
-                <div class="text-center mt-3">
-                    <a href="admin.html" style="font-size: 13px; color: #999; text-decoration: none;">Admin Portal</a>
+                <div class="form-container">
+                    <!-- Google Login -->
+                    <button onclick="handleGoogleLogin()" class="google-btn mb-4"
+                        style="padding: 14px; border-radius: 10px; transition: 0.3s; font-size: 0.95rem;">
+                        <img src="https://www.gstatic.com/images/branding/product/1x/googleg_48dp.png" alt="Google"
+                            style="width: 20px; height: 20px;">
+                        <span>Continue with Google</span>
+                    </button>
+
+                    <div style="display: flex; align-items: center; margin-bottom: 25px;">
+                        <div style="flex: 1; height: 1px; background: #eee;"></div>
+                        <span
+                            style="padding: 0 15px; font-size: 12px; color: #bbb; font-weight: 600; text-transform: uppercase;">or
+                            access as</span>
+                        <div style="flex: 1; height: 1px; background: #eee;"></div>
+                    </div>
+
+                    <!-- Trial Candidate Login -->
+                    <button onclick="handleCandidateTrial()" class="btn btn-block mb-3"
+                        style="background-color: #f8f9fa; color: #333; height: 50px; display: flex; align-items: center; justify-content: center; gap: 12px; border: 1px solid #eee; border-radius: 10px; transition: 0.3s; font-weight: 600;">
+                        <i class="fas fa-id-card-alt" style="color: var(--premium-blue);"></i>
+                        Candidate Preview
+                    </button>
+
+                    <div class="text-center" style="margin-top: 40px;">
+                        <p style="font-size: 13px; color: #999;">Restricted access area.</p>
+                        <a href="admin.html"
+                            style="font-size: 14px; color: var(--premium-blue); font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;">
+                            <span>Admin Portal Access</span>
+                            <i class="fas fa-arrow-right" style="font-size: 10px;"></i>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

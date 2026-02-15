@@ -15,6 +15,12 @@
     --text-muted: #888;
     --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     --border-radius: 12px;
+
+    /* Premium Blue Palette */
+    --premium-navy: #003366;
+    --premium-blue: #00aeef;
+    --premium-cyan: #66e0ff;
+    --premium-dark-blue: #002244;
 }
 
 * {
@@ -89,21 +95,55 @@ ul {
     position: fixed;
     height: 100%;
     z-index: 100;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar.collapsed {
+    width: 70px;
+}
+
+.sidebar.collapsed .brand span,
+.sidebar.collapsed .nav-label,
+.sidebar.collapsed .nav-link span {
+    display: none;
+}
+
+.sidebar.collapsed .nav-link {
+    justify-content: center;
+    padding: 12px 0;
+}
+
+.sidebar.collapsed .nav-link i {
+    width: auto;
+    margin: 0;
+    font-size: 18px;
+}
+
+.sidebar.collapsed .nav-label.premium {
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    margin: 10px 0;
 }
 
 .brand {
     padding: 20px;
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--primary-color);
-    border-bottom: 1px solid #f0f0f0;
+    gap: 15px;
+    font-size: 22px;
+    font-weight: 800;
+    color: #fff;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.brand span {
+    white-space: nowrap;
+    letter-spacing: -0.5px;
 }
 
 .brand-icon {
-    background: var(--primary-color);
+    background: var(--premium-blue);
     color: white;
     width: 35px;
     height: 35px;
@@ -134,6 +174,65 @@ ul {
 .nav-links {
     padding: 20px 0;
     flex: 1;
+    overflow-y: auto;
+    overflow-x: visible;
+    /* Allow notches to overflow if needed */
+    scrollbar-width: thin;
+    scrollbar-color: #ddd transparent;
+}
+
+.nav-link.premium {
+    color: rgba(255, 255, 255, 0.9);
+    position: relative;
+    transition: all 0.3s ease;
+    border-radius: 25px 0 0 25px;
+    margin-left: 10px;
+}
+
+aside.sidebar .nav-link.premium:hover,
+aside.sidebar .nav-link.premium.active {
+    background: #f4f6f8 !important;
+    /* Match standard bg-color */
+    color: var(--premium-navy) !important;
+}
+
+aside.sidebar .nav-link.premium:hover i,
+aside.sidebar .nav-link.premium.active i {
+    color: var(--premium-navy) !important;
+}
+
+/* Inverted border radius effect (Notch) */
+aside.sidebar .nav-link.premium.active::before,
+aside.sidebar .nav-link.premium.active::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    width: 20px;
+    height: 20px;
+    background: transparent;
+    pointer-events: none;
+    display: block;
+}
+
+aside.sidebar .nav-link.premium.active::before {
+    top: -20px;
+    border-radius: 0 0 20px 0;
+    box-shadow: 5px 5px 0 5px #f4f6f8;
+}
+
+aside.sidebar .nav-link.premium.active::after {
+    bottom: -20px;
+    border-radius: 0 20px 0 0;
+    box-shadow: 5px -5px 0 5px #f4f6f8;
+}
+
+.nav-links::-webkit-scrollbar {
+    width: 6px;
+}
+
+.nav-links::-webkit-scrollbar-thumb {
+    background-color: #ddd;
+    border-radius: 10px;
 }
 
 .nav-label {
@@ -177,6 +276,11 @@ ul {
     margin-left: var(--sidebar-width);
     display: flex;
     flex-direction: column;
+    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.main-content.sidebar-collapsed {
+    margin-left: 70px;
 }
 
 /* Header */
@@ -198,6 +302,26 @@ ul {
     align-items: center;
     color: #666;
     width: 300px;
+}
+
+.sidebar-toggle {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: #fff;
+    width: 35px;
+    height: 35px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin-right: 15px;
+    transition: 0.2s;
+    z-index: 20;
+}
+
+.sidebar-toggle:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
 .search-bar input {
@@ -566,46 +690,71 @@ ul {
 .login-split {
     display: flex;
     height: 100vh;
+    background: #f4f6f8;
 }
 
 .login-left {
-    flex: 1;
-    background-color: var(--primary-color);
-    background-image: url("../assets/hero-bg.png");
-    background-repeat: no-repeat;
-    background-position: center center;
-    background-size: cover;
+    flex: 1.2;
+    background: linear-gradient(135deg, var(--premium-dark-blue) 0%, var(--premium-navy) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
     position: relative;
+    overflow: hidden;
 }
 
 .login-left::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, rgba(0, 121, 107, 0.8), rgba(0, 77, 64, 0.4));
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
+    top: -50%;
+    left: -50%;
+    animation: rotate 20s linear infinite;
     z-index: 1;
+}
+
+/* Professional Curved Divider */
+.login-left::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: -100px;
+    width: 200px;
+    height: 100%;
+    background: #fff;
+    border-radius: 100% 0 0 100% / 50% 0 0 50%;
+    z-index: 3;
+    box-shadow: -15px 0 30px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .login-left>div {
     position: relative;
     z-index: 2;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    padding: 40px;
 }
 
 .login-right {
-    width: 500px;
+    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 40px;
+    padding: 60px;
     background: #fff;
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.05);
 }
 
 .google-btn {
@@ -820,4 +969,129 @@ ul {
 
 .card h3 {
     margin-bottom: 10px;
+}
+
+/* Premium Decorative Header & Footer */
+.premium-decoration {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.premium-shape {
+    position: absolute;
+    height: 150%;
+    width: 100%;
+    top: -25%;
+    left: -10%;
+    transform: rotate(5deg);
+}
+
+.shape-1 {
+    background: var(--premium-navy);
+    width: 40%;
+    clip-path: ellipse(80% 100% at 0% 0%);
+    z-index: 1;
+}
+
+.shape-2 {
+    background: var(--premium-blue);
+    width: 35%;
+    clip-path: ellipse(80% 100% at 0% 0%);
+    left: -5%;
+    top: -20%;
+    z-index: 2;
+    opacity: 0.9;
+}
+
+.shape-3 {
+    background: var(--premium-cyan);
+    width: 30%;
+    clip-path: ellipse(80% 100% at 0% 0%);
+    left: -8%;
+    top: -15%;
+    z-index: 3;
+    opacity: 0.8;
+}
+
+.premium-header-content {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.top-header.premium {
+    position: relative;
+    background: #fff;
+    overflow: hidden;
+    border-bottom: 4px solid var(--premium-navy);
+}
+
+/* Footer Implementation */
+.premium-footer {
+    margin-top: auto;
+    background: #fff;
+    border-top: 1px solid #eee;
+    padding: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.footer-decoration {
+    height: 40px;
+    background: var(--premium-navy);
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 12px;
+}
+
+.footer-curve {
+    height: 60px;
+    background: #fff;
+    position: relative;
+}
+
+.footer-curve::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--premium-blue);
+    clip-path: ellipse(60% 100% at 0% 100%);
+    opacity: 0.1;
+}
+
+/* Sidebar Dark Navy Theme - Updated to match Header shapes */
+.sidebar.glass {
+    background: linear-gradient(135deg, var(--premium-navy) 0%, var(--premium-blue) 100%);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nav-label.premium {
+    color: rgba(255, 255, 255, 0.6);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 5px;
+    margin-top: 15px;
+}
+
+/* Standardized Sidebar */
+
+.nav-link.premium:hover,
+.nav-link.premium.active {
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 100%);
+    color: #fff;
+    border-left-color: var(--premium-blue);
 }

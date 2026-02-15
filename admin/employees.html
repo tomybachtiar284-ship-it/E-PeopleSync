@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Employee Management - E-PeopleSync</title>
     <link rel="stylesheet" href="../css/styles.css">
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <style>
         /* Tab Styles */
@@ -109,66 +109,97 @@
 
 <body>
     <div class="dashboard-layout">
-        <aside class="sidebar">
+        <aside class="sidebar glass">
             <div class="brand">
                 <div class="brand-icon"><img src="../assets/logo.png" alt="Logo"></div>
                 <span>E-PeopleSync</span>
             </div>
             <div class="nav-links">
-                <div class="nav-label">Main Menu</div>
-                <a href="../admin/index.html" class="nav-link"><i class="fas fa-th-large"></i>
-                    <span>Dashboard</span></a>
-                <a href="employees.html" class="nav-link active"><i class="fas fa-users"></i> <span>Employee
-                        Management</span></a>
-                <a href="payroll.html" class="nav-link"><i class="fas fa-money-bill-wave"></i> <span>Payroll</span></a>
-                <a href="../recruitment/index.html" class="nav-link"><i class="fas fa-user-plus"></i>
-                    <span>Recruitment</span></a>
-                <a href="../learning/index.html" class="nav-link"><i class="fas fa-graduation-cap"></i> <span>Learning
-                        Hub</span></a>
-                <a href="../evaluation/index.html" class="nav-link"><i class="fas fa-chart-line"></i>
+                <div class="nav-label premium">Main Dashboard</div>
+                <a href="index.html" class="nav-link premium"><i class="fas fa-th-large"></i>
+                    <span>Overview</span></a>
+
+                <div class="nav-label premium">Workforce Managed</div>
+                <a href="employees.html" class="nav-link premium active"><i class="fas fa-users"></i>
+                    <span>Employees</span></a>
+                <a href="#" class="nav-link premium"><i class="fas fa-calendar-check"></i>
+                    <span>Attendance & Shifts</span></a>
+                <a href="../evaluation/index.html" class="nav-link premium"><i class="fas fa-chart-line"></i>
                     <span>Performance</span></a>
-                <div class="nav-label" style="margin-top: 20px;">Settings</div>
-                <a href="../admin/settings.html" class="nav-link"><i class="fas fa-cog"></i>
+
+                <div class="nav-label premium">Finance & Talent</div>
+                <a href="payroll.html" class="nav-link premium"><i class="fas fa-money-bill-wave"></i>
+                    <span>Payroll & Claims</span></a>
+                <a href="../recruitment/index.html" class="nav-link premium"><i class="fas fa-user-plus"></i>
+                    <span>Recruitment</span></a>
+                <a href="../learning/index.html" class="nav-link premium"><i class="fas fa-graduation-cap"></i>
+                    <span>Learning Hub</span></a>
+
+                <div class="nav-label premium">Enterprise Tools</div>
+                <a href="#" class="nav-link premium"><i class="fas fa-boxes"></i>
+                    <span>Asset Management</span></a>
+                <a href="#" class="nav-link premium"><i class="fas fa-file-contract"></i>
+                    <span>Document Center</span></a>
+                <a href="#" class="nav-link premium"><i class="fas fa-sitemap"></i>
+                    <span>Org Chart</span></a>
+
+                <div class="nav-label premium" style="margin-top: 20px;">Settings</div>
+                <a href="../admin/settings.html" class="nav-link premium"><i class="fas fa-cog"></i>
                     <span>Administration</span></a>
                 <br>
-                <a href="#" onclick="logout()" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i>
+                <a href="#" onclick="logout()" class="nav-link premium text-danger"><i class="fas fa-sign-out-alt"></i>
                     <span>Logout</span></a>
             </div>
         </aside>
 
         <main class="main-content">
-            <header class="top-header">
-                <div>
-                    <h2>Employee Directory</h2>
-                    <p class="text-muted">Manage all employees and managers.</p>
+            <header class="top-header premium">
+                <!-- Decorative Shapes -->
+                <div class="premium-decoration">
+                    <div class="premium-shape shape-1"></div>
+                    <div class="premium-shape shape-2"></div>
+                    <div class="premium-shape shape-3"></div>
                 </div>
-                <div class="header-right">
-                    <div class="notification" id="notifContainer" onclick="toggleNotifDropdown(event)">
-                        <i class="far fa-bell" style="font-size: 20px; color: #666;"></i>
-                        <div class="badge" id="notifBadge" style="display: none;">0</div>
 
-                        <!-- Notification Dropdown -->
-                        <div id="notifDropdown" class="notif-dropdown">
-                            <div class="notif-header">
-                                <span>Notifications</span>
-                                <span id="notifCountText" style="font-size: 12px; font-weight: normal; color: #888;">0
-                                    New</span>
-                            </div>
-                            <div class="notif-body" id="notifBody">
-                                <!-- Notifications will be injected here -->
-                                <div class="notif-empty">No new notifications</div>
-                            </div>
-                            <div style="padding: 10px; text-align: center; border-top: 1px solid #f0f0f0;">
-                                <a href="../recruitment/index.html"
-                                    style="font-size: 12px; color: var(--primary-color); font-weight: 600;">View All
-                                    Applications</a>
-                            </div>
+                <div class="premium-header-content">
+                    <div style="display: flex; align-items: center;">
+                        <button class="sidebar-toggle" onclick="toggleSidebar()">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                        <div>
+                            <h2 style="color: #fff;">Employee Directory</h2>
+                            <p style="color: rgba(255,255,255,0.8); font-size: 13px;">Manage all employees and managers.
+                            </p>
                         </div>
                     </div>
-                    <div class="user-profile">
-                        <div class="user-details">
-                            <h4 id="userName">Admin</h4>
-                            <span id="userRole">ADMIN HR</span>
+                    <div class="header-right">
+                        <div class="notification" id="notifContainer" onclick="toggleNotifDropdown(event)">
+                            <i class="far fa-bell" style="font-size: 20px; color: #fff;"></i>
+                            <div class="badge" id="notifBadge" style="display: none;">0</div>
+
+                            <!-- Notification Dropdown -->
+                            <div id="notifDropdown" class="notif-dropdown">
+                                <div class="notif-header">
+                                    <span>Notifications</span>
+                                    <span id="notifCountText"
+                                        style="font-size: 12px; font-weight: normal; color: #888;">0
+                                        New</span>
+                                </div>
+                                <div class="notif-body" id="notifBody">
+                                    <div class="notif-empty">No new notifications</div>
+                                </div>
+                                <div style="padding: 10px; text-align: center; border-top: 1px solid #f0f0f0;">
+                                    <a href="../recruitment/index.html"
+                                        style="font-size: 12px; color: var(--premium-navy); font-weight: 600;">View All
+                                        Applications</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="user-profile">
+                            <div class="user-details">
+                                <h4 id="userName" style="color: #fff;">Admin</h4>
+                                <span id="userRole" style="color: rgba(255,255,255,0.8);">ADMIN HR</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -208,6 +239,14 @@
                     </table>
                 </div>
             </div>
+
+            <!-- Footer -->
+            <footer class="premium-footer">
+                <div class="footer-curve"></div>
+                <div class="footer-decoration">
+                    &copy; 2026 E-PeopleSync HRMS &bull; Enterprise Human Capital Management &bull; Version 2.0.0
+                </div>
+            </footer>
         </main>
     </div>
 
@@ -633,6 +672,13 @@
         </div>
     </div>
 
+    <script>
+        // Sidebar Toggle
+        function toggleSidebar() {
+            document.querySelector('.sidebar').classList.toggle('collapsed');
+            document.querySelector('.main-content').classList.toggle('sidebar-collapsed');
+        }
+    </script>
     <script src="../js/utils.js"></script>
     <script src="../js/admin_employees.js"></script>
 </body>
