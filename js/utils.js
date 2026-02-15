@@ -80,7 +80,22 @@ const defaultData = {
         ot_index: 173,
         tax_office_limit: 500000,
         ptkp0: 54000000
-    }
+    },
+    assets: [
+        { id: 'AST-001', name: 'MacBook Pro 16"', category: 'Laptop', status: 'Assigned', assignedTo: 'Sarah Admin', dateAssigned: '2025-10-15' },
+        { id: 'AST-002', name: 'Dell UltraSharp 27"', category: 'Peripherals', status: 'Available', assignedTo: null, dateAssigned: null },
+        { id: 'AST-003', name: 'iPhone 15 Pro', category: 'Smartphone', status: 'Assigned', assignedTo: 'Sarah Admin', dateAssigned: '2025-11-20' },
+        { id: 'AST-004', name: 'Toyota Avanza', category: 'Vehicle', status: 'Repair', assignedTo: null, dateAssigned: null },
+        { id: 'AST-005', name: 'Logitech MX Master 3', category: 'Peripherals', status: 'Available', assignedTo: null, dateAssigned: null }
+    ],
+    docCategories: ['Corporate Policy', 'Employee Record', 'Legal', 'Finance', 'Training'],
+    documents: [
+        { id: 'DOC-001', name: 'Employee Handbook 2026', category: 'Corporate Policy', version: 'v2.1', owner: 'HR Department', expiryDate: null, size: '2.4 MB', type: 'pdf' },
+        { id: 'DOC-002', name: 'IT Security Policy', category: 'Corporate Policy', version: 'v1.0', owner: 'IT Department', expiryDate: null, size: '1.2 MB', type: 'pdf' },
+        { id: 'DOC-003', name: 'Employment Contract - Sarah Admin', category: 'Employee Record', version: 'v1.0', owner: 'Sarah Admin', expiryDate: '2028-12-31', size: '0.8 MB', type: 'pdf' },
+        { id: 'DOC-004', name: 'Identity Card (KTP)', category: 'Employee Record', version: 'v1.0', owner: 'Sarah Admin', expiryDate: '2030-01-01', size: '0.5 MB', type: 'jpg' },
+        { id: 'DOC-005', name: 'Annual Tax Report 2025', category: 'Finance', version: 'v1.0', owner: 'Corporate Finance', expiryDate: null, size: '3.1 MB', type: 'pdf' }
+    ]
 };
 
 // Initialize Data if empty
@@ -99,6 +114,9 @@ function initData() {
         if (!data.courseLevels) { data.courseLevels = defaultData.courseLevels; changed = true; }
         if (!data.recruitmentQuestions) { data.recruitmentQuestions = defaultData.recruitmentQuestions; changed = true; }
         if (!data.payrollSettings) { data.payrollSettings = defaultData.payrollSettings; changed = true; }
+        if (!data.assets) { data.assets = defaultData.assets; changed = true; }
+        if (!data.docCategories) { data.docCategories = defaultData.docCategories; changed = true; }
+        if (!data.documents) { data.documents = defaultData.documents; changed = true; }
         if (changed) {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
             console.log('Data migrated with new fields.');

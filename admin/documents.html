@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Center - E-PeopleSync</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <style>
+        .file-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .file-pdf {
+            color: #f44336;
+        }
+
+        .file-img {
+            color: #2196f3;
+        }
+
+        .file-doc {
+            color: #4b6cb7;
+        }
+
+        .doc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .doc-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            border-radius: 12px;
+            transition: all 0.3s;
+            cursor: pointer;
+            border: 1px solid #eee;
+        }
+
+        .doc-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+            background: #fcfcfc;
+            border-color: var(--premium-blue);
+        }
+
+        .doc-info {
+            margin-top: 10px;
+        }
+
+        .doc-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 4px;
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 160px;
+        }
+
+        .doc-meta {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .expiry-badge {
+            font-size: 10px;
+            background: #ffebee;
+            color: #c62828;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-top: 5px;
+            display: inline-block;
+            font-weight: 600;
+        }
+
+        .active-tab {
+            background: #00897b !important;
+            color: #fff !important;
+            border: none;
+        }
+
+        .btn-primary.active-tab {
+            background: #00897b !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar glass">
+            <div class="brand">
+                <div class="brand-icon"><img src="../assets/logo.png" alt="Logo"></div>
+                <span>E-PeopleSync</span>
+            </div>
+            <div class="nav-links">
+                <div class="nav-label premium">Main Dashboard</div>
+                <a href="index.html" class="nav-link premium"><i class="fas fa-th-large"></i>
+                    <span>Overview</span></a>
+
+                <div class="nav-label premium">Workforce Managed</div>
+                <a href="employees.html" class="nav-link premium"><i class="fas fa-users"></i>
+                    <span>Employees</span></a>
+                <a href="#" class="nav-link premium"><i class="fas fa-calendar-check"></i>
+                    <span>Attendance & Shifts</span></a>
+                <a href="../evaluation/index.html" class="nav-link premium"><i class="fas fa-chart-line"></i>
+                    <span>Performance</span></a>
+
+                <div class="nav-label premium">Finance & Talent</div>
+                <a href="payroll.html" class="nav-link premium"><i class="fas fa-money-bill-wave"></i>
+                    <span>Payroll & Claims</span></a>
+                <a href="../recruitment/index.html" class="nav-link premium"><i class="fas fa-user-plus"></i>
+                    <span>Recruitment</span></a>
+                <a href="../learning/index.html" class="nav-link premium"><i class="fas fa-graduation-cap"></i>
+                    <span>Learning Hub</span></a>
+
+                <div class="nav-label premium">Enterprise Tools</div>
+                <a href="assets.html" class="nav-link premium"><i class="fas fa-boxes"></i>
+                    <span>Asset Management</span></a>
+                <a href="documents.html" class="nav-link premium active"><i class="fas fa-file-contract"></i>
+                    <span>Document Center</span></a>
+                <a href="org_chart.html" class="nav-link premium"><i class="fas fa-sitemap"></i>
+                    <span>Org Chart</span></a>
+
+                <div class="nav-label premium" style="margin-top: 20px;">Settings</div>
+                <a href="settings.html" class="nav-link premium"><i class="fas fa-cog"></i>
+                    <span>Administration</span></a>
+                <br>
+                <a href="#" onclick="logout()" class="nav-link premium text-danger"><i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span></a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="top-header premium">
+                <div class="premium-decoration">
+                    <div class="premium-shape shape-1"></div>
+                    <div class="premium-shape shape-2"></div>
+                    <div class="premium-shape shape-3"></div>
+                </div>
+
+                <div class="premium-header-content">
+                    <div style="display: flex; align-items: center;">
+                        <button class="sidebar-toggle" onclick="toggleSidebar()">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                        <div class="search-bar">
+                            <i class="fas fa-search"></i>
+                            <input type="text" placeholder="Search documents..." id="docSearch">
+                        </div>
+                    </div>
+                    <div class="header-right">
+                        <div class="user-profile">
+                            <div class="user-details">
+                                <h4 id="userName" style="color: #fff;">Sarah Admin</h4>
+                                <span id="userRole" style="color: rgba(255,255,255,0.8);">ADMIN HR</span>
+                            </div>
+                            <img src="https://i.pravatar.cc/150?img=1" class="user-avatar" alt="Profile"
+                                style="border: 2px solid #fff;">
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2>Document Center</h2>
+                        <p style="color: #666;">Manage corporate policies and employee secure records.</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-primary"
+                            style="border-color: var(--premium-navy); color: var(--premium-navy);"
+                            onclick="addNewCategory()"><i class="fas fa-folder-plus"></i> New Category</button>
+                        <button class="btn btn-primary" style="background: var(--premium-navy);"
+                            onclick="showUploadModal()"><i class="fas fa-cloud-upload-alt"></i> Upload Document</button>
+                    </div>
+                </div>
+
+                <!-- Search & Filters -->
+                <div class="card mb-4">
+                    <div class="grid-2 gap-4">
+                        <div class="search-bar" style="max-width: none; background: #f8f9fa; border: 1px solid #ddd;">
+                            <i class="fas fa-search"></i>
+                            <input type="text" placeholder="Search by name, ID, or employee owner..."
+                                id="contentDocSearch">
+                        </div>
+                        <div class="d-flex align-items-center justify-content-end">
+                            <span id="searchResultCount" style="font-size: 14px; color: #666; font-weight: 500;">Showing
+                                5 documents</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Tabs -->
+                <div class="card mb-4">
+                    <div class="d-flex gap-4 p-2 overflow-auto" id="categoryFilterContainer">
+                        <button class="btn btn-sm btn-secondary active-tab"
+                            onclick="filterDocsByCategory('all', this)">All
+                            Documents</button>
+                        <!-- Dynamic Categories -->
+                    </div>
+                </div>
+
+                <!-- Document Grid -->
+                <div class="doc-grid" id="docGrid">
+                    <!-- Loaded via JS -->
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="premium-footer">
+                <div class="footer-curve"></div>
+                <div class="footer-decoration">
+                    &copy; 2026 E-PeopleSync HRMS &bull; Enterprise Human Capital Management &bull; Version 2.0.0
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Upload Modal -->
+    <div id="uploadModal" class="modal"
+        style="display:none; position:fixed; z-index:100; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.5);">
+        <div class="modal-content"
+            style="background:#fff; margin:5% auto; padding:25px; border-radius:12px; width:90%; max-width:450px;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3>Upload Document</h3>
+                <span class="close" onclick="closeUploadModal()" style="font-size:28px; cursor:pointer;">&times;</span>
+            </div>
+            <form id="uploadForm">
+                <div class="form-group mb-3">
+                    <label>Document Name *</label>
+                    <input type="text" id="docName" class="form-control" placeholder="e.g. Employee Handbook" required>
+                </div>
+                <div class="form-group mb-3">
+                    <label>Category *</label>
+                    <select id="docCategory" class="form-control" required>
+                        <!-- Loaded via JS -->
+                    </select>
+                </div>
+                <div class="form-group mb-3">
+                    <label>Owner/Recipient *</label>
+                    <input type="text" id="docOwner" class="form-control" placeholder="e.g. HR or Employee Name"
+                        required>
+                </div>
+                <div class="form-group mb-4">
+                    <label>Select File</label>
+                    <input type="file" id="docFile" style="display: none;" onchange="handleFileSelection(this)">
+                    <div id="dropzone" onclick="document.getElementById('docFile').click()"
+                        style="border: 2px dashed #ddd; padding: 30px; border-radius: 8px; text-align: center; color: #888; cursor: pointer; transition: all 0.3s;">
+                        <i class="fas fa-file-upload" style="font-size: 24px; margin-bottom: 10px;"></i>
+                        <p id="dropzoneText" style="font-size: 13px;">Drag and drop or click to choose</p>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary" onclick="closeUploadModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="background: var(--premium-navy);">Start
+                        Upload</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/utils.js"></script>
+    <script src="../js/admin_documents.js"></script>
+    <script>
+        function toggleSidebar() {
+            document.querySelector('.sidebar').classList.toggle('collapsed');
+            document.querySelector('.main-content').classList.toggle('sidebar-collapsed');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentUser = checkAuth(['admin']);
+            if (currentUser) {
+                document.getElementById('userName').textContent = currentUser.name;
+            }
+        });
+    </script>
+</body>
+
+</html>

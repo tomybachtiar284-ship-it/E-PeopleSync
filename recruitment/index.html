@@ -37,11 +37,11 @@
                     <span>Learning Hub</span></a>
 
                 <div class="nav-label premium">Enterprise Tools</div>
-                <a href="#" class="nav-link premium"><i class="fas fa-boxes"></i>
+                <a href="../admin/assets.html" class="nav-link premium"><i class="fas fa-boxes"></i>
                     <span>Asset Management</span></a>
-                <a href="#" class="nav-link premium"><i class="fas fa-file-contract"></i>
+                <a href="../admin/documents.html" class="nav-link premium"><i class="fas fa-file-contract"></i>
                     <span>Document Center</span></a>
-                <a href="#" class="nav-link premium"><i class="fas fa-sitemap"></i>
+                <a href="../admin/org_chart.html" class="nav-link premium"><i class="fas fa-sitemap"></i>
                     <span>Org Chart</span></a>
 
                 <div class="nav-label premium" style="margin-top: 20px;">Settings</div>
@@ -532,8 +532,30 @@
             const app = data.applications.find(a => a.id === appId);
             if (app) {
                 app.status = newStatus;
+
+                // INTEGRATION: If hired, update user record to Employee
+                if (newStatus === 'Hired') {
+                    const user = data.users.find(u => u.id === app.candidateId);
+                    const job = data.jobs.find(j => j.id === app.jobId);
+
+                    if (user) {
+                        user.role = 'employee';
+                        user.status = 'active';
+                        // Initialize Employee Data
+                        user.position = job ? job.title : 'New Hire';
+                        user.department = job ? job.department : 'Unassigned';
+                        user.nid = 'EMP-' + Date.now().toString().slice(-4);
+                        user.joinDate = new Date().toISOString().split('T')[0];
+                        user.activeStatus = 'Aktif';
+                        user.baseSalary = 5000000; // Default
+                        user.固定Allowance = 0;
+                        user.transportAllowance = 0;
+
+                        alert(`${user.name} is now an Employee! Data integrated to all modules.`);
+                    }
+                }
+
                 saveData(data);
-                alert('Status updated!');
                 location.reload();
             }
         }
