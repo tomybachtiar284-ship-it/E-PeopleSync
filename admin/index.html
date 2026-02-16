@@ -25,7 +25,7 @@
                 <div class="nav-label premium">Workforce Managed</div>
                 <a href="employees.html" class="nav-link premium"><i class="fas fa-users"></i>
                     <span>Employees</span></a>
-                <a href="#" class="nav-link premium"><i class="fas fa-calendar-check"></i>
+                <a href="attendance.html" class="nav-link premium"><i class="fas fa-calendar-check"></i>
                     <span>Attendance & Shifts</span></a>
                 <a href="../evaluation/index.html" class="nav-link premium"><i class="fas fa-chart-line"></i>
                     <span>Performance</span></a>
@@ -55,61 +55,8 @@
             </div>
         </aside>
 
-        <!-- Main Content -->
         <main class="main-content">
-            <!-- Header -->
-            <header class="top-header premium">
-                <!-- Decorative Shapes -->
-                <div class="premium-decoration">
-                    <div class="premium-shape shape-1"></div>
-                    <div class="premium-shape shape-2"></div>
-                    <div class="premium-shape shape-3"></div>
-                </div>
-
-                <div class="premium-header-content">
-                    <div style="display: flex; align-items: center;">
-                        <button class="sidebar-toggle" onclick="toggleSidebar()">
-                            <i class="fas fa-bars"></i>
-                        </button>
-                        <div class="search-bar">
-                            <i class="fas fa-search"></i>
-                            <input type="text" placeholder="Search platform...">
-                        </div>
-                    </div>
-                    <div class="header-right">
-                        <div class="notification" id="notifContainer" onclick="toggleNotifDropdown(event)">
-                            <i class="far fa-bell" style="font-size: 20px; color: #fff;"></i>
-                            <div class="badge" id="notifBadge" style="display: none;">0</div>
-
-                            <!-- Notification Dropdown -->
-                            <div id="notifDropdown" class="notif-dropdown">
-                                <div class="notif-header">
-                                    <span>Notifications</span>
-                                    <span id="notifCountText"
-                                        style="font-size: 12px; font-weight: normal; color: #888;">0
-                                        New</span>
-                                </div>
-                                <div class="notif-body" id="notifBody">
-                                    <div class="notif-empty">No new notifications</div>
-                                </div>
-                                <div style="padding: 10px; text-align: center; border-top: 1px solid #f0f0f0;">
-                                    <a href="../recruitment/index.html"
-                                        style="font-size: 12px; color: var(--premium-navy); font-weight: 600;">View All
-                                        Applications</a>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="user-profile">
-                            <div class="user-details">
-                                <h4 id="userName" style="color: #fff;">Sarah Admin</h4>
-                                <span id="userRole" style="color: rgba(255,255,255,0.8);">ADMIN HR</span>
-                            </div>
-                            <img src="https://i.pravatar.cc/150?img=1" class="user-avatar" alt="Profile"
-                                style="border: 2px solid #fff;">
-                        </div>
-                    </div>
-                </div>
-            </header>
+            <!-- Header rendered dynamically via renderModernHeader() -->
 
             <!-- Overview Content -->
             <div class="content-area">
@@ -184,13 +131,7 @@
                 </div>
             </div>
 
-            <!-- Footer -->
-            <footer class="premium-footer">
-                <div class="footer-curve"></div>
-                <div class="footer-decoration">
-                    &copy; 2026 E-PeopleSync HRMS &bull; Enterprise Human Capital Management &bull; Version 2.0.0
-                </div>
-            </footer>
+            <!-- Footer rendered dynamically via renderModernFooter() -->
         </main>
     </div>
 
@@ -203,14 +144,14 @@
             document.querySelector('.main-content').classList.toggle('sidebar-collapsed');
         }
 
-        // Link Data
         document.addEventListener('DOMContentLoaded', () => {
-            // Data loading moved to js/admin.js
             const currentUser = checkAuth(['admin']);
-            if (currentUser) {
-                document.getElementById('welcomeName').textContent = currentUser.name;
-                document.getElementById('userName').textContent = currentUser.name;
-            }
+            if (!currentUser) return;
+
+            renderModernHeader();
+            renderModernFooter();
+
+            document.getElementById('welcomeName').textContent = currentUser.name;
         });
     </script>
 </body>

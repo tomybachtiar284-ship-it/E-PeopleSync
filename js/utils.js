@@ -9,7 +9,8 @@ const defaultData = {
     users: [
         { id: 1, username: 'admin', password: 'password', role: 'admin', name: 'Admin HR' },
         { id: 2, username: 'manager', password: 'password', role: 'manager', name: 'Budi Santoso' }, // Manager
-        { id: 3, username: 'andi', password: 'password', role: 'employee', name: 'Andi Saputra', department: 'Sales', position: 'Sales Executive' },
+        { id: 3, username: 'tomy', password: 'password', role: 'employee', name: 'TOMY', department: 'Sales', position: 'Sales Executive' },
+        { id: 12, username: 'andi', password: 'password', role: 'employee', name: 'Andi Saputra', department: 'Sales', position: 'Sales Executive' },
         // Candidates
         { id: 4, username: 'siti', password: 'password', role: 'candidate', name: 'Siti Aminah', email: 'siti.aminah@gmail.com', status: 'registered' },
         { id: 5, username: 'rizky', password: 'password', role: 'candidate', name: 'Rizky Pratama', email: 'rizky.pratama@gmail.com', status: 'registered' },
@@ -62,7 +63,37 @@ const defaultData = {
     quizAttempts: [], // Emptied for user trial
     enrollments: [], // Emptied for user trial
     certificates: [], // Emptied for user trial
-    evaluations: [], // Emptied for user trial
+    evaluations: [
+        {
+            id: 1,
+            userId: 3, // Tomy
+            radarData: [85, 90, 70, 80, 75, 95],
+            historyData: [3.8, 4.0, 4.2, 4.1, 4.5, 4.6],
+            objectives: [
+                { title: 'Increase Sales by 15%', status: 'On Track', progress: 75, color: '#00796b' },
+                { title: 'Close 5 Enterprise Deals', status: 'Warning', progress: 40, color: '#e53935' }
+            ],
+            feedback: {
+                message: "Excellent performance in the last quarter. Your leadership in the Sales team is becoming more evident.",
+                date: "Jan 15, 2026",
+                by: "Budi Santoso (Manager)"
+            }
+        },
+        {
+            id: 2,
+            userId: 12, // Andi
+            radarData: [70, 75, 60, 85, 80, 70],
+            historyData: [3.2, 3.4, 3.5, 3.5, 3.7, 3.8],
+            objectives: [
+                { title: 'Training Onboarding', status: 'Complete', progress: 100, color: '#4caf50' }
+            ],
+            feedback: {
+                message: "Good start as a Sales Executive. Focus on product knowledge in the next month.",
+                date: "Jan 20, 2026",
+                by: "Budi Santoso (Manager)"
+            }
+        }
+    ],
     departments: ['Sales', 'IT', 'HR', 'Marketing'], // Default Departments
     locations: ['Jakarta', 'Surabaya', 'Remote', 'Bandung'], // Default Locations
     jobTypes: ['Full-time', 'Contract', 'Internship', 'Part-time'], // Default Job Types
@@ -81,6 +112,14 @@ const defaultData = {
         tax_office_limit: 500000,
         ptkp0: 54000000
     },
+    attendance: [
+        { id: 1, empId: 1739589237000, date: new Date().toISOString().split('T')[0], clockIn: '08:05', clockOut: '17:00', isLate: true },
+        { id: 2, empId: 1739589237001, date: new Date().toISOString().split('T')[0], clockIn: '07:55', clockOut: '16:05', isLate: false }
+    ],
+    roster: [
+        { empId: 1739589237000, date: new Date().toISOString().split('T')[0], shift: 'Pagi' },
+        { empId: 1739589237001, date: new Date().toISOString().split('T')[0], shift: 'Siang' }
+    ],
     assets: [
         { id: 'AST-001', name: 'MacBook Pro 16"', category: 'Laptop', status: 'Assigned', assignedTo: 'Sarah Admin', dateAssigned: '2025-10-15' },
         { id: 'AST-002', name: 'Dell UltraSharp 27"', category: 'Peripherals', status: 'Available', assignedTo: null, dateAssigned: null },
@@ -117,9 +156,19 @@ function initData() {
         if (!data.assets) { data.assets = defaultData.assets; changed = true; }
         if (!data.docCategories) { data.docCategories = defaultData.docCategories; changed = true; }
         if (!data.documents) { data.documents = defaultData.documents; changed = true; }
+        if (!data.attendance) { data.attendance = defaultData.attendance || []; changed = true; }
+        if (!data.roster) { data.roster = defaultData.roster || []; changed = true; }
+        if (data.users) {
+            const tomyUser = data.users.find(u => u.username === 'tomy' || (u.name && u.name.toUpperCase() === 'TOMY'));
+            if (tomyUser && (tomyUser.role !== 'employee' || tomyUser.department !== 'Sales')) {
+                tomyUser.role = 'employee';
+                tomyUser.department = 'Sales';
+                changed = true;
+            }
+        }
         if (changed) {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-            console.log('Data migrated with new fields.');
+            console.log('Data migrated or synchronized.');
         }
     }
 }
@@ -161,52 +210,185 @@ function updateSidebarForRole() {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     if (!currentUser) return;
 
-    if (currentUser.role === 'candidate') {
-        const navLinks = document.querySelectorAll('.nav-link');
+    const navLinks = document.querySelectorAll('.nav-link');
+    const labels = document.querySelectorAll('.nav-label');
+    const restrictedItems = document.querySelectorAll('.role-restricted');
+
+    const isAdmin = currentUser.role === 'admin';
+    const isStaff = currentUser.role === 'employee' || currentUser.role === 'manager';
+
+    // Handle role-restricted elements
+    restrictedItems.forEach(item => {
+        if (isAdmin) {
+            item.classList.remove('role-restricted');
+            item.style.display = ''; // Restore default display
+        } else {
+            item.style.display = 'none'; // Ensure they stay hidden
+        }
+    });
+
+    if (isStaff) {
         navLinks.forEach(link => {
             const text = link.innerText.trim();
-            // Hide only Performance and Administration
-            // Allow: Dashboard, Recruitment (Jobs), Learning Hub, Logout
-            if (text.includes('Performance') || text.includes('Administration') || text.includes('Settings')) {
+            // Hide admin-only links (Keep Recruitment/Internal Jobs visible for staff)
+            if (text.includes('Overview') ||
+                text.includes('Employees') ||
+                text.includes('Attendance') ||
+                text.includes('Payroll') ||
+                text.includes('Asset') ||
+                text.includes('Document') ||
+                text.includes('Org Chart') ||
+                text.includes('Administration')) {
+                link.classList.add('role-restricted'); // Ensure hidden
+                link.style.display = 'none';
+            }
+            if (text.includes('Recruitment')) {
+                const span = link.querySelector('span');
+                if (span) span.textContent = 'Internal Jobs';
+                else link.textContent = 'Internal Jobs'; // Fallback if no span
+            }
+            if (text.includes('Performance')) {
+                const span = link.querySelector('span');
+                if (span) span.textContent = 'My Performance';
+                else link.textContent = 'My Performance';
+            }
+        });
+
+        // Hide specific labels
+        labels.forEach(lbl => {
+            const text = lbl.innerText.trim().toUpperCase();
+            if (text.includes('MAIN DASHBOARD') ||
+                text.includes('WORKFORCE') ||
+                text.includes('FINANCE') ||
+                text.includes('ENTERPRISE') ||
+                text.includes('SETTINGS')) {
+                lbl.classList.add('role-restricted'); // Ensure hidden
+                lbl.style.display = 'none';
+            }
+        });
+
+        // Sidebar will maintain premium styles from CSS
+    } else if (currentUser.role === 'candidate') {
+        navLinks.forEach(link => {
+            const text = link.innerText.trim();
+            if (text.includes('Performance') || text.includes('Administration') || text.includes('Settings') ||
+                text.includes('Employees') || text.includes('Attendance') || text.includes('Payroll') ||
+                text.includes('Asset') || text.includes('Document') || text.includes('Org Chart')) {
                 link.style.display = 'none';
             }
             if (text.includes('Recruitment')) {
                 link.innerHTML = '<i class="fas fa-briefcase"></i> <span>Jobs</span>';
             }
-            if (text.includes('Dashboard')) {
-                link.href = '../dashboard/index.html';
-            }
         });
 
-        // Hide "Settings" label if exists
-        const labels = document.querySelectorAll('.nav-label');
         labels.forEach(lbl => {
-            if (lbl.innerText === 'Settings') lbl.style.display = 'none';
+            lbl.style.display = 'none';
         });
     }
 }
 
 // Helper: Initialize Dynamic Global Profile (Header)
 function initUserProfile() {
-    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    let currentUser = JSON.parse(localStorage.getItem('currentUser'));
     if (!currentUser) return;
 
-    // Update Name
+    // Sync with Master Data
+    const allData = getData();
+    const updatedUser = allData.users.find(u => u.id === currentUser.id);
+    if (updatedUser) {
+        localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+        currentUser = updatedUser;
+    }
+
+    // Update Name (Supports both old and new IDs for compatibility)
     const nameEl = document.getElementById('userName');
+    const nameHeaderEl = document.getElementById('userNameHeader');
+    const welcomeEl = document.getElementById('welcomeName');
+
     if (nameEl) nameEl.textContent = currentUser.name;
+    if (nameHeaderEl) nameHeaderEl.textContent = currentUser.name;
+    if (welcomeEl) welcomeEl.textContent = currentUser.name.split(' ')[0];
 
     // Update Role
     const roleEl = document.getElementById('userRole');
+    const roleHeaderEl = document.getElementById('userRoleHeader');
     if (roleEl) roleEl.textContent = currentUser.role.toUpperCase() + (currentUser.department ? ` - ${currentUser.department}` : '');
+    if (roleHeaderEl) roleHeaderEl.textContent = currentUser.role.toUpperCase() + (currentUser.department ? ` - ${currentUser.department}` : '');
 
     // Update Avatar
     const avatarImg = document.querySelector('.user-avatar');
     if (avatarImg && currentUser.avatar) {
         avatarImg.src = currentUser.avatar;
-    } else if (avatarImg && currentUser.role === 'admin' && !currentUser.avatar) {
-        // Fallback for local admin if no Google photo
-        avatarImg.src = 'https://i.pravatar.cc/150?u=admin_epeoplesync';
+    } else if (avatarImg) {
+        // Fallback for local users if no photo
+        avatarImg.src = `https://i.pravatar.cc/150?u=${currentUser.username || 'default'}_epeoplesync`;
     }
+
+    // Dynamic Sidebar based on role
+    updateSidebarForRole();
+}
+
+// Helper: Render Modern Glass Header
+function renderModernHeader() {
+    const mainContent = document.querySelector('.main-content');
+    if (!mainContent) return;
+
+    // Remove old header if exists
+    const oldHeader = document.querySelector('.header, .top-header');
+    if (oldHeader) oldHeader.remove();
+
+    const headerHTML = `
+        <header class="top-header premium" style="height: 100px; padding: 0 40px;">
+            <!-- Decorative Shapes -->
+            <div class="premium-decoration">
+                <div class="premium-shape shape-1"></div>
+                <div class="premium-shape shape-2"></div>
+                <div class="premium-shape shape-3"></div>
+            </div>
+
+            <div class="premium-header-content">
+                <div style="display: flex; align-items: center; gap: 20px;">
+                    <button class="sidebar-toggle" onclick="toggleSidebar()" style="background: rgba(255,255,255,0.2); border: none; color: #fff; width: 40px; height: 40px; border-radius: 12px; cursor: pointer;">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="search-bar" style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); border-radius: 15px; width: 350px; display: flex; align-items: center; padding: 10px 15px; border: 1px solid rgba(255,255,255,0.1);">
+                        <i class="fas fa-search" style="color: rgba(255,255,255,0.7); margin-right: 10px;"></i>
+                        <input type="text" placeholder="Search for anything..." style="border: none; background: transparent; outline: none; width: 100%; font-size: 14px; color: #fff;">
+                    </div>
+                </div>
+                <div class="header-right" style="display: flex; align-items: center; gap: 25px;">
+                    <div class="notification" style="background: rgba(255,255,255,0.2); width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; border-radius: 12px; cursor: pointer; transition: 0.3s; border: 1px solid rgba(255,255,255,0.1);">
+                        <i class="far fa-bell" style="font-size: 18px; color: #fff;"></i>
+                    </div>
+                    <div class="user-profile" style="background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); padding: 5px 15px 5px 5px; border-radius: 15px; display: flex; align-items: center; border: 1px solid rgba(255,255,255,0.1);">
+                        <img src="https://i.pravatar.cc/150?u=default" class="user-avatar" alt="Profile" style="width: 35px; height: 35px; border-radius: 10px; border: 2px solid #fff;">
+                        <div class="user-details" style="text-align: left; margin-left: 10px;">
+                            <h4 id="userNameHeader" style="font-size: 13px; margin: 0; font-weight: 700; color: var(--premium-navy); text-shadow: 0 0 10px rgba(255,255,255,0.5);">Sarah Andrea</h4>
+                            <span id="userRoleHeader" style="font-size: 10px; color: rgba(13, 33, 55, 0.7); text-transform: uppercase; font-weight: 600;">Marketing Specialist</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+    `;
+    mainContent.insertAdjacentHTML('afterbegin', headerHTML);
+    initUserProfile();
+}
+
+// Helper: Render Modern Footer
+function renderModernFooter() {
+    const mainContent = document.querySelector('.main-content');
+    if (!mainContent) return;
+
+    const footerHTML = `
+        <footer class="premium-footer mt-5">
+            <div class="footer-curve"></div>
+            <div class="footer-decoration">
+                &copy; 2026 E-PeopleSync HRMS &bull; Enterprise Human Capital Management &bull; Version 2.0.0
+            </div>
+        </footer>
+    `;
+    mainContent.insertAdjacentHTML('beforeend', footerHTML);
 }
 
 // Helper: Logout

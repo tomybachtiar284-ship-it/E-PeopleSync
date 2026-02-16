@@ -10,8 +10,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (path.includes('register.html')) {
         handleRegistration();
     } else if (path.includes('recruitment/index.html')) {
-        checkAuth(['candidate', 'admin', 'manager']);
+        checkAuth(['candidate', 'admin', 'manager', 'employee']);
         updateSidebarForRole();
+        initUserProfile();
         loadJobs();
     } else if (path.includes('recruitment/apply.html')) {
         const user = checkAuth(['candidate']);

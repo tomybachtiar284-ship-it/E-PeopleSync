@@ -4,23 +4,26 @@
 
 :root {
     --primary-color: #00796b;
-    /* Teal */
     --primary-hover: #004d40;
     --secondary-color: #6c757d;
-    --bg-color: #f4f6f8;
+    --bg-color: #f0f4f8;
     --sidebar-width: 260px;
-    --header-height: 70px;
+    --header-height: 80px;
     --font-main: 'Inter', sans-serif;
-    --text-color: #333;
-    --text-muted: #888;
-    --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    --border-radius: 12px;
+    --font-heading: 'Outfit', 'Inter', sans-serif;
+    --text-color: #1a202c;
+    --text-muted: #718096;
+    --card-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+    --border-radius: 20px;
 
-    /* Premium Blue Palette */
-    --premium-navy: #003366;
-    --premium-blue: #00aeef;
-    --premium-cyan: #66e0ff;
-    --premium-dark-blue: #002244;
+    --premium-navy: #0d2137;
+    --premium-dark-blue: #051120;
+    --premium-blue: #344fa1;
+    --premium-cyan: #00d2ff;
+    --premium-emerald: #10b981;
+    --premium-mint: #d1fae5;
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.4);
 }
 
 * {
@@ -29,10 +32,48 @@
     padding: 0;
 }
 
+/* Role-based visibility to prevent flickering */
+.role-restricted {
+    display: none !important;
+}
+
 body {
     font-family: var(--font-main);
-    background-color: var(--bg-color);
+    background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+    background-attachment: fixed;
     color: var(--text-color);
+    min-height: 100vh;
+}
+
+/* Glassmorphism Utilities */
+.glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius);
+    box-shadow: var(--card-shadow);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+}
+
+.glass-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+}
+
+.glass-nav {
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--glass-border);
+}
+
+/* Typography Improvements */
+h1,
+h2,
+h3,
+h4 {
+    font-family: var(--font-heading);
+    letter-spacing: -0.02em;
 }
 
 a {
@@ -88,8 +129,8 @@ ul {
 /* Sidebar */
 .sidebar {
     width: var(--sidebar-width);
-    background: #fff;
-    border-right: 1px solid #eee;
+    background: var(--premium-navy);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
     display: flex;
     flex-direction: column;
     position: fixed;
@@ -127,14 +168,14 @@ ul {
 }
 
 .brand {
-    padding: 20px;
+    padding: 25px 20px;
     display: flex;
     align-items: center;
     gap: 15px;
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 800;
     color: #fff;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .brand span {
@@ -191,8 +232,8 @@ ul {
 
 aside.sidebar .nav-link.premium:hover,
 aside.sidebar .nav-link.premium.active {
-    background: #f4f6f8 !important;
-    /* Match standard bg-color */
+    background: #f0f4f8 !important;
+    /* Sinkron dengan background body modern */
     color: var(--premium-navy) !important;
 }
 
@@ -217,13 +258,13 @@ aside.sidebar .nav-link.premium.active::after {
 aside.sidebar .nav-link.premium.active::before {
     top: -20px;
     border-radius: 0 0 20px 0;
-    box-shadow: 5px 5px 0 5px #f4f6f8;
+    box-shadow: 5px 5px 0 5px #f0f4f8;
 }
 
 aside.sidebar .nav-link.premium.active::after {
     bottom: -20px;
     border-radius: 0 20px 0 0;
-    box-shadow: 5px -5px 0 5px #f4f6f8;
+    box-shadow: 5px -5px 0 5px #f0f4f8;
 }
 
 .nav-links::-webkit-scrollbar {
@@ -236,19 +277,21 @@ aside.sidebar .nav-link.premium.active::after {
 }
 
 .nav-label {
-    padding: 0 20px;
-    font-size: 12px;
-    color: #999;
-    font-weight: 600;
-    margin-bottom: 10px;
+    padding: 0 25px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+    font-weight: 700;
+    margin-bottom: 12px;
+    margin-top: 20px;
     text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .nav-link {
     display: flex;
     align-items: center;
     padding: 12px 20px;
-    color: #555;
+    color: rgba(255, 255, 255, 0.7);
     font-weight: 500;
     cursor: pointer;
     border-left: 3px solid transparent;

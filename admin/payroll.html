@@ -126,7 +126,7 @@
                 <div class="nav-label premium">Workforce Managed</div>
                 <a href="employees.html" class="nav-link premium"><i class="fas fa-users"></i>
                     <span>Employees</span></a>
-                <a href="#" class="nav-link premium"><i class="fas fa-calendar-check"></i>
+                <a href="attendance.html" class="nav-link premium"><i class="fas fa-calendar-check"></i>
                     <span>Attendance & Shifts</span></a>
                 <a href="../evaluation/index.html" class="nav-link premium"><i class="fas fa-chart-line"></i>
                     <span>Performance</span></a>
@@ -158,59 +158,13 @@
 
         <!-- Main Content -->
         <main class="main-content">
-            <header class="top-header premium">
-                <!-- Decorative Shapes -->
-                <div class="premium-decoration">
-                    <div class="premium-shape shape-1"></div>
-                    <div class="premium-shape shape-2"></div>
-                    <div class="premium-shape shape-3"></div>
-                </div>
-
-                <div class="premium-header-content">
-                    <div style="display: flex; align-items: center;">
-                        <button class="sidebar-toggle" onclick="toggleSidebar()">
-                            <i class="fas fa-bars"></i>
-                        </button>
-                        <div>
-                            <h2 style="color: #fff;">Payroll Management</h2>
-                            <p style="color: rgba(255,255,255,0.8); font-size: 13px;">Process monthly salaries and
-                                generate payslips.</p>
-                        </div>
-                    </div>
-                    <div class="header-right">
-                        <div class="notification" id="notifContainer" onclick="toggleNotifDropdown(event)">
-                            <i class="far fa-bell" style="font-size: 20px; color: #fff;"></i>
-                            <div class="badge" id="notifBadge" style="display: none;">0</div>
-
-                            <!-- Notification Dropdown -->
-                            <div id="notifDropdown" class="notif-dropdown">
-                                <div class="notif-header">
-                                    <span>Notifications</span>
-                                    <span id="notifCountText"
-                                        style="font-size: 12px; font-weight: normal; color: #888;">0
-                                        New</span>
-                                </div>
-                                <div class="notif-body" id="notifBody">
-                                    <div class="notif-empty">No new notifications</div>
-                                </div>
-                                <div style="padding: 10px; text-align: center; border-top: 1px solid #f0f0f0;">
-                                    <a href="../recruitment/index.html"
-                                        style="font-size: 12px; color: var(--premium-navy); font-weight: 600;">View All
-                                        Applications</a>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="user-profile">
-                            <div class="user-details">
-                                <h4 id="userName" style="color: #fff;">Admin</h4>
-                                <span id="userRole" style="color: rgba(255,255,255,0.8);">ADMIN HR</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </header>
+            <!-- Header rendered dynamically via renderModernHeader() -->
 
             <div class="content-area">
+                <div style="margin-bottom: 30px;">
+                    <h2 style="color: var(--premium-navy); font-weight: 800;">Payroll Management</h2>
+                    <p style="color: #666; font-size: 14px;">Process monthly salaries and generate payslips.</p>
+                </div>
                 <!-- Summary Cards -->
                 <div class="row" style="display: flex; gap: 20px;">
                     <div class="col-md-4" style="flex:1;">
@@ -473,6 +427,16 @@
 
     <script src="../js/utils.js"></script>
     <script src="../js/admin_payroll.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            renderModernHeader();
+            renderModernFooter();
+        });
+        function toggleSidebar() {
+            document.querySelector('.sidebar').classList.toggle('collapsed');
+            document.querySelector('.main-content').classList.toggle('sidebar-collapsed');
+        }
+    </script>
 </body>
 
 </html>

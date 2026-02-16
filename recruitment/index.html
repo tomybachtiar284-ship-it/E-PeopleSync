@@ -16,36 +16,44 @@
                 <div class="brand-icon"><img src="../assets/logo.png" alt="Logo"></div><span>E-PeopleSync</span>
             </div>
             <div class="nav-links">
-                <div class="nav-label premium">Main Dashboard</div>
-                <a href="../admin/index.html" class="nav-link premium"><i class="fas fa-th-large"></i>
+                <div class="nav-label">Main</div>
+                <a href="../dashboard/index.html" class="nav-link"><i class="fas fa-home"></i>
+                    <span>Dashboard</span></a>
+
+                <div class="nav-label premium role-restricted">Main Dashboard</div>
+                <a href="../admin/index.html" class="nav-link premium role-restricted"><i class="fas fa-th-large"></i>
                     <span>Overview</span></a>
 
-                <div class="nav-label premium">Workforce Managed</div>
-                <a href="../admin/employees.html" class="nav-link premium"><i class="fas fa-users"></i>
+                <div class="nav-label premium role-restricted">Workforce Managed</div>
+                <a href="../admin/employees.html" class="nav-link premium role-restricted"><i class="fas fa-users"></i>
                     <span>Employees</span></a>
-                <a href="#" class="nav-link premium"><i class="fas fa-calendar-check"></i>
+                <a href="../admin/attendance.html" class="nav-link premium role-restricted"><i
+                        class="fas fa-calendar-check"></i>
                     <span>Attendance & Shifts</span></a>
                 <a href="../evaluation/index.html" class="nav-link premium"><i class="fas fa-chart-line"></i>
                     <span>Performance</span></a>
 
-                <div class="nav-label premium">Finance & Talent</div>
-                <a href="../admin/payroll.html" class="nav-link premium"><i class="fas fa-money-bill-wave"></i>
+                <div class="nav-label premium role-restricted">Finance & Talent</div>
+                <a href="../admin/payroll.html" class="nav-link premium role-restricted"><i
+                        class="fas fa-money-bill-wave"></i>
                     <span>Payroll & Claims</span></a>
                 <a href="index.html" class="nav-link premium active"><i class="fas fa-user-plus"></i>
                     <span>Recruitment</span></a>
                 <a href="../learning/index.html" class="nav-link premium"><i class="fas fa-graduation-cap"></i>
                     <span>Learning Hub</span></a>
 
-                <div class="nav-label premium">Enterprise Tools</div>
-                <a href="../admin/assets.html" class="nav-link premium"><i class="fas fa-boxes"></i>
+                <div class="nav-label premium role-restricted">Enterprise Tools</div>
+                <a href="../admin/assets.html" class="nav-link premium role-restricted"><i class="fas fa-boxes"></i>
                     <span>Asset Management</span></a>
-                <a href="../admin/documents.html" class="nav-link premium"><i class="fas fa-file-contract"></i>
+                <a href="../admin/documents.html" class="nav-link premium role-restricted"><i
+                        class="fas fa-file-contract"></i>
                     <span>Document Center</span></a>
-                <a href="../admin/org_chart.html" class="nav-link premium"><i class="fas fa-sitemap"></i>
+                <a href="../admin/org_chart.html" class="nav-link premium role-restricted"><i
+                        class="fas fa-sitemap"></i>
                     <span>Org Chart</span></a>
 
-                <div class="nav-label premium" style="margin-top: 20px;">Settings</div>
-                <a href="../admin/settings.html" class="nav-link premium"><i class="fas fa-cog"></i>
+                <div class="nav-label premium role-restricted" style="margin-top: 20px;">Settings</div>
+                <a href="../admin/settings.html" class="nav-link premium role-restricted"><i class="fas fa-cog"></i>
                     <span>Administration</span></a>
                 <br>
                 <a href="#" onclick="logout()" class="nav-link premium text-danger"><i class="fas fa-sign-out-alt"></i>
@@ -54,32 +62,7 @@
         </aside>
 
         <main class="main-content">
-            <header class="top-header premium">
-                <!-- Decorative Shapes -->
-                <div class="premium-decoration">
-                    <div class="premium-shape shape-1"></div>
-                    <div class="premium-shape shape-2"></div>
-                    <div class="premium-shape shape-3"></div>
-                </div>
-
-                <div class="premium-header-content">
-                    <div style="display: flex; align-items: center;">
-                        <button class="sidebar-toggle" onclick="toggleSidebar()">
-                            <i class="fas fa-bars"></i>
-                        </button>
-                        <div>
-                            <h2 style="color: #fff;">Recruitment Hub</h2>
-                            <p style="color: rgba(255,255,255,0.8); font-size: 13px;">Manage active job openings and
-                                candidate screening.</p>
-                        </div>
-                    </div>
-                    <div class="header-right">
-                        <div class="user-profile">
-                            <h4 id="userName" style="color: #fff;">User</h4>
-                        </div>
-                    </div>
-                </div>
-            </header>
+            <!-- Header rendered dynamically via renderModernHeader() -->
 
             <div class="content-area">
                 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -291,13 +274,7 @@
                         <!-- Loaded via js/recruitment.js -->
                     </div>
                 </div>
-                <!-- Footer -->
-                <footer class="premium-footer">
-                    <div class="footer-curve"></div>
-                    <div class="footer-decoration">
-                        &copy; 2026 E-PeopleSync HRMS &bull; Enterprise Human Capital Management &bull; Version 2.0.0
-                    </div>
-                </footer>
+                <!-- Footer rendered dynamically via renderModernFooter() -->
         </main>
     </div>
 
@@ -312,21 +289,33 @@
     <script src="../js/recruitment.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            updateSidebarForRole();
             const data = getData();
-            if (currentUser) initUserProfile();
+            const currentUser = checkAuth(['employee', 'manager', 'admin', 'candidate']);
+            if (!currentUser) return;
+
+            renderModernHeader();
+            renderModernFooter();
 
             // View Control
-            if (currentUser && currentUser.role === 'candidate') {
-                document.querySelector('h2').textContent = 'Job Board';
-                document.querySelector('p').textContent = 'Browse open positions and track your applications.';
+            if (currentUser && (currentUser.role === 'candidate' || currentUser.role === 'employee' || currentUser.role === 'manager')) {
+                const pageTitle = currentUser.role === 'candidate' ? 'Job Board' : 'Internal Job Board';
+                const pageDesc = 'Browse open positions and track your applications.';
+
+                // Update all H2 and P in header and content (Specific to page header/desc)
+                document.querySelectorAll('h2').forEach(el => el.textContent = pageTitle);
+                const headerDesc = document.querySelector('.top-header p');
+                const contentDesc = document.querySelector('.content-area div p');
+                if (headerDesc) headerDesc.textContent = pageDesc;
+                if (contentDesc) contentDesc.textContent = pageDesc;
+
                 // Hide Admin Elements
-                document.getElementById('adminStats').style.display = 'none';
-                document.getElementById('adminTable').style.display = 'none';
-                document.getElementById('adminControls').style.display = 'none';
+                if (document.getElementById('adminStats')) document.getElementById('adminStats').style.display = 'none';
+                if (document.getElementById('adminTable')) document.getElementById('adminTable').style.display = 'none';
+                if (document.getElementById('adminControls')) document.getElementById('adminControls').style.display = 'none';
+                if (document.getElementById('adminJobsTable')) document.getElementById('adminJobsTable').style.display = 'none';
 
                 // Show Candidate Elements
-                document.getElementById('candidateView').style.display = 'block';
+                if (document.getElementById('candidateView')) document.getElementById('candidateView').style.display = 'block';
 
                 // Render My Applications
                 const myApps = data.applications.filter(app => app.candidateId === currentUser.id);

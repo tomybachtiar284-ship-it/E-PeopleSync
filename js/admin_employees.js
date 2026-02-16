@@ -34,6 +34,8 @@ const FIELD_MAP = {
 
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth(['admin']);
+    renderModernHeader();
+    renderModernFooter();
     initUserProfile();
     loadEmployees();
     populateDeptAndLocation();

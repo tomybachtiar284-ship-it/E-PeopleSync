@@ -17,36 +17,44 @@
                 <span>E-PeopleSync</span>
             </div>
             <div class="nav-links">
-                <div class="nav-label premium">Main Dashboard</div>
-                <a href="../admin/index.html" class="nav-link premium"><i class="fas fa-th-large"></i>
+                <div class="nav-label">Main</div>
+                <a href="../dashboard/index.html" class="nav-link"><i class="fas fa-home"></i>
+                    <span>Dashboard</span></a>
+
+                <div class="nav-label premium role-restricted">Main Dashboard</div>
+                <a href="../admin/index.html" class="nav-link premium role-restricted"><i class="fas fa-th-large"></i>
                     <span>Overview</span></a>
 
-                <div class="nav-label premium">Workforce Managed</div>
-                <a href="../admin/employees.html" class="nav-link premium"><i class="fas fa-users"></i>
+                <div class="nav-label premium role-restricted">Workforce Managed</div>
+                <a href="../admin/employees.html" class="nav-link premium role-restricted"><i class="fas fa-users"></i>
                     <span>Employees</span></a>
-                <a href="#" class="nav-link premium"><i class="fas fa-calendar-check"></i>
+                <a href="../admin/attendance.html" class="nav-link premium role-restricted"><i
+                        class="fas fa-calendar-check"></i>
                     <span>Attendance & Shifts</span></a>
                 <a href="index.html" class="nav-link premium active"><i class="fas fa-chart-line"></i>
                     <span>Performance</span></a>
 
-                <div class="nav-label premium">Finance & Talent</div>
-                <a href="../admin/payroll.html" class="nav-link premium"><i class="fas fa-money-bill-wave"></i>
+                <div class="nav-label premium role-restricted">Finance & Talent</div>
+                <a href="../admin/payroll.html" class="nav-link premium role-restricted"><i
+                        class="fas fa-money-bill-wave"></i>
                     <span>Payroll & Claims</span></a>
                 <a href="../recruitment/index.html" class="nav-link premium"><i class="fas fa-user-plus"></i>
                     <span>Recruitment</span></a>
                 <a href="../learning/index.html" class="nav-link premium"><i class="fas fa-graduation-cap"></i>
                     <span>Learning Hub</span></a>
 
-                <div class="nav-label premium">Enterprise Tools</div>
-                <a href="../admin/assets.html" class="nav-link premium"><i class="fas fa-boxes"></i>
+                <div class="nav-label premium role-restricted">Enterprise Tools</div>
+                <a href="../admin/assets.html" class="nav-link premium role-restricted"><i class="fas fa-boxes"></i>
                     <span>Asset Management</span></a>
-                <a href="../admin/documents.html" class="nav-link premium"><i class="fas fa-file-contract"></i>
+                <a href="../admin/documents.html" class="nav-link premium role-restricted"><i
+                        class="fas fa-file-contract"></i>
                     <span>Document Center</span></a>
-                <a href="../admin/org_chart.html" class="nav-link premium"><i class="fas fa-sitemap"></i>
+                <a href="../admin/org_chart.html" class="nav-link premium role-restricted"><i
+                        class="fas fa-sitemap"></i>
                     <span>Org Chart</span></a>
 
-                <div class="nav-label premium" style="margin-top: 20px;">Settings</div>
-                <a href="../admin/settings.html" class="nav-link premium"><i class="fas fa-cog"></i>
+                <div class="nav-label premium role-restricted" style="margin-top: 20px;">Settings</div>
+                <a href="../admin/settings.html" class="nav-link premium role-restricted"><i class="fas fa-cog"></i>
                     <span>Administration</span></a>
                 <br>
                 <a href="#" onclick="logout()" class="nav-link premium text-danger"><i class="fas fa-sign-out-alt"></i>
@@ -55,32 +63,7 @@
         </aside>
 
         <main class="main-content">
-            <header class="top-header premium">
-                <!-- Decorative Shapes -->
-                <div class="premium-decoration">
-                    <div class="premium-shape shape-1"></div>
-                    <div class="premium-shape shape-2"></div>
-                    <div class="premium-shape shape-3"></div>
-                </div>
-
-                <div class="premium-header-content">
-                    <div style="display: flex; align-items: center;">
-                        <button class="sidebar-toggle" onclick="toggleSidebar()">
-                            <i class="fas fa-bars"></i>
-                        </button>
-                        <div>
-                            <h2 style="color: #fff;">Performance Tracker</h2>
-                            <p style="color: rgba(255,255,255,0.8); font-size: 13px;">Monitor your professional growth
-                                and competency evaluations.</p>
-                        </div>
-                    </div>
-                    <div class="header-right">
-                        <div class="user-profile">
-                            <h4 id="userName" style="color: #fff;">User</h4>
-                        </div>
-                    </div>
-                </div>
-            </header>
+            <!-- Header rendered dynamically via renderModernHeader() -->
 
             <div class="content-area">
                 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -153,13 +136,7 @@
                     </div>
                 </div>
 
-                <!-- Footer -->
-                <footer class="premium-footer">
-                    <div class="footer-curve"></div>
-                    <div class="footer-decoration">
-                        &copy; 2026 E-PeopleSync HRMS &bull; Enterprise Human Capital Management &bull; Version 2.0.0
-                    </div>
-                </footer>
+                <!-- Footer rendered dynamically via renderModernFooter() -->
         </main>
     </div>
 
@@ -173,7 +150,52 @@
     <script src="../js/utils.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            if (user) initUserProfile();
+            const user = checkAuth(['admin', 'manager', 'employee']);
+            if (!user) return;
+
+            renderModernHeader();
+            renderModernFooter();
+
+            const allData = getData();
+            const myEval = allData.evaluations.find(e => e.userId === user.id);
+
+            // Default fallback if no evaluation found
+            const radarValues = myEval ? myEval.radarData : [60, 60, 60, 60, 60, 60];
+            const historyValues = myEval ? myEval.historyData : [3.0, 3.0, 3.0, 3.0, 3.0, 3.0];
+
+            // Render Objective Cards dynamically
+            if (myEval && myEval.objectives) {
+                const objectiveContainer = document.querySelector('.card h3:contains("Current Objectives")').parentElement.querySelector('.mt-3');
+                // Use alternative selector if :contains fails in some browsers
+                const objectivesDiv = document.querySelectorAll('.card')[2].querySelector('.mt-3'); // Current Objectives is 3rd card
+                objectivesDiv.innerHTML = myEval.objectives.map(obj => `
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span style="font-weight:500">${obj.title}</span>
+                            <span class="badge-status ${obj.status === 'On Track' ? 'badge-green' : (obj.status === 'Complete' ? 'badge-green' : 'badge-red')}">${obj.status}</span>
+                        </div>
+                        <div style="height:6px; background:#eee; border-radius:3px; overflow:hidden;">
+                            <div style="width:${obj.progress}%; background:${obj.color}; height:100%;"></div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Render Feedback dynamically
+            if (myEval && myEval.feedback) {
+                const feedbackDiv = document.querySelectorAll('.card')[3]; // Manager Feedback is 4th card
+                feedbackDiv.innerHTML = `
+                    <h3>Manager Feedback</h3>
+                    <div style="background:#fff3e0; padding:15px; border-radius:8px; display:flex; gap:10px; margin-top:15px;">
+                        <i class="fas fa-exclamation-circle" style="color:#ef6c00; margin-top:3px;"></i>
+                        <div>
+                            <h4 style="font-size:14px; margin-bottom:5px;">Performance Review</h4>
+                            <p style="font-size:13px; color:#555; line-height:1.4;">"${myEval.feedback.message}"</p>
+                            <div style="font-size:11px; color:#888; margin-top:5px;">${myEval.feedback.date} • By ${myEval.feedback.by}</div>
+                        </div>
+                    </div>
+                `;
+            }
 
             // Radar Chart
             new Chart(document.getElementById('radarChart'), {
@@ -182,11 +204,11 @@
                     labels: ['Technical', 'Communication', 'Leadership', 'Productivity', 'Innovation', 'Teamwork'],
                     datasets: [{
                         label: 'Current Skills',
-                        data: [85, 90, 70, 80, 75, 95],
+                        data: radarValues,
                         fill: true,
-                        backgroundColor: 'rgba(0, 121, 107, 0.2)',
-                        borderColor: '#00796b',
-                        pointBackgroundColor: '#00796b',
+                        backgroundColor: 'rgba(52, 79, 161, 0.2)', // Modified to match premium-navy/blue
+                        borderColor: '#344fa1',
+                        pointBackgroundColor: '#344fa1',
                     }]
                 },
                 options: { elements: { line: { borderWidth: 3 } } }
@@ -199,8 +221,8 @@
                     labels: ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
                     datasets: [{
                         label: 'KPI Score',
-                        data: [3.8, 4.0, 4.2, 4.1, 4.5, 4.6],
-                        borderColor: '#00796b',
+                        data: historyValues,
+                        borderColor: '#344fa1',
                         tension: 0.4,
                         pointRadius: 4
                     }]
@@ -219,7 +241,7 @@
             // Dynamic import
             const { aiPerformanceReviewSummary } = await import('../js/ai_flows.js');
 
-            const result = await aiPerformanceReviewSummary("Employee", {});
+            const result = await aiPerformanceReviewSummary(user.name, {});
 
             const container = document.getElementById('aiSummaryContainer');
             container.innerHTML = `

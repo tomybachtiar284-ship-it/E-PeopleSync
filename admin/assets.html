@@ -24,7 +24,7 @@
                 <div class="nav-label premium">Workforce Managed</div>
                 <a href="employees.html" class="nav-link premium"><i class="fas fa-users"></i>
                     <span>Employees</span></a>
-                <a href="#" class="nav-link premium"><i class="fas fa-calendar-check"></i>
+                <a href="attendance.html" class="nav-link premium"><i class="fas fa-calendar-check"></i>
                     <span>Attendance & Shifts</span></a>
                 <a href="../evaluation/index.html" class="nav-link premium"><i class="fas fa-chart-line"></i>
                     <span>Performance</span></a>
@@ -57,43 +57,14 @@
         <!-- Main Content -->
         <main class="main-content">
             <!-- Header -->
-            <header class="top-header premium">
-                <div class="premium-decoration">
-                    <div class="premium-shape shape-1"></div>
-                    <div class="premium-shape shape-2"></div>
-                    <div class="premium-shape shape-3"></div>
-                </div>
+            <!-- Header rendered dynamically via renderModernHeader() -->
 
-                <div class="premium-header-content">
-                    <div style="display: flex; align-items: center;">
-                        <button class="sidebar-toggle" onclick="toggleSidebar()">
-                            <i class="fas fa-bars"></i>
-                        </button>
-                        <div class="search-bar">
-                            <i class="fas fa-search"></i>
-                            <input type="text" placeholder="Search assets..." id="assetSearch">
-                        </div>
-                    </div>
-                    <div class="header-right">
-                        <div class="user-profile">
-                            <div class="user-details">
-                                <h4 id="userName" style="color: #fff;">Sarah Admin</h4>
-                                <span id="userRole" style="color: rgba(255,255,255,0.8);">ADMIN HR</span>
-                            </div>
-                            <img src="https://i.pravatar.cc/150?img=1" class="user-avatar" alt="Profile"
-                                style="border: 2px solid #fff;">
-                        </div>
-                    </div>
-                </div>
-            </header>
-
-            <!-- Content -->
             <div class="content-area">
+                <div style="margin-bottom: 30px;">
+                    <h2 style="color: var(--premium-navy); font-weight: 800;">Company Assets</h2>
+                    <p style="color: #666; font-size: 14px;">Track, assign, and manage enterprise resources.</p>
+                </div>
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div>
-                        <h2>Company Assets</h2>
-                        <p style="color: #666;">Track, assign, and manage enterprise resources.</p>
-                    </div>
                     <div>
                         <button class="btn btn-primary" onclick="showAddAssetModal()"
                             style="background: var(--premium-navy);"><i class="fas fa-plus"></i> Add New
@@ -157,12 +128,7 @@
             </div>
 
             <!-- Footer -->
-            <footer class="premium-footer">
-                <div class="footer-curve"></div>
-                <div class="footer-decoration">
-                    &copy; 2026 E-PeopleSync HRMS &bull; Enterprise Human Capital Management &bull; Version 2.0.0
-                </div>
-            </footer>
+            <!-- Footer rendered dynamically via renderModernFooter() -->
         </main>
     </div>
 
@@ -225,9 +191,11 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            renderModernHeader();
+            renderModernFooter();
             const currentUser = checkAuth(['admin']);
             if (currentUser) {
-                document.getElementById('userName').textContent = currentUser.name;
+                initUserProfile();
             }
         });
     </script>

@@ -123,6 +123,30 @@ function handleCandidateTrial() {
     loginSuccess(user);
 }
 
+/**
+ * handleTrialLogin
+ * Logs in as a specific role for trial purposes
+ */
+function handleTrialLogin(role) {
+    const data = getData();
+    let user;
+
+    if (role === 'employee') {
+        user = data.users.find(u => u.username === 'tomy' || u.name.toUpperCase().includes('TOMY'));
+    } else if (role === 'manager') {
+        user = data.users.find(u => u.username === 'manager');
+    } else if (role === 'admin') {
+        user = data.users.find(u => u.username === 'admin');
+    }
+
+    if (user) {
+        alert(`Trial Login: Entering as ${user.name} (${role})`);
+        loginSuccess(user);
+    } else {
+        alert(`Error: ${role} data not found in system.`);
+    }
+}
+
 function handleAdminLogin(e) {
     e.preventDefault();
     const username = document.getElementById('adminUser').value;
