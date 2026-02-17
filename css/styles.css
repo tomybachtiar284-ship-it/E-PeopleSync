@@ -115,6 +115,40 @@ ul {
     color: white;
 }
 
+.btn-info {
+    background: var(--premium-blue);
+    color: white !important;
+}
+
+.btn-info:hover {
+    background: var(--premium-navy);
+}
+
+.btn-outline-info {
+    background: transparent;
+    border: 1px solid var(--premium-blue);
+    color: var(--premium-blue) !important;
+}
+
+.btn-outline-info:hover {
+    background: var(--premium-blue);
+    color: white !important;
+}
+
+.btn-success {
+    background: var(--premium-emerald);
+    color: white !important;
+}
+
+.btn-success:hover {
+    background: #059669;
+}
+
+.btn-warning {
+    background: #f59e0b;
+    color: white !important;
+}
+
 .btn-block {
     display: block;
     width: 100%;
@@ -643,6 +677,166 @@ aside.sidebar .nav-link.premium.active::after {
 .badge-red {
     background: #ffebee;
     color: #c62828;
+}
+
+/* Shift Badges in Roster */
+.shift-badge {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-block;
+    min-width: 30px;
+    text-align: center;
+}
+
+.shift-badge.p,
+.shift-badge.pagi {
+    background: #ffffff;
+    color: #2d3748;
+    border: 1px solid #ddd;
+}
+
+.shift-badge.s,
+.shift-badge.siang {
+    background: #ffffff;
+    color: #2d3748;
+    border: 1px solid #ddd;
+}
+
+.shift-badge.m,
+.shift-badge.malam {
+    background: #ffffff;
+    color: #2d3748;
+    border: 1px solid #ddd;
+}
+
+.shift-badge.d,
+.shift-badge.dt,
+.shift-badge.daytime {
+    background: #ffffff;
+    color: #2d3748;
+    border: 1px solid #ddd;
+}
+
+.shift-badge.off,
+.shift-badge.l,
+.shift-badge.libur {
+    background: #ff0000;
+    color: #ffffff;
+    border: 1px solid #d32f2f;
+}
+
+.shift-badge.ct,
+.shift-badge.cuti {
+    background: #fce4ec;
+    color: #c2185b;
+    border: 1px solid #f8bbd0;
+}
+
+.shift-badge.sd,
+.shift-badge.sakit {
+    background: #e1f5fe;
+    color: #0288d1;
+    border: 1px solid #b3e5fc;
+}
+
+.shift-badge.dl,
+.shift-badge.dinas {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #c8e6c9;
+}
+
+.shift-badge.i,
+.shift-badge.izin {
+    background: #fff3e0;
+    color: #ef6c00;
+    border: 1px solid #ffeb3b;
+}
+
+.shift-badge.a,
+.shift-badge.alpa {
+    background: #ffebee;
+    color: #c62828;
+    border: 2px solid #ef5350;
+}
+
+.shift-badge:hover {
+    filter: brightness(0.95);
+    transform: scale(1.05);
+}
+
+/* Master Pattern Grid Styles in Settings */
+.pattern-cell-container {
+    transition: all 0.2s ease;
+    border: 1px solid #eee !important;
+}
+
+.pattern-cell-container.p,
+.pattern-cell-container.pagi {
+    background: #ffffff !important;
+    color: #2d3748 !important;
+}
+
+.pattern-cell-container.s,
+.pattern-cell-container.siang {
+    background: #ffffff !important;
+    color: #2d3748 !important;
+}
+
+.pattern-cell-container.m,
+.pattern-cell-container.malam {
+    background: #ffffff !important;
+    color: #2d3748 !important;
+}
+
+.pattern-cell-container.dt,
+.pattern-cell-container.daytime {
+    background: #ffffff !important;
+    color: #2d3748 !important;
+}
+
+.pattern-cell-container.l,
+.pattern-cell-container.libur,
+.pattern-cell-container.off {
+    background: #ff0000 !important;
+    color: #ffffff !important;
+}
+
+.pattern-cell-container.ct,
+.pattern-cell-container.cuti {
+    background: #fce4ec !important;
+    color: #c2185b !important;
+}
+
+.pattern-cell-container.sd,
+.pattern-cell-container.sakit {
+    background: #e1f5fe !important;
+    color: #0288d1 !important;
+}
+
+.pattern-cell-container.dl,
+.pattern-cell-container.dinas {
+    background: #e8f5e9 !important;
+    color: #2e7d32 !important;
+}
+
+.pattern-cell-container.i,
+.pattern-cell-container.izin {
+    background: #fff3e0 !important;
+    color: #ef6c00 !important;
+}
+
+.pattern-cell-container.a,
+.pattern-cell-container.alpa {
+    background: #ffebee !important;
+    color: #c62828 !important;
+}
+
+.pattern-cell-container:hover {
+    filter: brightness(0.9);
 }
 
 /* Course Card */

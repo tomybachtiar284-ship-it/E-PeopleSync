@@ -25,6 +25,7 @@ const defaultData = {
         { id: 4, title: 'Marketing Intern', department: 'Marketing', location: 'Jakarta', type: 'Internship' }
     ],
     applications: [], // Emptied for user trial
+    leaveRequests: [], // New for Leave Management
     courses: [
         {
             id: 1,
@@ -112,14 +113,8 @@ const defaultData = {
         tax_office_limit: 500000,
         ptkp0: 54000000
     },
-    attendance: [
-        { id: 1, empId: 1739589237000, date: new Date().toISOString().split('T')[0], clockIn: '08:05', clockOut: '17:00', isLate: true },
-        { id: 2, empId: 1739589237001, date: new Date().toISOString().split('T')[0], clockIn: '07:55', clockOut: '16:05', isLate: false }
-    ],
-    roster: [
-        { empId: 1739589237000, date: new Date().toISOString().split('T')[0], shift: 'Pagi' },
-        { empId: 1739589237001, date: new Date().toISOString().split('T')[0], shift: 'Siang' }
-    ],
+    attendance: [],
+    roster: [],
     assets: [
         { id: 'AST-001', name: 'MacBook Pro 16"', category: 'Laptop', status: 'Assigned', assignedTo: 'Sarah Admin', dateAssigned: '2025-10-15' },
         { id: 'AST-002', name: 'Dell UltraSharp 27"', category: 'Peripherals', status: 'Available', assignedTo: null, dateAssigned: null },
@@ -135,6 +130,19 @@ const defaultData = {
         { id: 'DOC-003', name: 'Employment Contract - Sarah Admin', category: 'Employee Record', version: 'v1.0', owner: 'Sarah Admin', expiryDate: '2028-12-31', size: '0.8 MB', type: 'pdf' },
         { id: 'DOC-004', name: 'Identity Card (KTP)', category: 'Employee Record', version: 'v1.0', owner: 'Sarah Admin', expiryDate: '2030-01-01', size: '0.5 MB', type: 'jpg' },
         { id: 'DOC-005', name: 'Annual Tax Report 2025', category: 'Finance', version: 'v1.0', owner: 'Corporate Finance', expiryDate: null, size: '3.1 MB', type: 'pdf' }
+    ],
+    groupPatterns: {}, // New: Master shift patterns per group
+    shiftDefinitions: [
+        { code: 'P', name: 'Shift Pagi', clockIn: '07:30', clockOut: '15:30' },
+        { code: 'S', name: 'Shift Siang', clockIn: '15:30', clockOut: '23:30' },
+        { code: 'M', name: 'Shift Malam', clockIn: '23:30', clockOut: '07:30' },
+        { code: 'DT', name: 'Daytime', clockIn: '07:30', clockOut: '16:00' },
+        { code: 'L', name: 'Libur', clockIn: '', clockOut: '' },
+        { code: 'CT', name: 'Cuti', clockIn: '', clockOut: '' },
+        { code: 'SD', name: 'Sakit', clockIn: '', clockOut: '' },
+        { code: 'DL', name: 'Dinas Luar', clockIn: '', clockOut: '' },
+        { code: 'I', name: 'Izin', clockIn: '', clockOut: '' },
+        { code: 'A', name: 'Alpa', clockIn: '', clockOut: '' }
     ]
 };
 
@@ -160,6 +168,12 @@ function initData() {
         if (!data.employeeGroups) { data.employeeGroups = defaultData.employeeGroups; changed = true; }
         if (!data.attendance) { data.attendance = defaultData.attendance || []; changed = true; }
         if (!data.roster) { data.roster = defaultData.roster || []; changed = true; }
+        if (!data.groupPatterns) { data.groupPatterns = {}; changed = true; }
+        if (!data.shiftDefinitions || data.shiftDefinitions.some(s => s.name.includes('(P)') || s.code === 'D')) {
+            data.shiftDefinitions = defaultData.shiftDefinitions;
+            changed = true;
+        }
+        if (!data.leaveRequests) { data.leaveRequests = []; changed = true; }
         if (data.users) {
             data.users.forEach((u, index) => {
                 if (u.order === undefined) {
@@ -223,70 +237,55 @@ function updateSidebarForRole() {
     const restrictedItems = document.querySelectorAll('.role-restricted');
 
     const isAdmin = currentUser.role === 'admin';
-    const isStaff = currentUser.role === 'employee' || currentUser.role === 'manager';
+    const isCandidate = currentUser.role === 'candidate';
 
-    // Handle role-restricted elements
+    // 1. Handle role-restricted elements (Primary logic)
     restrictedItems.forEach(item => {
         if (isAdmin) {
+            item.style.setProperty('display', '', 'important');
             item.classList.remove('role-restricted');
-            item.style.display = ''; // Restore default display
         } else {
-            item.style.display = 'none'; // Ensure they stay hidden
+            item.style.setProperty('display', 'none', 'important');
         }
     });
 
-    if (isStaff) {
-        navLinks.forEach(link => {
-            const text = link.innerText.trim();
-            // Hide admin-only links (Keep Internal Jobs visible for staff was removed)
-            if (text.includes('Overview') ||
-                text.includes('Employees') ||
-                text.includes('Attendance') ||
-                text.includes('Payroll') ||
-                text.includes('Asset') ||
-                text.includes('Document') ||
-                text.includes('Org Chart') ||
-                text.includes('Recruitment') || // Now hidden for staff
-                text.includes('Administration')) {
-                link.classList.add('role-restricted'); // Ensure hidden
-                link.style.display = 'none';
-            }
-            if (text.includes('Performance')) {
-                const span = link.querySelector('span');
-                if (span) span.textContent = 'My Performance';
-                else link.textContent = 'My Performance';
-            }
-        });
+    // 2. Secondary/Fallback logic & Specific role adjustments
+    navLinks.forEach(link => {
+        const text = link.innerText.trim();
 
-        // Hide specific labels
-        labels.forEach(lbl => {
-            const text = lbl.innerText.trim().toUpperCase();
-            if (text.includes('MAIN DASHBOARD') ||
-                text.includes('WORKFORCE') ||
-                text.includes('FINANCE') ||
-                text.includes('ENTERPRISE') ||
-                text.includes('SETTINGS')) {
-                lbl.classList.add('role-restricted'); // Ensure hidden
-                lbl.style.display = 'none';
+        // Ensure Dashboard/Overview is handled correctly
+        if (text.includes('Dashboard') || text.includes('Overview')) {
+            if (isCandidate) {
+                // Candidates see Dashboard but maybe limited sidebar items
+            } else {
+                link.style.display = ''; // Always show for others
             }
-        });
+        }
 
-        // Sidebar will maintain premium styles from CSS
-    } else if (currentUser.role === 'candidate') {
-        navLinks.forEach(link => {
-            const text = link.innerText.trim();
-            if (text.includes('Performance') || text.includes('Administration') || text.includes('Settings') ||
-                text.includes('Employees') || text.includes('Attendance') || text.includes('Payroll') ||
-                text.includes('Asset') || text.includes('Document') || text.includes('Org Chart')) {
-                link.style.display = 'none';
-            }
+        if (text.includes('Performance')) {
+            const span = link.querySelector('span');
+            const targetText = isAdmin ? 'Team Performance' : 'My Performance';
+            if (span) span.textContent = targetText;
+            else link.textContent = targetText;
+        }
+
+        if (isCandidate) {
             if (text.includes('Recruitment')) {
                 link.innerHTML = '<i class="fas fa-briefcase"></i> <span>Jobs</span>';
             }
-        });
+        }
+    });
 
+    // Hide labels if all their subsequent links are hidden (simple approach)
+    if (!isAdmin) {
         labels.forEach(lbl => {
-            lbl.style.display = 'none';
+            const text = lbl.innerText.trim().toUpperCase();
+            if (text.includes('SETTINGS') && !isAdmin) {
+                lbl.style.display = 'none';
+            }
+            if (isCandidate) {
+                lbl.style.display = 'none';
+            }
         });
     }
 }

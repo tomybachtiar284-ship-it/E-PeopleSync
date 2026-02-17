@@ -4,12 +4,15 @@ document.addEventListener('DOMContentLoaded', () => {
     loadMasterData();
     populateDropdown('uDept', getData().departments);
     initUserProfile();
+    populatePatternMonths();
 });
 
 function switchTab(tab) {
     document.getElementById('tab-users').style.display = tab === 'users' ? 'block' : 'none';
     document.getElementById('tab-master').style.display = tab === 'master' ? 'block' : 'none';
     document.getElementById('tab-payroll').style.display = tab === 'payroll' ? 'block' : 'none';
+    document.getElementById('tab-patterns').style.display = tab === 'patterns' ? 'block' : 'none';
+    document.getElementById('tab-shifts').style.display = tab === 'shifts' ? 'block' : 'none';
 
     // Update button styles
     const buttons = document.querySelectorAll('.tabs button');
@@ -19,6 +22,12 @@ function switchTab(tab) {
     else if (tab === 'payroll') {
         buttons[2].classList.add('active');
         loadPayrollSettings();
+    } else if (tab === 'patterns') {
+        buttons[3].classList.add('active');
+        renderPatternGrid();
+    } else if (tab === 'shifts') {
+        buttons[4].classList.add('active');
+        renderShiftDefinitions();
     }
 }
 
@@ -224,4 +233,234 @@ function deleteMasterData(type, index) {
         saveData(data);
         loadMasterData();
     }
+}
+
+/**
+ * Shift Pattern Management
+ */
+function populatePatternMonths() {
+    const select = document.getElementById('patternMonth');
+    if (!select) return;
+    select.innerHTML = '';
+    const now = new Date();
+    for (let i = -1; i <= 6; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+        const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const label = d.toLocaleString('default', { month: 'long', year: 'numeric' });
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = label;
+        if (i === 0) opt.selected = true;
+        select.appendChild(opt);
+    }
+}
+
+function renderPatternGrid() {
+    const monthKey = document.getElementById('patternMonth').value;
+    if (!monthKey) return;
+    const header = document.getElementById('patternTableHeader');
+    const body = document.getElementById('patternTableBody');
+    const data = getData();
+    const groups = data.employeeGroups || ['Grup Daytime', 'Grup A', 'Grup B', 'Grup C', 'Grup D'];
+    const [year, month] = monthKey.split('-').map(Number);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const shifts = data.shiftDefinitions || [];
+
+    // Render Header
+    let headHtml = '<tr><th style="width:150px; background:#f8f9fa; vertical-align:middle; text-align:center;">Grup / Tanggal</th>';
+    for (let i = 1; i <= daysInMonth; i++) {
+        headHtml += `<th style="text-align:center; min-width:45px; background:#007bff; color:white; font-size:12px; padding:8px 2px;">${i}</th>`;
+    }
+    headHtml += '</tr>';
+    header.innerHTML = headHtml;
+
+    // Render Body
+    body.innerHTML = '';
+    const patterns = data.groupPatterns[monthKey] || {};
+
+    groups.forEach(group => {
+        const tr = document.createElement('tr');
+        let rowHtml = `<td style="font-weight:700; background:#f8f9fa; font-size:13px; padding-left:15px; vertical-align:middle;">${group}</td>`;
+        const groupPattern = patterns[group] || [];
+
+        for (let i = 0; i < daysInMonth; i++) {
+            const currentVal = groupPattern[i] || 'L'; // Default to Libur (L) instead of Off
+
+            // Helper to get color class - reuse logic from attendance
+            const colorClass = currentVal.toLowerCase();
+
+            rowHtml += `
+                <td class="pattern-cell-container ${colorClass}" style="padding:0; text-align:center; vertical-align:middle; width:45px; height:40px;">
+                    <select class="pattern-cell" data-group="${group}" data-day="${i}" 
+                        onchange="this.parentElement.className='pattern-cell-container ' + this.value.toLowerCase()"
+                        style="width:100%; height:100%; border:none; background:transparent; font-size:11px; font-weight:800; text-align:center; cursor:pointer; color:inherit; appearance:none; -webkit-appearance:none;">
+                        ${shifts.map(s => `<option value="${s.code}" ${currentVal === s.code ? 'selected' : ''} style="background:white; color:black;">${s.code}</option>`).join('')}
+                    </select>
+                </td>
+            `;
+        }
+        tr.innerHTML = rowHtml;
+        body.appendChild(tr);
+    });
+}
+
+function savePatternGrid() {
+    const monthKey = document.getElementById('patternMonth').value;
+    const data = getData();
+    if (!data.groupPatterns) data.groupPatterns = {};
+    const patterns = {};
+
+    const selects = document.querySelectorAll('.pattern-cell');
+    selects.forEach(sel => {
+        const group = sel.dataset.group;
+        const day = parseInt(sel.dataset.day);
+        const val = sel.value;
+        if (!patterns[group]) patterns[group] = [];
+        patterns[group][day] = val;
+    });
+
+    data.groupPatterns[monthKey] = patterns;
+    saveData(data);
+    alert('Pola shift grup berhasil disimpan!');
+}
+
+function triggerPatternImport() {
+    document.getElementById('patternImportInput').click();
+}
+
+function handlePatternImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+        if (rows.length < 2) return alert('Format file tidak valid');
+
+        const monthKey = document.getElementById('patternMonth').value;
+        const appData = getData();
+        const patterns = {};
+
+        // Assume row 0 is header (Grup/Tanggal, 1, 2, 3...)
+        // Start from row 1
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            const groupName = row[0];
+            if (!groupName) continue;
+
+            // Clean group name (sometimes Excel adds spaces)
+            const matchedGroup = (appData.employeeGroups || []).find(g => g.toLowerCase().includes(groupName.toString().toLowerCase()));
+            if (!matchedGroup) continue;
+
+            const daysData = row.slice(1).map(v => (v || 'L').toString().trim());
+            patterns[matchedGroup] = daysData;
+        }
+
+        appData.groupPatterns[monthKey] = patterns;
+        saveData(appData);
+        renderPatternGrid();
+        alert('Data pola shift berhasil diimpor!');
+    };
+    reader.readAsArrayBuffer(file);
+    event.target.value = '';
+}
+
+function downloadPatternTemplate() {
+    const monthKey = document.getElementById('patternMonth').value;
+    const [year, month] = monthKey.split('-').map(Number);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const data = getData();
+    const groups = data.employeeGroups || ['Grup Daytime', 'Grup A', 'Grup B', 'Grup C', 'Grup D'];
+
+    // Header
+    const header = ['Grup / Tanggal'];
+    for (let i = 1; i <= daysInMonth; i++) header.push(i);
+
+    const rows = [header];
+    groups.forEach(g => {
+        const row = [g];
+        const existing = (data.groupPatterns[monthKey] || {})[g] || [];
+        for (let i = 0; i < daysInMonth; i++) {
+            row.push(existing[i] || 'L');
+        }
+        rows.push(row);
+    });
+
+    const worksheet = XLSX.utils.aoa_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Pola Shift");
+    XLSX.writeFile(workbook, `Pola_Shift_${monthKey}.xlsx`);
+}
+
+/**
+ * Shift Definitions (Jam Kerja)
+ */
+function renderShiftDefinitions() {
+    const data = getData();
+    const tbody = document.getElementById('shiftDefTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    shifts.forEach((s, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="text" class="form-control shift-code" value="${s.code}" placeholder="Kode" style="font-weight:700; text-align:center;"></td>
+            <td><input type="text" class="form-control shift-name" value="${s.name}" placeholder="Deskripsi (misal: Shift Pagi)"></td>
+            <td><input type="time" class="form-control shift-in" value="${s.clockIn}"></td>
+            <td><input type="time" class="form-control shift-out" value="${s.clockOut}"></td>
+            <td style="text-align:center;">
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteShiftRow(this)"><i class="fas fa-trash"></i></button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function addShiftDefinitionRow() {
+    const tbody = document.getElementById('shiftDefTableBody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td><input type="text" class="form-control shift-code" placeholder="Kode"></td>
+        <td><input type="text" class="form-control shift-name" placeholder="Deskripsi"></td>
+        <td><input type="time" class="form-control shift-in"></td>
+        <td><input type="time" class="form-control shift-out"></td>
+        <td style="text-align:center;">
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteShiftRow(this)"><i class="fas fa-trash"></i></button>
+        </td>
+    `;
+    tbody.appendChild(tr);
+}
+
+function deleteShiftRow(btn) {
+    btn.closest('tr').remove();
+}
+
+function saveShiftDefinitions() {
+    const data = getData();
+    const rows = document.querySelectorAll('#shiftDefTableBody tr');
+    const newShifts = [];
+
+    rows.forEach(row => {
+        const code = row.querySelector('.shift-code').value.trim().toUpperCase();
+        const name = row.querySelector('.shift-name').value.trim() || code;
+        const clockIn = row.querySelector('.shift-in').value;
+        const clockOut = row.querySelector('.shift-out').value;
+
+        if (code) {
+            newShifts.push({
+                code,
+                name,
+                clockIn,
+                clockOut
+            });
+        }
+    });
+
+    data.shiftDefinitions = newShifts;
+    saveData(data);
+    alert('Jam kerja berhasil dikonfigurasi!');
 }

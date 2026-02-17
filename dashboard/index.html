@@ -72,10 +72,15 @@
 
             <div class="content-area" style="padding: 40px;">
                 <!-- Hero Section -->
-                <div class="hero-section mb-5">
+                <div class="hero-section mb-4">
                     <h4 style="color: var(--primary-color); font-weight: 600; margin-bottom: 5px;">Welcome back, <span
                             id="welcomeName">User</span> 👋</h4>
                     <h1 style="font-size: 32px; font-weight: 800; color: var(--premium-navy);">Dashboard</h1>
+                </div>
+
+                <!-- Admin Summary Widget (Visible for Admin/Manager) -->
+                <div id="adminSummaryWidget" class="mb-5" style="display: none;">
+                    <!-- Populated by JS -->
                 </div>
 
                 <!-- Modern Stats Cards Layout -->
@@ -107,13 +112,16 @@
                                 </h2>
                             </div>
                         </div>
-                        <div class="d-flex gap-3 mt-4">
+                        <div class="d-flex gap-2 mt-4 flex-wrap">
                             <button class="btn btn-primary" id="btnClockIn" onclick="clockIn()"
-                                style="background: var(--premium-navy); border-radius: 15px; padding: 12px 25px; font-weight: 600;">Clock
+                                style="background: var(--premium-navy); border-radius: 15px; padding: 12px 20px; font-weight: 600; font-size: 13px;">Clock
                                 In Now</button>
                             <button class="btn btn-outline-secondary" id="btnClockOut" onclick="clockOut()" disabled
-                                style="border: 2px solid #ddd; border-radius: 15px; padding: 12px 25px; font-weight: 600;">Clock
+                                style="border: 2px solid #ddd; border-radius: 15px; padding: 12px 20px; font-weight: 600; font-size: 13px;">Clock
                                 Out</button>
+                            <button class="btn btn-outline-primary" id="btnRequestLeave" onclick="openLeaveModal()"
+                                style="border: 2px solid var(--primary-color); border-radius: 15px; padding: 12px 20px; font-weight: 600; font-size: 13px;">Request
+                                Leave</button>
                         </div>
                     </div>
 
@@ -250,6 +258,20 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
+        #leaveModal .form-control {
+            border-radius: 8px;
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+        }
+
+        #leaveModal .btn-primary {
+            transition: transform 0.2s;
+        }
+
+        #leaveModal .btn-primary:active {
+            transform: scale(0.98);
+        }
+
         .close-modal {
             color: #aaa;
             float: right;
@@ -301,6 +323,55 @@
                 style="border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-bottom: 15px;">
                 History</h3>
             <div id="modalBody">Loading...</div>
+        </div>
+    </div>
+
+    <div id="leaveModal" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width: 450px; background: white; border: none; padding: 30px;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3 style="margin: 0; color: var(--premium-navy); font-weight: 800;">Pengajuan Izin/Cuti</h3>
+                <span class="close" onclick="closeLeaveModal()"
+                    style="cursor:pointer; font-size: 24px; color: #cbd5e0;">&times;</span>
+            </div>
+            <form id="leaveForm">
+                <div class="form-group mb-3">
+                    <label
+                        style="display: block; font-size: 13px; font-weight: 700; color: #4a5568; margin-bottom: 8px;">Jenis
+                        Pengajuan</label>
+                    <select id="leaveType" class="form-control" required
+                        style="width: 100%; border: 1px solid #e2e8f0; padding: 12px; border-radius: 10px;">
+                        <option value="CT">Cuti (CT)</option>
+                        <option value="SD">Sakit (SD)</option>
+                        <option value="I">Izin (I)</option>
+                        <option value="DL">Dinas Luar (DL)</option>
+                    </select>
+                </div>
+                <div class="row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="mb-3">
+                        <label
+                            style="display: block; font-size: 13px; font-weight: 700; color: #4a5568; margin-bottom: 8px;">Mulai</label>
+                        <input type="date" id="leaveStart" class="form-control" required
+                            style="width: 100%; border: 1px solid #e2e8f0; padding: 12px; border-radius: 10px;">
+                    </div>
+                    <div class="mb-3">
+                        <label
+                            style="display: block; font-size: 13px; font-weight: 700; color: #4a5568; margin-bottom: 8px;">Selesai</label>
+                        <input type="date" id="leaveEnd" class="form-control" required
+                            style="width: 100%; border: 1px solid #e2e8f0; padding: 12px; border-radius: 10px;">
+                    </div>
+                </div>
+                <div class="form-group mb-4">
+                    <label
+                        style="display: block; font-size: 13px; font-weight: 700; color: #4a5568; margin-bottom: 8px;">Alasan
+                        / Keterangan</label>
+                    <textarea id="leaveReason" class="form-control" rows="3" placeholder="Contoh: Keperluan keluarga..."
+                        required
+                        style="width: 100%; border: 1px solid #e2e8f0; padding: 12px; border-radius: 10px;"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary w-100"
+                    style="background: var(--premium-navy); color: white; border: none; border-radius: 12px; padding: 14px; font-weight: 700; cursor: pointer;">Kirim
+                    Pengajuan</button>
+            </form>
         </div>
     </div>
 
@@ -511,6 +582,80 @@
 
             // Attendance Initialization
             updateClockStatus(user);
+
+            // Admin/Manager Ringkasan Widget
+            if (['admin', 'manager'].includes(user.role)) {
+                renderAdminSummary();
+            }
+        }
+
+        function getShiftForDate(empId, date) {
+            const data = getData();
+            if (!data.roster) data.roster = [];
+            const entry = data.roster.find(r => r.empId === empId && r.date === date);
+            return entry ? entry.shift : 'Off';
+        }
+
+        function renderAdminSummary() {
+            const data = getData();
+            const today = new Date().toISOString().split('T')[0];
+            const logsToday = (data.attendance || []).filter(log => log.date === today);
+            const employees = data.users.filter(u => ['employee', 'manager'].includes(u.role));
+            const pendingRequests = (data.leaveRequests || []).filter(r => r.status === 'Pending').length;
+
+            const workShifts = ['P', 'S', 'M', 'DT', 'Pagi', 'Siang', 'Malam', 'Daytime'];
+            const leaveShifts = ['CT', 'SD', 'DL', 'I', 'Cuti', 'Sakit', 'Dinas Luar', 'Izin'];
+
+            const presentCount = logsToday.length;
+            const lateCount = logsToday.filter(log => log.isLate).length;
+            const presentIds = new Set(logsToday.map(log => log.empId));
+
+            const absentCount = employees.filter(emp => {
+                const shift = getShiftForDate(emp.id, today);
+                return workShifts.includes(shift) && !presentIds.has(emp.id);
+            }).length;
+
+            const leaveCount = employees.filter(emp => {
+                const shift = getShiftForDate(emp.id, today);
+                return leaveShifts.includes(shift);
+            }).length;
+
+            const container = document.getElementById('adminSummaryWidget');
+            if (!container) return;
+
+            container.style.display = 'block';
+            container.innerHTML = `
+                <div class="glass-card" style="padding: 25px; border-left: 5px solid var(--premium-navy);">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3 style="font-size: 16px; font-weight: 700; color: var(--premium-navy); margin: 0; text-transform: uppercase; letter-spacing: 1px;">
+                            <i class="fas fa-shield-alt mr-2"></i> Organization Overview Today
+                        </h3>
+                        <a href="../admin/attendance.html" class="btn btn-sm btn-outline-primary" style="font-size: 11px; padding: 5px 15px; border-radius: 20px;">Manage All</a>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px;">
+                        <div style="text-align: center; padding: 15px; background: rgba(255,255,255,0.4); border-radius: 15px;">
+                            <div style="font-size: 11px; color: #818181; font-weight: 600; margin-bottom: 5px;">PRESENT</div>
+                            <div style="font-size: 24px; font-weight: 800; color: #2ecc71;">${presentCount}</div>
+                        </div>
+                        <div style="text-align: center; padding: 15px; background: rgba(255,255,255,0.4); border-radius: 15px;">
+                            <div style="font-size: 11px; color: #818181; font-weight: 600; margin-bottom: 5px;">LATE</div>
+                            <div style="font-size: 24px; font-weight: 800; color: #f1c40f;">${lateCount}</div>
+                        </div>
+                        <div style="text-align: center; padding: 15px; background: rgba(255,255,255,0.4); border-radius: 15px;">
+                            <div style="font-size: 11px; color: #818181; font-weight: 600; margin-bottom: 5px;">ABSENT</div>
+                            <div style="font-size: 24px; font-weight: 800; color: #e74c3c;">${absentCount}</div>
+                        </div>
+                        <div style="text-align: center; padding: 15px; background: rgba(255,255,255,0.4); border-radius: 15px;">
+                            <div style="font-size: 11px; color: #818181; font-weight: 600; margin-bottom: 5px;">ON LEAVE</div>
+                            <div style="font-size: 24px; font-weight: 800; color: #3498db;">${leaveCount}</div>
+                        </div>
+                        <div style="text-align: center; padding: 15px; background: var(--premium-navy); border-radius: 15px; cursor: pointer;" onclick="window.location.href='../admin/attendance.html'">
+                            <div style="font-size: 11px; color: rgba(255,255,255,0.7); font-weight: 600; margin-bottom: 5px;">APPROVALS PENDING</div>
+                            <div style="font-size: 24px; font-weight: 800; color: white;">${pendingRequests}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         // --- Attendance Functions ---
@@ -520,7 +665,27 @@
             document.getElementById('todayDate').textContent = formatDate(today);
 
             const log = data.attendance ? data.attendance.find(l => l.empId === user.id && l.date === today) : null;
+            const rosterEntry = (data.roster && data.roster.find(r => r.empId === user.id && r.date === today))?.shift || 'Off';
+
+            const shifts = data.shiftDefinitions || [];
+            const shiftDef = shifts.find(s => s.code === rosterEntry || s.name.startsWith(rosterEntry));
+            const shiftInfo = shiftDef ? `${shiftDef.name} (${shiftDef.clockIn} - ${shiftDef.clockOut})` : rosterEntry;
+
             const statusEl = document.getElementById('clockStatus');
+            const attendanceStatusEl = document.getElementById('attendanceStatus');
+
+            // Add shift info label if it doesn't exist
+            let infoEl = document.getElementById('assignedShiftInfo');
+            if (!infoEl) {
+                infoEl = document.createElement('div');
+                infoEl.id = 'assignedShiftInfo';
+                infoEl.style.fontSize = '12px';
+                infoEl.style.color = '#718096';
+                infoEl.style.marginTop = '4px';
+                statusEl.parentNode.appendChild(infoEl);
+            }
+            infoEl.innerHTML = `<strong>Jadwal Hari Ini:</strong> ${shiftInfo}`;
+
             const btnIn = document.getElementById('btnClockIn');
             const btnOut = document.getElementById('btnClockOut');
 
@@ -528,6 +693,7 @@
                 statusEl.textContent = "Not Clocked In";
                 statusEl.style.color = "var(--primary-color)";
                 btnIn.disabled = false;
+                btnIn.textContent = "Clock In Now";
                 btnOut.disabled = true;
             } else if (!log.clockOut) {
                 statusEl.textContent = `In: ${log.clockIn}${log.isLate ? ' (Late)' : ''}`;
@@ -542,27 +708,84 @@
             }
         }
 
+        // --- Leave Request Functions ---
+        function openLeaveModal() {
+            document.getElementById('leaveModal').style.display = 'block';
+        }
+
+        function closeLeaveModal() {
+            document.getElementById('leaveModal').style.display = 'none';
+        }
+
+        document.getElementById('leaveForm')?.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const user = JSON.parse(localStorage.getItem('currentUser'));
+            const data = getData();
+
+            const newRequest = {
+                id: Date.now(),
+                empId: user.id,
+                empName: user.name,
+                type: document.getElementById('leaveType').value,
+                startDate: document.getElementById('leaveStart').value,
+                endDate: document.getElementById('leaveEnd').value,
+                reason: document.getElementById('leaveReason').value,
+                status: 'Pending',
+                createdAt: new Date().toISOString()
+            };
+
+            if (!data.leaveRequests) data.leaveRequests = [];
+            data.leaveRequests.push(newRequest);
+            saveData(data);
+
+            alert('Pengajuan berhasil dikirim dan menunggu persetujuan Admin.');
+            closeLeaveModal();
+            this.reset();
+        });
+
         function clockIn() {
             const user = JSON.parse(localStorage.getItem('currentUser'));
             const data = getData();
             const now = new Date();
             const today = now.toISOString().split('T')[0];
             const time = now.toTimeString().slice(0, 5);
+            const hour = now.getHours();
 
-            // Calculate Lateness based on Roster
+            // Automate Shift Code based on Group and Time
+            let autoShift = 'Off';
+            const userGroup = user.group || 'Grup Daytime';
+
+            if (userGroup === 'Grup Daytime') {
+                autoShift = 'DT';
+            } else if (['Grup A', 'Grup B', 'Grup C', 'Grup D'].includes(userGroup)) {
+                // Determine shift based on time: P (06-14), S (14-22), M (22-06)
+                if (hour >= 6 && hour < 14) autoShift = 'P';
+                else if (hour >= 14 && hour < 22) autoShift = 'S';
+                else autoShift = 'M';
+            }
+
+            // Update Roster for today if it matches the scan (Auto-sync)
+            if (!data.roster) data.roster = [];
+            const rosterIdx = data.roster.findIndex(r => r.empId === user.id && r.date === today);
+            if (rosterIdx > -1) {
+                // Only overwrite if it was 'Off' or empty, or let it stay if admin set it
+                if (data.roster[rosterIdx].shift === 'Off' || !data.roster[rosterIdx].shift) {
+                    data.roster[rosterIdx].shift = autoShift;
+                }
+            } else {
+                data.roster.push({ empId: user.id, date: today, shift: autoShift });
+            }
+
+            // Calculate Lateness based on the final shift
             let isLate = false;
-            const shiftType = (data.roster && data.roster.find(r => r.empId === user.id && r.date === today))?.shift || 'Pagi';
+            const shifts = data.shiftDefinitions || [];
+            const shiftDef = shifts.find(s => s.code === autoShift);
 
-            const shiftTimes = {
-                'Pagi': '08:00',
-                'Siang': '16:00',
-                'Malam': '00:00'
-            };
-
-            if (shiftType !== 'Off' && shiftTimes[shiftType]) {
-                const [h, m] = shiftTimes[shiftType].split(':');
+            if (autoShift !== 'Off' && shiftDef && shiftDef.clockIn) {
+                const [h, m] = shiftDef.clockIn.split(':');
                 const shiftStart = new Date(now);
                 shiftStart.setHours(parseInt(h), parseInt(m), 0);
+                shiftStart.setMinutes(shiftStart.getMinutes() + 5); // 5 mins tolerance
                 if (now > shiftStart) isLate = true;
             }
 
@@ -573,7 +796,8 @@
                 date: today,
                 clockIn: time,
                 clockOut: null,
-                isLate: isLate
+                isLate: isLate,
+                shift: autoShift // Store the determined shift
             };
 
             if (!data.attendance) data.attendance = [];
@@ -581,7 +805,7 @@
             saveData(data);
 
             updateClockStatus(user);
-            alert(`Clock In Successful at ${time}${isLate ? '. You are marked as Late.' : ''}`);
+            alert(`Clock In Successful (${autoShift}) at ${time}${isLate ? '. You are marked as Late.' : ''}`);
         }
 
         function clockOut() {
