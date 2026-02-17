@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>E-PeopleSync Mobile</title>
+    <!-- Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="../css/mobile.css">
+</head>
+
+<body>
+    <div class="mobile-container">
+        <!-- Status Bar Simulator (Optional but adds to realism) -->
+        <div class="status-bar">
+            <span id="currentTime">17:40</span>
+            <div class="status-icons">
+                <i class="fas fa-signal"></i>
+                <i class="fas fa-wifi"></i>
+                <i class="fas fa-battery-full"></i>
+            </div>
+        </div>
+
+        <!-- Main Content Area (Scrollable) -->
+        <div class="main-content" id="mobileMainContent">
+            <!-- Home Screen View -->
+            <div id="homeView" class="view active">
+                <div class="header-wave">
+                    <div class="header-content">
+                        <div class="greeting-area">
+                            <span class="greeting-prefix">Good Afternoon</span>
+                            <h2 class="user-name" id="userGreetingName">M. Tomy Bachtiar</h2>
+                            <p class="mission-text">Ready to power up today?</p>
+                        </div>
+                        <div class="weather-widget">
+                            <i class="fas fa-cloud-sun"></i>
+                            <div class="temp">29°C</div>
+                            <div class="weather-desc">Cloudy</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content-body">
+                    <h3 class="section-title">Start your activity</h3>
+
+                    <div class="feature-grid">
+                        <!-- Absensi Card -->
+                        <div class="feature-card" onclick="navigateTo('attendance')">
+                            <div class="icon-box purple">
+                                <i class="fas fa-fingerprint"></i>
+                            </div>
+                            <span class="feature-name">Absensi</span>
+                        </div>
+
+                        <!-- Request Leave Card -->
+                        <div class="feature-card" onclick="navigateTo('leave')">
+                            <div class="icon-box orange">
+                                <i class="fas fa-calendar-plus"></i>
+                            </div>
+                            <span class="feature-name">Cuti / Izin</span>
+                        </div>
+
+                        <!-- Learning Hub Card -->
+                        <div class="feature-card" onclick="navigateTo('learning')">
+                            <div class="icon-box blue">
+                                <i class="fas fa-graduation-cap"></i>
+                            </div>
+                            <span class="feature-name">Learning Hub</span>
+                        </div>
+
+                        <!-- My Performance Card -->
+                        <div class="feature-card" onclick="navigateTo('stats')">
+                            <div class="icon-box green">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <span class="feature-name">My Perform</span>
+                        </div>
+
+                        <!-- My Inventory Card -->
+                        <div class="feature-card" onclick="navigateTo('assets')">
+                            <div class="icon-box red">
+                                <i class="fas fa-boxes"></i>
+                            </div>
+                            <span class="feature-name">Inventory</span>
+                        </div>
+
+                        <!-- Document Center Card -->
+                        <div class="feature-card" onclick="navigateTo('docs')">
+                            <div class="icon-box teal">
+                                <i class="fas fa-file-contract"></i>
+                            </div>
+                            <span class="feature-name">Documents</span>
+                        </div>
+                    </div>
+
+                    <!-- Promo/News Carousel (Decorative like in reference) -->
+                    <div class="promo-banner mt-4">
+                        <div class="promo-text">
+                            <h4>Special Announcement</h4>
+                            <p>Check out our new company policy for 2026.</p>
+                        </div>
+                        <i class="fas fa-bullhorn promo-icon"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats/Winners View -->
+            <div id="statsView" class="view">
+                <div class="stats-header">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2 class="view-title">Winners</h2>
+                        <div class="header-icons">
+                            <i class="fas fa-user-circle"></i>
+                            <i class="fas fa-search"></i>
+                        </div>
+                    </div>
+
+                    <div class="tab-pills">
+                        <button class="pill active">Today</button>
+                        <button class="pill">Month</button>
+                        <button class="pill">All time</button>
+                    </div>
+                </div>
+
+                <div class="podium-area">
+                    <!-- Rank 2 -->
+                    <div class="podium-item second">
+                        <div class="avatar-ring">
+                            <img src="https://i.pravatar.cc/100?u=2" alt="Avatar">
+                            <div class="rank-badge">2</div>
+                        </div>
+                        <div class="podium-name">Budi S.</div>
+                        <div class="podium-pts">6500 Pts</div>
+                    </div>
+
+                    <!-- Rank 1 -->
+                    <div class="podium-item first">
+                        <div class="avatar-ring gold">
+                            <img src="https://i.pravatar.cc/100?u=12" alt="Avatar">
+                            <div class="rank-badge">1</div>
+                        </div>
+                        <div class="podium-name">Andi S.</div>
+                        <div class="podium-pts">7400 Pts</div>
+                    </div>
+
+                    <!-- Rank 3 -->
+                    <div class="podium-item third">
+                        <div class="avatar-ring">
+                            <img src="https://i.pravatar.cc/100?u=3" alt="Avatar">
+                            <div class="rank-badge">3</div>
+                        </div>
+                        <div class="podium-name">John Carter</div>
+                        <div class="podium-pts">5800 Pts</div>
+                    </div>
+                </div>
+
+                <div class="rank-list">
+                    <div class="rank-item current-user">
+                        <span class="rank-num">14</span>
+                        <img src="https://i.pravatar.cc/100?u=tomy" class="rank-avatar">
+                        <span class="rank-name">TOMY (You)</span>
+                        <span class="rank-pts">3684 Pts</span>
+                    </div>
+
+                    <div id="rankingListContainer">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation Bar -->
+        <nav class="bottom-nav">
+            <div class="nav-item active" onclick="switchView('home', this)">
+                <i class="fas fa-home"></i>
+            </div>
+            <div class="nav-item" onclick="switchView('history', this)">
+                <i class="fas fa-history"></i>
+            </div>
+            <div class="nav-item profile-item" onclick="switchView('profile', this)">
+                <img src="https://i.pravatar.cc/100?u=tomy" id="navAvatar" alt="Profile">
+            </div>
+            <div class="nav-item" onclick="switchView('stats', this)">
+                <i class="fas fa-chart-bar"></i>
+            </div>
+            <div class="nav-item" onclick="switchView('notifications', this)">
+                <i class="fas fa-bell"></i>
+                <span class="notif-dot"></span>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Modals (Borrowed from Desktop for functionality) -->
+    <!-- Clock In Modal -->
+    <div id="clockModal" class="mobile-modal">
+        <!-- Content will be handled by mobile.js -->
+    </div>
+
+    <script src="../js/utils.js"></script>
+    <script src="../js/mobile.js"></script>
+</body>
+
+</html>
