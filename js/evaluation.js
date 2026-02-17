@@ -59,10 +59,9 @@ function loadEvaluationData() {
     });
 
     // Load Evaluation History List
-    const historyList = document.getElementById('evaluationHistory');
     const data = getData();
     // Filter evaluations for this user (or all if manager/admin - simplified for demo)
-    const userEvals = data.evaluations.filter(e => e.employeeId === user.id || user.role !== 'employee');
+    const userEvals = data.evaluations.filter(e => e.userId === user.id || user.role !== 'employee');
 
     if (historyList) {
         historyList.innerHTML = '';
@@ -70,7 +69,7 @@ function loadEvaluationData() {
             historyList.innerHTML = '<p>No evaluations found.</p>';
         } else {
             userEvals.forEach(ev => {
-                const employee = data.users.find(u => u.id === ev.employeeId);
+                const employee = data.users.find(u => u.id === ev.userId);
                 const manager = data.users.find(u => u.id === ev.managerId);
 
                 const div = document.createElement('div');
@@ -102,15 +101,29 @@ function submitEvaluation(e) {
     const data = getData();
     const newEval = {
         id: Date.now(),
-        employeeId: parseInt(employeeId),
+        userId: parseInt(employeeId),
         managerId: currentUser.id,
         kpiScore: parseInt(score),
         comments: comments,
-        date: new Date().toISOString()
+        date: new Date().toISOString(),
+        // Add default radar and history for mobile view compatibility
+        radarData: [80, 80, 80, 80, 80, 80],
+        historyData: [3.5, 3.6, 3.7, 3.8, 3.9, parseFloat(score) / 20], // Map 0-100 to 0-5
+        objectives: [
+            { title: 'Goal 1', status: 'On Track', progress: 50, color: '#00796b' }
+        ],
+        feedback: {
+            message: comments,
+            date: formatDate(new Date().toISOString()),
+            by: currentUser.name
+        }
     };
 
     data.evaluations.push(newEval);
     saveData(data);
+
+    // NOTIFIKASI KARYAWAN
+    createNotification(parseInt(employeeId), "Feedback Performa Baru", `Manajer ${currentUser.name} telah mengirimkan evaluasi terbaru untuk Anda.`, "performance");
 
     alert('Evaluation Submitted!');
     window.location.reload();

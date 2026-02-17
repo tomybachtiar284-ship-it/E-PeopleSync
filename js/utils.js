@@ -212,6 +212,32 @@ function formatDate(dateString) {
     return new Date(dateString).toLocaleDateString('id-ID', options);
 }
 
+/**
+ * Global Notification Helper
+ * @param {number} userId - Target user ID
+ * @param {string} title - Notification Title
+ * @param {string} message - Notification Message
+ * @param {string} type - 'leave', 'attendance', 'learning', 'performance'
+ */
+function createNotification(userId, title, message, type) {
+    const data = getData();
+    if (!data.notifications) data.notifications = [];
+
+    const newNotif = {
+        id: Date.now() + Math.floor(Math.random() * 1000),
+        userId: userId,
+        title: title,
+        message: message,
+        type: type,
+        time: "Baru saja",
+        isRead: false,
+        createdAt: new Date().toISOString()
+    };
+
+    data.notifications.push(newNotif);
+    saveData(data);
+}
+
 // Helper: Check Auth
 function checkAuth(allowedRoles = []) {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));

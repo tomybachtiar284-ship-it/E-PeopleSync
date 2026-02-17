@@ -485,6 +485,10 @@ function approveRequest(id) {
     }
 
     saveData(data);
+
+    // NOTIFIKASI KARYAWAN
+    createNotification(req.userId, "Pengajuan Cuti Disetujui", `Pengajuan ${req.type} Anda (${req.startDate} s/d ${req.endDate}) telah disetujui.`, "leave");
+
     alert('Pengajuan disetujui! Roster untuk periode tersebut telah diperbarui otomatis.');
     initAttendancePage();
 }
@@ -497,6 +501,10 @@ function rejectRequest(id) {
 
     req.status = 'Rejected';
     saveData(data);
+
+    // NOTIFIKASI KARYAWAN
+    createNotification(req.userId, "Pengajuan Cuti Ditolak", `Mohon maaf, pengajuan ${req.type} Anda (${req.startDate}) tidak dapat disetujui saat ini.`, "leave");
+
     renderApprovalQueue();
 }
 

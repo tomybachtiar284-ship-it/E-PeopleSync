@@ -13,12 +13,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom Style -->
     <link rel="stylesheet" href="../css/mobile.css">
-    <script>
-        // Automatic Desktop Redirection
-        if (window.innerWidth >= 1024) {
-            window.location.href = '../dashboard/index.html';
-        }
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
@@ -81,28 +76,13 @@
                         </div>
 
                         <!-- My Performance Card -->
-                        <div class="feature-card" onclick="navigateTo('stats')">
+                        <div class="feature-card" onclick="navigateTo('perform')">
                             <div class="icon-box green">
                                 <i class="fas fa-chart-line"></i>
                             </div>
                             <span class="feature-name">My Perform</span>
                         </div>
 
-                        <!-- My Inventory Card -->
-                        <div class="feature-card" onclick="navigateTo('assets')">
-                            <div class="icon-box red">
-                                <i class="fas fa-boxes"></i>
-                            </div>
-                            <span class="feature-name">Inventory</span>
-                        </div>
-
-                        <!-- Document Center Card -->
-                        <div class="feature-card" onclick="navigateTo('docs')">
-                            <div class="icon-box teal">
-                                <i class="fas fa-file-contract"></i>
-                            </div>
-                            <span class="feature-name">Documents</span>
-                        </div>
                     </div>
 
                     <!-- Promo/News Carousel (Decorative like in reference) -->
@@ -179,6 +159,108 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Learning View -->
+            <div id="learningView" class="view">
+                <div class="stats-header" style="background: var(--premium-gradient);">
+                    <div class="header-content">
+                        <h2 class="view-title">Learning Hub</h2>
+                        <div class="header-icons">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                    </div>
+                    <div class="tab-pills">
+                        <button class="pill active" onclick="filterMobileCourses('all', this)">All</button>
+                        <button class="pill" onclick="filterMobileCourses('progress', this)">Progress</button>
+                        <button class="pill" onclick="filterMobileCourses('completed', this)">Done</button>
+                    </div>
+                </div>
+
+                <div class="content-body" style="margin-top: 20px;">
+                    <div id="mobileCourseGrid" class="mobile-course-grid">
+                        <!-- Course cards here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance View (My Perform) -->
+            <div id="performView" class="view">
+                <div class="stats-header" style="background: var(--premium-gradient);">
+                    <div class="header-content">
+                        <h2 class="view-title">My Perform</h2>
+                        <div class="header-icons">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content-body" style="margin-top: 20px; padding-bottom: 80px;">
+                    <!-- Radar Chart Card -->
+                    <div class="m-card mb-4"
+                        style="background: white; border-radius: 24px; padding: 20px; box-shadow: var(--mobile-card-shadow);">
+                        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 5px;">Radar Kompetensi</h3>
+                        <p style="font-size: 12px; color: var(--mobile-gray); margin-bottom: 20px;">Analisis area
+                            keahlian profesional Anda</p>
+                        <div style="height: 250px; position: relative;">
+                            <canvas id="mobileRadarChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- KPI Trend Card -->
+                    <div class="m-card mb-4"
+                        style="background: white; border-radius: 24px; padding: 20px; box-shadow: var(--mobile-card-shadow);">
+                        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 5px;">Tren Skor KPI</h3>
+                        <p style="font-size: 12px; color: var(--mobile-gray); margin-bottom: 20px;">Perkembangan
+                            performa 6 bulan terakhir</p>
+                        <div style="height: 180px; position: relative;">
+                            <canvas id="mobileHistoryChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Objectives Card -->
+                    <div class="m-card mb-4"
+                        style="background: white; border-radius: 24px; padding: 20px; box-shadow: var(--mobile-card-shadow);">
+                        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 15px;">Target & Objektif</h3>
+                        <div id="mobileObjectivesList">
+                            <!-- Objectives rendered here -->
+                        </div>
+                    </div>
+
+                    <!-- Feedback Card -->
+                    <div class="m-card"
+                        style="background: #fff3e0; border-radius: 24px; padding: 20px; border-left: 5px solid #ef6c00;">
+                        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 10px; color: #e65100;">Feedback
+                            Atasan</h3>
+                        <div id="mobileFeedbackArea">
+                            <!-- Feedback rendered here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications View -->
+            <div id="notificationsView" class="view">
+                <div class="stats-header" style="background: var(--premium-gradient);">
+                    <div class="header-content">
+                        <h2 class="view-title">Notifications</h2>
+                        <div class="header-icons">
+                            <i class="fas fa-check-double" onclick="markAllNotificationsRead()"
+                                style="font-size: 18px; cursor: pointer;"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content-body" style="margin-top: 20px; padding-bottom: 80px;">
+                    <div id="mobileNotificationsList" class="notif-list">
+                        <!-- Notifications rendered here -->
+                    </div>
+
+                    <div id="emptyNotifState" style="display: none; text-align: center; padding: 100px 20px;">
+                        <i class="fas fa-bell-slash" style="font-size: 50px; color: #cbd5e0; margin-bottom: 20px;"></i>
+                        <p style="color: #a0aec0;">Tidak ada notifikasi baru.</p>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Bottom Navigation Bar -->
@@ -186,14 +268,14 @@
             <div class="nav-item active" onclick="switchView('home', this)">
                 <i class="fas fa-home"></i>
             </div>
-            <div class="nav-item" onclick="switchView('history', this)">
-                <i class="fas fa-history"></i>
+            <div class="nav-item" onclick="switchView('learning', this)">
+                <i class="fas fa-graduation-cap"></i>
             </div>
             <div class="nav-item profile-item" onclick="switchView('profile', this)">
                 <img src="https://i.pravatar.cc/100?u=tomy" id="navAvatar" alt="Profile">
             </div>
-            <div class="nav-item" onclick="switchView('stats', this)">
-                <i class="fas fa-chart-bar"></i>
+            <div class="nav-item" onclick="switchView('perform', this)">
+                <i class="fas fa-chart-line"></i>
             </div>
             <div class="nav-item" onclick="switchView('notifications', this)">
                 <i class="fas fa-bell"></i>
@@ -202,10 +284,127 @@
         </nav>
     </div>
 
+    <!-- Course Detail Modal -->
+    <div id="courseDetailModal" class="mobile-modal">
+        <div class="modal-content" style="padding-top: 20px; height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="mobileCourseTitle">Judul Kursus</h3>
+                <i class="fas fa-times close-modal" onclick="closeModal('courseDetailModal')"></i>
+            </div>
+
+            <div id="mobileMaterialContainer">
+                <!-- Course content rendered here -->
+            </div>
+
+            <div id="mobileQuizArea" style="display: none;">
+                <!-- Quiz area here -->
+            </div>
+
+            <div id="mobileCertificateArea" style="display: none; text-align: center; padding: 30px 0;">
+                <i class="fas fa-award text-success" style="font-size: 60px; margin-bottom: 20px;"></i>
+                <h3>Selamat!</h3>
+                <p>Anda telah menyelesaikan kursus ini.</p>
+                <button class="btn-clock btn-in" onclick="downloadCertificate()">
+                    <i class="fas fa-download"></i> Unduh Sertifikat
+                </button>
+            </div>
+
+            <div class="action-footer" id="mobileCourseFooter" style="margin-top: 30px;">
+                <button id="btnStartQuizMobile" class="btn-clock btn-in" onclick="startQuizMobile()"
+                    style="display: none;">
+                    <i class="fas fa-edit"></i> Kerjakan Kuis
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modals (Borrowed from Desktop for functionality) -->
     <!-- Clock In Modal -->
     <div id="clockModal" class="mobile-modal">
         <!-- Content will be handled by mobile.js -->
+    </div>
+
+    <!-- Attendance Modal -->
+    <div id="attendanceModal" class="mobile-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Absensi Kehadiran</h3>
+                <i class="fas fa-times close-modal" onclick="closeModal('attendanceModal')"></i>
+            </div>
+
+            <div class="attendance-card">
+                <span class="att-time" id="modalTime">17:48</span>
+                <span class="att-date" id="modalDate">Selasa, 17 Feb 2026</span>
+                <div id="attendanceStatus" class="status-badge"
+                    style="font-size: 13px; font-weight: 600; color: #00B894;">
+                    Status: Belum Absen
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button id="btnClockIn" class="btn-clock btn-in" onclick="processClock('In')">
+                    <i class="fas fa-sign-in-alt"></i> Clock In Sekarang
+                </button>
+                <button id="btnClockOut" class="btn-clock btn-out" onclick="processClock('Out')" disabled>
+                    <i class="fas fa-sign-out-alt"></i> Clock Out Sekarang
+                </button>
+            </div>
+
+            <div class="notif-banner">
+                <i class="fas fa-info-circle"></i>
+                <span>Pastikan lokasi GPS aktif sebelum melakukan absensi.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leave Request Modal -->
+    <div id="leaveModal" class="mobile-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Pengajuan Cuti / Izin</h3>
+                <i class="fas fa-times close-modal" onclick="closeModal('leaveModal')"></i>
+            </div>
+
+            <form id="leaveForm" onsubmit="submitLeaveRequest(event)">
+                <div class="form-group mb-3">
+                    <label class="form-label">Jenis Keperluan</label>
+                    <select id="leaveType" class="mobile-input" required>
+                        <option value="">Pilih Jenis...</option>
+                        <option value="Cuti Tahunan">Cuti Tahunan</option>
+                        <option value="Sakit">Izin Sakit (Medical)</option>
+                        <option value="Izin">Izin Keperluan Mendesak</option>
+                        <option value="Dinas Luar">Dinas Luar (DL)</option>
+                        <option value="Setengah Hari">Izin Setengah Hari</option>
+                    </select>
+                </div>
+
+                <div class="d-grid-2 gap-15 mb-3">
+                    <div class="form-group">
+                        <label class="form-label">Dari Tanggal</label>
+                        <input type="date" id="leaveStartDate" class="mobile-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Sampai Tanggal</label>
+                        <input type="date" id="leaveEndDate" class="mobile-input" required>
+                    </div>
+                </div>
+
+                <div class="form-group mb-4">
+                    <label class="form-label">Alasan / Keterangan</label>
+                    <textarea id="leaveReason" class="mobile-input" rows="3" placeholder="Tulis alasan singkat..."
+                        required></textarea>
+                </div>
+
+                <button type="submit" class="btn-clock btn-in">
+                    <i class="fas fa-paper-plane"></i> Kirim Pengajuan
+                </button>
+            </form>
+
+            <div class="notif-banner" style="background: #fff3e0; color: #e65100;">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>Pengajuan akan diproses oleh Admin dalam 1x24 jam.</span>
+            </div>
+        </div>
     </div>
 
     <script src="../js/utils.js"></script>
