@@ -261,6 +261,22 @@
                     </div>
                 </div>
             </div>
+
+            <!-- History View -->
+            <div id="historyView" class="view">
+                <div class="view-header">
+                    <h3>Riwayat Aktivitas</h3>
+                </div>
+
+                <div class="history-tabs">
+                    <div class="hist-tab active" onclick="renderMobileHistory('attendance', this)">Absensi</div>
+                    <div class="hist-tab" onclick="renderMobileHistory('leaves', this)">Cuti / Izin</div>
+                </div>
+
+                <div id="mobileHistoryList" class="history-list">
+                    <!-- History items will be rendered here -->
+                </div>
+            </div>
         </div>
 
         <!-- Bottom Navigation Bar -->
@@ -276,6 +292,9 @@
             </div>
             <div class="nav-item" onclick="switchView('perform', this)">
                 <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="nav-item" onclick="switchView('history', this)">
+                <i class="fas fa-history"></i>
             </div>
             <div class="nav-item" onclick="switchView('notifications', this)">
                 <i class="fas fa-bell"></i>

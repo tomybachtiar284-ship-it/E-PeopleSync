@@ -60,6 +60,7 @@ function switchView(viewId, el) {
         if (viewId === 'learning') renderMobileLearning('all');
         if (viewId === 'perform') renderMobilePerformance();
         if (viewId === 'notifications') renderNotifications();
+        if (viewId === 'history') renderMobileHistory('attendance');
         if (viewId === 'stats') {
             const data = getData();
             const user = JSON.parse(localStorage.getItem('currentUser'));
@@ -628,6 +629,75 @@ function updateNotifBadge() {
     }
 }
 
+function renderMobileHistory(type, el) {
+    const list = document.getElementById('mobileHistoryList');
+    if (!list) return;
+
+    // Handle Tab UI
+    if (el) {
+        document.querySelectorAll('.hist-tab').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+    }
+
+    const data = getData();
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+
+    list.innerHTML = '';
+
+    if (type === 'attendance') {
+        const myLogs = (data.attendance || [])
+            .filter(l => l.userId === user.id)
+            .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        if (myLogs.length === 0) {
+            list.innerHTML = '<div class="text-center p-5"><i class="fas fa-calendar-times mb-3" style="font-size:40px; color:#cbd5e0;"></i><p>Belum ada riwayat absensi.</p></div>';
+            return;
+        }
+
+        list.innerHTML = myLogs.map(l => `
+            <div class="hist-card">
+                <div class="hist-info">
+                    <div class="hist-date">${formatDate(l.date)}</div>
+                    <div class="hist-time-row">
+                        <span><i class="fas fa-sign-in-alt text-success"></i> ${l.clockIn || '--:--'}</span>
+                        <span><i class="fas fa-sign-out-alt text-danger"></i> ${l.clockOut || '--:--'}</span>
+                    </div>
+                    <span class="hist-meta">Lokasi: ${l.locationIn || 'N/A'}</span>
+                </div>
+                <div class="hist-status-box">
+                    <span class="hist-badge ${l.isLate ? 'late' : 'ontime'}">${l.isLate ? 'Terlambat' : 'Tepat Waktu'}</span>
+                    <span class="hist-meta">${l.status === 'DT' ? 'Datang Terlambat' : 'Hadir Penuh'}</span>
+                </div>
+            </div>
+        `).join('');
+    } else {
+        const myRequests = (data.leaveRequests || [])
+            .filter(r => r.userId === user.id)
+            .sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+
+        if (myRequests.length === 0) {
+            list.innerHTML = '<div class="text-center p-5"><i class="fas fa-plane-slash mb-3" style="font-size:40px; color:#cbd5e0;"></i><p>Belum ada riwayat pengajuan cuti.</p></div>';
+            return;
+        }
+
+        list.innerHTML = myRequests.map(r => `
+            <div class="hist-card">
+                <div class="hist-info">
+                    <div class="hist-date">${formatDate(r.startDate)} ${r.endDate !== r.startDate ? '- ' + formatDate(r.endDate) : ''}</div>
+                    <div class="hist-time-row">
+                        <span><strong>${r.type.toUpperCase()}</strong></span>
+                    </div>
+                    <span class="hist-meta">${r.reason}</span>
+                </div>
+                <div class="hist-status-box">
+                    <span class="hist-badge ${r.status.toLowerCase()}">${r.status}</span>
+                    <span class="hist-meta">${r.approvedAt ? 'Disetujui: ' + formatDate(r.approvedAt.split('T')[0]).split(' ').slice(0, 2).join(' ') : 'Dalam Antrean'}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+}
+
 // Global scope
 window.startQuizMobile = startQuizMobile;
 window.filterMobileCourses = filterMobileCourses;
@@ -636,3 +706,4 @@ window.markNotificationRead = markNotificationRead;
 window.markAllNotificationsRead = markAllNotificationsRead;
 window.switchView = switchView;
 window.navigateTo = navigateTo;
+window.renderMobileHistory = renderMobileHistory;

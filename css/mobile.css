@@ -924,3 +924,114 @@ select.mobile-input {
 .nav-item.has-notif .notif-dot {
     display: block;
 }
+
+/* --- HISTORY VIEW STYLES --- */
+.history-tabs {
+    display: flex;
+    background: #f1f3f5;
+    margin: 15px;
+    padding: 4px;
+    border-radius: 14px;
+    gap: 4px;
+}
+
+.hist-tab {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--mobile-gray);
+    border-radius: 10px;
+    transition: 0.3s;
+    cursor: pointer;
+}
+
+.hist-tab.active {
+    background: white;
+    color: var(--premium-navy);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.history-list {
+    padding: 0 15px 100px;
+}
+
+.hist-card {
+    background: white;
+    border-radius: 20px;
+    padding: 16px;
+    margin-bottom: 15px;
+    box-shadow: var(--mobile-card-shadow);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.hist-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.hist-date {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--premium-navy);
+}
+
+.hist-time-row {
+    display: flex;
+    gap: 15px;
+    font-size: 12px;
+    color: var(--mobile-gray);
+    font-weight: 600;
+}
+
+.hist-time-row i {
+    margin-right: 4px;
+}
+
+.hist-status-box {
+    text-align: right;
+}
+
+.hist-badge {
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.hist-badge.late {
+    background: #fee2e2;
+    color: #ef4444;
+}
+
+.hist-badge.ontime {
+    background: #d1fae5;
+    color: #10b981;
+}
+
+.hist-badge.pending {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.hist-badge.approved {
+    background: #d1fae5;
+    color: #059669;
+}
+
+.hist-badge.rejected {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.hist-meta {
+    font-size: 10px;
+    color: #b2bec3;
+    margin-top: 4px;
+    display: block;
+}
