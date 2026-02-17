@@ -290,7 +290,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const data = getData();
-            const currentUser = checkAuth(['employee', 'manager', 'admin', 'candidate']);
+            const currentUser = checkAuth(['admin', 'candidate']);
             if (!currentUser) return;
 
             renderModernHeader();
@@ -298,8 +298,8 @@
 
             // View Control
             if (currentUser && (currentUser.role === 'candidate' || currentUser.role === 'employee' || currentUser.role === 'manager')) {
-                const pageTitle = currentUser.role === 'candidate' ? 'Job Board' : 'Internal Job Board';
-                const pageDesc = 'Browse open positions and track your applications.';
+                const pageTitle = currentUser.role === 'candidate' ? 'Job Board' : 'Recruitment Hub';
+                const pageDesc = 'Lihat lowongan yang tersedia dan pantau lamaran Anda.';
 
                 // Update all H2 and P in header and content (Specific to page header/desc)
                 document.querySelectorAll('h2').forEach(el => el.textContent = pageTitle);
@@ -340,7 +340,7 @@
 
                         myTable.innerHTML += `
                             <tr>
-                                <td><strong style="color:var(--primary-color)">${job ? job.title : 'Internal Role'}</strong></td>
+                                <td><strong style="color:var(--primary-color)">${job ? job.title : 'Job Role'}</strong></td>
                                 <td>${formatDate(app.date)}</td>
                                 <td><span class="badge ${badgeClass}">${statusText}</span></td>
                                 <td>${nextStep}</td>

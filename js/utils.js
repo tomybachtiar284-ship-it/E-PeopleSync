@@ -230,7 +230,7 @@ function updateSidebarForRole() {
     if (isStaff) {
         navLinks.forEach(link => {
             const text = link.innerText.trim();
-            // Hide admin-only links (Keep Recruitment/Internal Jobs visible for staff)
+            // Hide admin-only links (Keep Internal Jobs visible for staff was removed)
             if (text.includes('Overview') ||
                 text.includes('Employees') ||
                 text.includes('Attendance') ||
@@ -238,14 +238,10 @@ function updateSidebarForRole() {
                 text.includes('Asset') ||
                 text.includes('Document') ||
                 text.includes('Org Chart') ||
+                text.includes('Recruitment') || // Now hidden for staff
                 text.includes('Administration')) {
                 link.classList.add('role-restricted'); // Ensure hidden
                 link.style.display = 'none';
-            }
-            if (text.includes('Recruitment')) {
-                const span = link.querySelector('span');
-                if (span) span.textContent = 'Internal Jobs';
-                else link.textContent = 'Internal Jobs'; // Fallback if no span
             }
             if (text.includes('Performance')) {
                 const span = link.querySelector('span');

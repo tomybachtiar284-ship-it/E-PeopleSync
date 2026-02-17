@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (path.includes('register.html')) {
         handleRegistration();
     } else if (path.includes('recruitment/index.html')) {
-        checkAuth(['candidate', 'admin', 'manager', 'employee']);
+        checkAuth(['candidate', 'admin']);
         updateSidebarForRole();
         initUserProfile();
         loadJobs();
