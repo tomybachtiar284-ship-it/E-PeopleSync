@@ -166,6 +166,8 @@ function handleAdminLogin(e) {
 function loginSuccess(user) {
     localStorage.setItem('currentUser', JSON.stringify(user));
 
+    const isMobile = window.innerWidth < 768;
+
     // Redirect based on role
     switch (user.role) {
         case 'admin':
@@ -173,7 +175,11 @@ function loginSuccess(user) {
             break;
         case 'manager':
         case 'employee':
-            window.location.href = '../dashboard/index.html'; // Or learning hub if preferred
+            if (isMobile) {
+                window.location.href = '../mobile/index.html';
+            } else {
+                window.location.href = '../dashboard/index.html';
+            }
             break;
         case 'candidate':
             window.location.href = '../recruitment/index.html';
