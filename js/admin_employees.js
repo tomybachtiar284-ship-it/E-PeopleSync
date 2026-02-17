@@ -18,6 +18,7 @@ const FIELD_MAP = {
     empPosition: 'position', empDept: 'department', empSupervisor: 'supervisor',
     empLocation: 'location', empShift: 'shift',
     empGrade: 'grade', empLevel: 'level', empActiveStatus: 'activeStatus',
+    empGroup: 'group',
     empBPJSHealth: 'bpjsHealth', empBPJSLabor: 'bpjsLabor',
     // Pay & Education
     empBaseSalary: 'baseSalary', empFixedAllowance: 'fixedAllowance', empTransportAllowance: 'transportAllowance',
@@ -45,6 +46,19 @@ function populateDeptAndLocation() {
     const data = getData();
     populateDropdown('empDept', data.departments || [], 'Department');
     populateDropdown('empLocation', data.locations || [], 'Location');
+    populateDropdown('empGroup', data.employeeGroups || [], 'Group');
+
+    // Filter Group specifically (No "Add New" and include "Semua Grup")
+    const filterSelect = document.getElementById('filterGroup');
+    if (filterSelect) {
+        filterSelect.innerHTML = '<option value="">-- Semua Grup --</option>';
+        (data.employeeGroups || []).forEach(g => {
+            const opt = document.createElement('option');
+            opt.value = g;
+            opt.textContent = g;
+            filterSelect.appendChild(opt);
+        });
+    }
 }
 
 function loadEmployees() {
@@ -78,6 +92,7 @@ function loadEmployees() {
             <td>${e.department || '-'}</td>
             <td>${e.position || '-'}</td>
             <td>${statusBadge}</td>
+            <td>${e.group || '-'}</td>
             <td>
                 <button class="btn btn-sm btn-outline-primary" onclick="viewEmp(${e.id})" title="View/Edit"><i class="fas fa-eye"></i></button>
                 <button class="btn btn-sm btn-outline-danger" onclick="deleteEmp(${e.id})" title="Delete"><i class="fas fa-trash"></i></button>
@@ -98,12 +113,22 @@ function getInitials(name) {
 }
 
 function filterEmployees() {
-    const filter = document.getElementById('searchEmployee').value.toUpperCase();
-    const rows = document.getElementById('employeeTableBody').getElementsByTagName('tr');
-    for (let i = 0; i < rows.length; i++) {
-        const text = rows[i].textContent.toUpperCase();
-        rows[i].style.display = text.indexOf(filter) > -1 ? '' : 'none';
-    }
+    const searchText = (document.getElementById('searchEmployee').value || "").toUpperCase().trim();
+    const groupFilter = (document.getElementById('filterGroup').value || "").toUpperCase().trim();
+    const rows = document.querySelectorAll('#employeeTableBody tr');
+
+    rows.forEach(row => {
+        const rowText = row.textContent.toUpperCase();
+        const textMatch = rowText.indexOf(searchText) > -1;
+
+        // Detect group column (index 5)
+        const cells = row.getElementsByTagName('td');
+        const groupCell = cells[5];
+        const groupText = groupCell ? groupCell.textContent.toUpperCase().trim() : '';
+        const groupMatch = groupFilter === "" || groupText === groupFilter;
+
+        row.style.display = (textMatch && groupMatch) ? '' : 'none';
+    });
 }
 
 // === Tab Logic ===
@@ -180,6 +205,7 @@ function viewEmp(id) {
     setTimeout(() => {
         if (user.department) document.getElementById('empDept').value = user.department;
         if (user.location) document.getElementById('empLocation').value = user.location;
+        if (user.group) document.getElementById('empGroup').value = user.group;
     }, 100);
 
     openEmpModal();
@@ -283,6 +309,7 @@ document.getElementById('empForm').addEventListener('submit', async (e) => {
             password: 'password',
             role: (empData.level === 'Manager' || empData.level === 'Director') ? 'manager' : 'employee',
             source: 'admin_created',
+            order: data.users.length, // Add order for new employees
             ...empData
         };
 
@@ -314,7 +341,7 @@ function downloadTemplate() {
             "Religion", "Citizenship", "KTP Number", "NPWP", "Address Domicile", "Address KTP",
             "Phone", "Phone Emergency", "Email Personal", "Email Company", "Join Date (YYYY-MM-DD)",
             "Employee Status", "Contract Period", "Position", "Department", "Supervisor",
-            "Location", "Shift", "Grade", "Level", "Active Status", "BPJS Health", "BPJS Labor",
+            "Location", "Shift", "Group", "Grade", "Level", "Active Status", "BPJS Health", "BPJS Labor",
             "Base Salary", "Fixed Allowance", "Transport Allowance", "Bank Name", "Bank Account",
             "Bank Holder", "Education", "Major", "Graduation Year", "Skills", "Certifications",
             "Training History", "Competency Level", "Position History", "Promotion History",
@@ -330,7 +357,7 @@ function downloadTemplate() {
             "Islam", "WNI", "1234567890", "09.123.456.7", "St. Example 1", "St. Example 1",
             "08123456789", "08123456780", "john@personal.com", "john@company.com", "2024-01-01",
             "Tetap", "Permanent", "Developer", "IT", "Jane Manager",
-            "Jakarta", "Shift A", "G3", "Staff", "Aktif", "12345", "67890",
+            "Jakarta", "Shift A", "Grup A", "G3", "Staff", "Aktif", "12345", "67890",
             "5000000", "500000", "300000", "BCA", "987654321", "John Doe",
             "S1", "Informatics", "2012", "JS, Python", "AWS Certified",
             "Basic Training", "High", "Junior", "Mid", "None", "Company A", "4.5", "Good", "None", "Great employee"
@@ -402,7 +429,7 @@ function importJSONToDatabase(rows) {
         "Email Company": "emailCompany", "Join Date (YYYY-MM-DD)": "joinDate",
         "Employee Status": "employeeStatus", "Contract Period": "contractPeriod",
         "Position": "position", "Department": "department", "Supervisor": "supervisor",
-        "Location": "location", "Shift": "shift", "Grade": "grade", "Level": "level",
+        "Location": "location", "Shift": "shift", "Group": "group", "Grade": "grade", "Level": "level",
         "Active Status": "activeStatus", "BPJS Health": "bpjsHealth", "BPJS Labor": "bpjsLabor",
         "Base Salary": "baseSalary", "Fixed Allowance": "fixedAllowance", "Transport Allowance": "transportAllowance",
         "Bank Name": "bankName", "Bank Account": "bankAccount", "Bank Holder": "bankHolder",

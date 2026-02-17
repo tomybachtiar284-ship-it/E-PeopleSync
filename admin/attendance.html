@@ -122,6 +122,20 @@
         .active-day {
             background: #fffde7 !important;
         }
+
+        .btn-xs {
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 
@@ -231,6 +245,10 @@
                                 2026</span>
                             <button class="btn btn-outline-primary" onclick="changeMonth(1)"><i
                                     class="fas fa-chevron-right"></i></button>
+                            <button class="btn btn-outline-primary" onclick="triggerRosterImport()"><i
+                                    class="fas fa-file-import"></i> Import Roster</button>
+                            <input type="file" id="rosterImportInput" style="display:none;" accept=".xlsx, .xls"
+                                onchange="handleRosterImport(event)">
                             <button class="btn btn-outline-warning" onclick="openBulkModal()">Bulk Assign</button>
                             <button class="btn btn-outline-danger" onclick="clearMonth()">Clear All</button>
                             <button class="btn btn-primary" style="background: var(--premium-navy);"

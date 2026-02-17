@@ -128,6 +128,7 @@ const defaultData = {
         { id: 'AST-005', name: 'Logitech MX Master 3', category: 'Peripherals', status: 'Available', assignedTo: null, dateAssigned: null }
     ],
     docCategories: ['Corporate Policy', 'Employee Record', 'Legal', 'Finance', 'Training'],
+    employeeGroups: ['Grup Daytime', 'Grup A', 'Grup B', 'Grup C', 'Grup D'],
     documents: [
         { id: 'DOC-001', name: 'Employee Handbook 2026', category: 'Corporate Policy', version: 'v2.1', owner: 'HR Department', expiryDate: null, size: '2.4 MB', type: 'pdf' },
         { id: 'DOC-002', name: 'IT Security Policy', category: 'Corporate Policy', version: 'v1.0', owner: 'IT Department', expiryDate: null, size: '1.2 MB', type: 'pdf' },
@@ -156,9 +157,16 @@ function initData() {
         if (!data.assets) { data.assets = defaultData.assets; changed = true; }
         if (!data.docCategories) { data.docCategories = defaultData.docCategories; changed = true; }
         if (!data.documents) { data.documents = defaultData.documents; changed = true; }
+        if (!data.employeeGroups) { data.employeeGroups = defaultData.employeeGroups; changed = true; }
         if (!data.attendance) { data.attendance = defaultData.attendance || []; changed = true; }
         if (!data.roster) { data.roster = defaultData.roster || []; changed = true; }
         if (data.users) {
+            data.users.forEach((u, index) => {
+                if (u.order === undefined) {
+                    u.order = index;
+                    changed = true;
+                }
+            });
             const tomyUser = data.users.find(u => u.username === 'tomy' || (u.name && u.name.toUpperCase() === 'TOMY'));
             if (tomyUser && (tomyUser.role !== 'employee' || tomyUser.department !== 'Sales')) {
                 tomyUser.role = 'employee';
@@ -431,6 +439,7 @@ function populateDropdown(elementId, items, typeName) {
                 else if (typeName === 'Location') key = 'locations';
                 else if (typeName === 'Job Type') key = 'jobTypes';
                 else if (typeName === 'Category') key = 'courseCategories';
+                else if (typeName === 'Group') key = 'employeeGroups';
                 else return; // Unknown type
 
                 // Initialize if undefined (safety)

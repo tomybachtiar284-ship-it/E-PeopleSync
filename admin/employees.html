@@ -161,10 +161,17 @@
                     <p style="color: #666; font-size: 14px;">Manage and monitor all workforce members.</p>
                 </div>
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div class="search-bar" style="width: 300px;">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="searchEmployee" placeholder="Search name / department..."
-                            onkeyup="filterEmployees()">
+                    <div class="d-flex" style="gap: 15px; align-items: center;">
+                        <div class="search-bar" style="width: 300px;">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="searchEmployee" placeholder="Search name / department..."
+                                onkeyup="filterEmployees()">
+                        </div>
+                        <select id="filterGroup" class="form-control"
+                            style="width: 200px; height: 45px; border-radius: 12px; border: 1px solid #eee; font-size: 14px;"
+                            onchange="filterEmployees()">
+                            <option value="">-- Semua Grup --</option>
+                        </select>
                     </div>
                     <div class="d-flex" style="gap: 10px;">
                         <input type="file" id="importExcelInput" hidden accept=".xlsx, .xls"
@@ -186,6 +193,7 @@
                                 <th>Department</th>
                                 <th>Position</th>
                                 <th>Status</th>
+                                <th>Grup</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -395,6 +403,12 @@
                                     <option value="Siang">Siang</option>
                                     <option value="Malam">Malam</option>
                                     <option value="Non-Shift">Non-Shift</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Grup</label>
+                                <select id="empGroup" class="form-control">
+                                    <!-- JS Populated -->
                                 </select>
                             </div>
                         </div>
