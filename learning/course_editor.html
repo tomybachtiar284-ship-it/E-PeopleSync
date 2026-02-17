@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Course Editor - E-PeopleSync</title>
     <link rel="stylesheet" href="../css/styles.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         .editor-container {
             padding: 20px;
@@ -55,23 +55,57 @@
 
 <body>
     <div class="dashboard-layout">
-        <aside class="sidebar">
+        <aside class="sidebar glass">
             <div class="brand">
                 <div class="brand-icon"><img src="../assets/logo.png" alt="Logo"></div>
                 <span>E-PeopleSync</span>
             </div>
             <div class="nav-links">
-                <div class="nav-label">Main Menu</div>
-                <a href="../admin/index.html" class="nav-link"><i class="fas fa-th-large"></i>
+                <div class="nav-label premium">Main</div>
+                <a href="../dashboard/index.html" class="nav-link premium"><i class="fas fa-home"></i>
                     <span>Dashboard</span></a>
-                <a href="../recruitment/index.html" class="nav-link"><i class="fas fa-user-plus"></i>
-                    <span>Recruitment</span></a>
-                <a href="../learning/index.html" class="nav-link active"><i class="fas fa-graduation-cap"></i>
-                    <span>Learning Hub</span></a>
-                <a href="../evaluation/index.html" class="nav-link"><i class="fas fa-chart-line"></i>
+
+                <div class="nav-label premium role-restricted">Main Dashboard</div>
+                <a href="../admin/index.html" class="nav-link premium role-restricted"><i class="fas fa-th-large"></i>
+                    <span>Overview</span></a>
+
+                <div class="nav-label premium role-restricted">Workforce Managed</div>
+                <a href="../admin/employees.html" class="nav-link premium role-restricted"><i class="fas fa-users"></i>
+                    <span>Employees</span></a>
+                <a href="../admin/attendance.html" class="nav-link premium role-restricted"><i
+                        class="fas fa-calendar-check"></i>
+                    <span>Attendance & Shifts</span></a>
+                <a href="../evaluation/index.html" class="nav-link premium"><i class="fas fa-chart-line"></i>
                     <span>Performance</span></a>
+
+                <div class="nav-label premium role-restricted">Finance & Talent</div>
+                <a href="../admin/payroll.html" class="nav-link premium role-restricted"><i
+                        class="fas fa-money-bill-wave"></i>
+                    <span>Payroll & Claims</span></a>
+                <a href="../recruitment/index.html" class="nav-link premium"><i class="fas fa-user-plus"></i>
+                    <span>Recruitment</span></a>
+                <a href="index.html" class="nav-link premium active"><i class="fas fa-graduation-cap"></i>
+                    <span>Learning Hub</span></a>
+
+                <div class="nav-label premium role-restricted">Communication</div>
+                <a href="../admin/news.html" class="nav-link premium role-restricted"><i class="fas fa-newspaper"></i>
+                    <span>Company News</span></a>
+
+                <div class="nav-label premium role-restricted">Enterprise Tools</div>
+                <a href="../admin/assets.html" class="nav-link premium role-restricted"><i class="fas fa-boxes"></i>
+                    <span>Asset Management</span></a>
+                <a href="../admin/documents.html" class="nav-link premium role-restricted"><i
+                        class="fas fa-file-contract"></i>
+                    <span>Document Center</span></a>
+                <a href="../admin/org_chart.html" class="nav-link premium role-restricted"><i
+                        class="fas fa-sitemap"></i>
+                    <span>Org Chart</span></a>
+
+                <div class="nav-label premium role-restricted" style="margin-top: 20px;">Settings</div>
+                <a href="../admin/settings.html" class="nav-link premium role-restricted"><i class="fas fa-cog"></i>
+                    <span>Administration</span></a>
                 <br>
-                <a href="#" onclick="logout()" class="nav-link text-danger"><i class="fas fa-sign-out-alt"></i>
+                <a href="#" onclick="logout()" class="nav-link premium text-danger"><i class="fas fa-sign-out-alt"></i>
                     <span>Logout</span></a>
             </div>
         </aside>

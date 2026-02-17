@@ -34,6 +34,9 @@ function initMobileUI(user) {
     // 4. Initialize Notifications
     initNotifications();
     updateNotifBadge();
+
+    // 5. Render News
+    renderMobileNews();
 }
 
 function updateTime() {
@@ -61,6 +64,7 @@ function switchView(viewId, el) {
         if (viewId === 'perform') renderMobilePerformance();
         if (viewId === 'notifications') renderNotifications();
         if (viewId === 'history') renderMobileHistory('attendance');
+        if (viewId === 'news') renderMobileNews();
         if (viewId === 'stats') {
             const data = getData();
             const user = JSON.parse(localStorage.getItem('currentUser'));
@@ -698,6 +702,87 @@ function renderMobileHistory(type, el) {
     }
 }
 
+// News Logic
+function renderMobileNews() {
+    const verticalContainer = document.getElementById('news-list-vertical');
+
+    const data = getData();
+    const news = (data.news || []).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // Render Vertical List (Dedicated View)
+    if (verticalContainer) {
+        if (news.length === 0) {
+            verticalContainer.innerHTML = '<div class="text-center p-5"><p>Tidak ada berita saat ini.</p></div>';
+        } else {
+            verticalContainer.innerHTML = news.map(item => `
+                <div class="m-news-item" onclick="openNewsDetail(${item.id})">
+                    <div class="m-news-img" style="background-image: url('${item.image || 'https://via.placeholder.com/400x200?text=News'}')"></div>
+                    <div class="m-news-info">
+                        <span class="m-news-date">${formatDate(item.date)}</span>
+                        <h4 class="m-news-item-title">${item.title}</h4>
+                        <p class="m-news-excerpt">${item.content.substring(0, 60)}...</p>
+                    </div>
+                    <i class="fas fa-chevron-right m-news-arrow"></i>
+                </div>
+            `).join('');
+        }
+    }
+}
+
+function openNewsDetail(id) {
+    const data = getData();
+    const newsItem = data.news.find(n => n.id === id);
+    if (!newsItem) return;
+
+    // Create Modal on the fly if not exists
+    let modal = document.getElementById('newsDetailModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'newsDetailModal';
+        modal.className = 'bottom-modal';
+        document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+        <div class="news-modal-content">
+            <img src="${newsItem.image || 'https://via.placeholder.com/600x400?text=News'}" class="news-detail-img" onerror="this.onerror=null; this.src='https://via.placeholder.com/600x400?text=News';">
+            <div class="news-detail-body">
+                <h3 class="news-detail-title">${newsItem.title}</h3>
+                <div class="news-detail-meta">
+                    <span><i class="far fa-calendar-alt"></i> ${formatDate(newsItem.date)}</span>
+                    <span><i class="far fa-user"></i> ${newsItem.author}</span>
+                </div>
+                <div class="news-detail-text">
+                    ${newsItem.content.replace(/\n/g, '<br>')}
+                </div>
+                <button class="btn-block mt-4" onclick="closeNewsDetail()" style="background: #f1f3f5; color: #2D3436;">Close</button>
+            </div>
+        </div>
+    `;
+
+    // Add overlay if not exists
+    let overlay = document.getElementById('modalOverlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'modalOverlay';
+        overlay.className = 'modal-overlay';
+        overlay.onclick = closeNewsDetail; // Global helper might interfere, ensure specific close
+        document.body.appendChild(overlay);
+    }
+
+    setTimeout(() => {
+        modal.classList.add('active');
+        overlay.classList.add('active');
+    }, 10);
+}
+
+function closeNewsDetail() {
+    const modal = document.getElementById('newsDetailModal');
+    const overlay = document.getElementById('modalOverlay');
+    if (modal) modal.classList.remove('active');
+    if (overlay) overlay.classList.remove('active');
+}
+
 // Global scope
 window.startQuizMobile = startQuizMobile;
 window.filterMobileCourses = filterMobileCourses;
@@ -707,3 +792,6 @@ window.markAllNotificationsRead = markAllNotificationsRead;
 window.switchView = switchView;
 window.navigateTo = navigateTo;
 window.renderMobileHistory = renderMobileHistory;
+window.renderMobileNews = renderMobileNews;
+window.openNewsDetail = openNewsDetail;
+window.closeNewsDetail = closeNewsDetail;

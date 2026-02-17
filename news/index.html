@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company News - E-PeopleSync</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        .news-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .news-card-public {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 20px;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .news-card-public:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+
+        .news-img-container {
+            width: 100%;
+            height: 180px;
+            overflow: hidden;
+        }
+
+        .news-img-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .news-card-public:hover .news-img-container img {
+            transform: scale(1.1);
+        }
+
+        .news-body-public {
+            padding: 20px;
+            flex-grow: 1;
+        }
+
+        .news-badge-public {
+            display: inline-block;
+            padding: 4px 12px;
+            background: var(--premium-mint);
+            color: var(--premium-emerald);
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+
+        .news-title-public {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--premium-navy);
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .news-meta-public {
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .news-excerpt-public {
+            font-size: 14px;
+            color: #4A5568;
+            line-height: 1.6;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* Reading Modal */
+        .read-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            overflow-y: auto;
+            padding: 40px 20px;
+        }
+
+        .read-modal-content {
+            background: white;
+            max-width: 800px;
+            margin: 0 auto;
+            border-radius: 25px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+        }
+
+        .read-modal-header {
+            position: relative;
+            height: 350px;
+        }
+
+        .read-modal-header img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .close-read {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+        }
+
+        .read-modal-body {
+            padding: 40px;
+        }
+
+        .read-title {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--premium-navy);
+            margin-bottom: 15px;
+        }
+
+        .read-meta {
+            margin-bottom: 30px;
+            border-bottom: 1px solid #edf2f7;
+            padding-bottom: 20px;
+        }
+
+        .read-content {
+            font-size: 16px;
+            line-height: 1.8;
+            color: #2D3748;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar glass"></aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="content-area">
+                <div style="margin-bottom: 30px;">
+                    <h2 style="color: var(--premium-navy); font-weight: 800;">Company News</h2>
+                    <p style="color: #666; font-size: 14px;">Stay updated with the latest information from our company.
+                    </p>
+                </div>
+
+                <div id="news-grid-container" class="news-grid">
+                    <!-- Loaded by news.js -->
+                    <div class="text-center p-5 w-100">
+                        <i class="fas fa-spinner fa-spin fa-2x" style="color: var(--premium-blue);"></i>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- News Reading Modal -->
+    <div id="readNewsModal" class="read-modal">
+        <div class="read-modal-content">
+            <div class="read-modal-header">
+                <div class="close-read" onclick="closeReadModal()"><i class="fas fa-times"></i></div>
+                <img id="readImage" src="" alt="News Image">
+            </div>
+            <div class="read-modal-body">
+                <div id="readBadge" class="news-badge-public">CORPORATE</div>
+                <h1 id="readTitle" class="read-title"></h1>
+                <div class="news-meta-public read-meta">
+                    <span><i class="far fa-calendar-alt"></i> <span id="readDate"></span></span>
+                    <span><i class="far fa-user"></i> <span id="readAuthor"></span></span>
+                </div>
+                <div id="readContent" class="read-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/utils.js"></script>
+    <script src="../js/news.js"></script>
+</body>
+
+</html>

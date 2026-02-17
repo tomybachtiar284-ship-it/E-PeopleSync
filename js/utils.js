@@ -143,6 +143,24 @@ const defaultData = {
         { code: 'DL', name: 'Dinas Luar', clockIn: '', clockOut: '' },
         { code: 'I', name: 'Izin', clockIn: '', clockOut: '' },
         { code: 'A', name: 'Alpa', clockIn: '', clockOut: '' }
+    ],
+    news: [
+        {
+            id: 1,
+            title: 'Welcome to E-PeopleSync 2.0',
+            date: '2026-02-15',
+            image: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+            content: 'We are excited to announce the launch of our new HR Platform. Explore the new features now!',
+            author: 'HR Department'
+        },
+        {
+            id: 2,
+            title: 'Annual Company Gathering 2026',
+            date: '2026-03-10',
+            image: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+            content: 'Save the date! Our annual gathering will be held at Bali. More details to follow.',
+            author: 'Event Committee'
+        }
     ]
 };
 
@@ -174,6 +192,7 @@ function initData() {
             changed = true;
         }
         if (!data.leaveRequests) { data.leaveRequests = []; changed = true; }
+        if (!data.news) { data.news = defaultData.news; changed = true; }
         if (data.users) {
             data.users.forEach((u, index) => {
                 if (u.order === undefined) {
@@ -267,9 +286,13 @@ function updateSidebarForRole() {
 
     // 1. Handle role-restricted elements (Primary logic)
     restrictedItems.forEach(item => {
-        if (isAdmin) {
+        // Special case: Company News and its label should be visible to all
+        const isNewsLink = item.getAttribute('href') && item.getAttribute('href').includes('news.html');
+        const isNewsLabel = item.innerText.trim().toUpperCase() === 'COMMUNICATION';
+
+        if (isAdmin || isNewsLink || isNewsLabel) {
             item.style.setProperty('display', '', 'important');
-            item.classList.remove('role-restricted');
+            // We don't remove the class to avoid breaking subsequent renders
         } else {
             item.style.setProperty('display', 'none', 'important');
         }
@@ -288,11 +311,21 @@ function updateSidebarForRole() {
             }
         }
 
-        if (text.includes('Performance')) {
-            const span = link.querySelector('span');
-            const targetText = isAdmin ? 'Team Performance' : 'My Performance';
-            if (span) span.textContent = targetText;
-            else link.textContent = targetText;
+        if (text.includes('Company News')) {
+            // Update link destination based on origin
+            const currentPath = window.location.pathname;
+            const isInSubDir = currentPath.includes('/admin/') ||
+                currentPath.includes('/recruitment/') ||
+                currentPath.includes('/learning/') ||
+                currentPath.includes('/evaluation/') ||
+                currentPath.includes('/dashboard/') ||
+                currentPath.includes('/news/');
+
+            if (isAdmin) {
+                link.href = isInSubDir ? '../admin/news.html' : 'admin/news.html';
+            } else {
+                link.href = isInSubDir ? '../news/index.html' : 'news/index.html';
+            }
         }
 
         if (isCandidate) {
@@ -492,4 +525,34 @@ function populateDropdown(elementId, items, typeName) {
 }
 
 // Initialize on load
-initData();
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('E-PeopleSync: DOMContentLoaded - Initializing Sidebar Persistence');
+    initData();
+
+    // Sidebar Scroll Persistence (Targeting .nav-links which has overflow-y: auto)
+    const scrollContainer = document.querySelector('.nav-links');
+    if (scrollContainer) {
+        // Restore scroll position
+        const savedScroll = sessionStorage.getItem('sidebarScroll');
+        if (savedScroll) {
+            console.log('E-PeopleSync: Restoring Sidebar Scroll to', savedScroll);
+            scrollContainer.scrollTop = parseInt(savedScroll);
+            // Multi-stage restoration to handle dynamic content loads
+            setTimeout(() => { scrollContainer.scrollTop = parseInt(savedScroll); }, 50);
+            setTimeout(() => { scrollContainer.scrollTop = parseInt(savedScroll); }, 150);
+            setTimeout(() => { scrollContainer.scrollTop = parseInt(savedScroll); }, 400);
+        }
+
+        // Save scroll position on scroll
+        scrollContainer.addEventListener('scroll', () => {
+            sessionStorage.setItem('sidebarScroll', scrollContainer.scrollTop);
+        });
+
+        // Save scroll position before page unload
+        window.addEventListener('beforeunload', () => {
+            sessionStorage.setItem('sidebarScroll', scrollContainer.scrollTop);
+        });
+    } else {
+        console.warn('E-PeopleSync: Sidebar scroll container (.nav-links) not found.');
+    }
+});

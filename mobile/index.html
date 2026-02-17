@@ -85,14 +85,6 @@
 
                     </div>
 
-                    <!-- Promo/News Carousel (Decorative like in reference) -->
-                    <div class="promo-banner mt-4">
-                        <div class="promo-text">
-                            <h4>Special Announcement</h4>
-                            <p>Check out our new company policy for 2026.</p>
-                        </div>
-                        <i class="fas fa-bullhorn promo-icon"></i>
-                    </div>
                 </div>
             </div>
 
@@ -162,7 +154,7 @@
 
             <!-- Learning View -->
             <div id="learningView" class="view">
-                <div class="stats-header" style="background: var(--premium-gradient);">
+                <div class="stats-header">
                     <div class="header-content">
                         <h2 class="view-title">Learning Hub</h2>
                         <div class="header-icons">
@@ -185,7 +177,7 @@
 
             <!-- Performance View (My Perform) -->
             <div id="performView" class="view">
-                <div class="stats-header" style="background: var(--premium-gradient);">
+                <div class="stats-header">
                     <div class="header-content">
                         <h2 class="view-title">My Perform</h2>
                         <div class="header-icons">
@@ -240,7 +232,7 @@
 
             <!-- Notifications View -->
             <div id="notificationsView" class="view">
-                <div class="stats-header" style="background: var(--premium-gradient);">
+                <div class="stats-header">
                     <div class="header-content">
                         <h2 class="view-title">Notifications</h2>
                         <div class="header-icons">
@@ -258,6 +250,24 @@
                     <div id="emptyNotifState" style="display: none; text-align: center; padding: 100px 20px;">
                         <i class="fas fa-bell-slash" style="font-size: 50px; color: #cbd5e0; margin-bottom: 20px;"></i>
                         <p style="color: #a0aec0;">Tidak ada notifikasi baru.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- News View -->
+            <div id="newsView" class="view">
+                <div class="stats-header">
+                    <div class="header-content">
+                        <h2 class="view-title">Company News</h2>
+                        <div class="header-icons">
+                            <i class="fas fa-newspaper"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content-body" style="margin-top: 20px; padding-bottom: 80px;">
+                    <div id="news-list-vertical" class="news-list-vertical">
+                        <!-- Populated by JS -->
                     </div>
                 </div>
             </div>
@@ -287,8 +297,9 @@
             <div class="nav-item" onclick="switchView('learning', this)">
                 <i class="fas fa-graduation-cap"></i>
             </div>
-            <div class="nav-item profile-item" onclick="switchView('profile', this)">
-                <img src="https://i.pravatar.cc/100?u=tomy" id="navAvatar" alt="Profile">
+            <div class="nav-item profile-item" onclick="switchView('news', this)">
+                <img src="https://i.pravatar.cc/100?u=tomy" id="navAvatar" alt="News">
+                <div class="nav-center-label">News</div>
             </div>
             <div class="nav-item" onclick="switchView('perform', this)">
                 <i class="fas fa-chart-line"></i>
