@@ -266,6 +266,10 @@ function renderPatternGrid() {
     const daysInMonth = new Date(year, month, 0).getDate();
     const shifts = data.shiftDefinitions || [];
 
+    if (shifts.length === 0) {
+        alert('Warning: No shift definitions found. Please go to the "Working Hours" tab and add shifts or click "Reset to Defaults".');
+    }
+
     // Render Header
     let headHtml = '<tr><th style="width:150px; background:#f8f9fa; vertical-align:middle; text-align:center;">Grup / Tanggal</th>';
     for (let i = 1; i <= daysInMonth; i++) {
@@ -405,7 +409,7 @@ function renderShiftDefinitions() {
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    shifts.forEach((s, idx) => {
+    (data.shiftDefinitions || []).forEach((s, idx) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><input type="text" class="form-control shift-code" value="${s.code}" placeholder="Kode" style="font-weight:700; text-align:center;"></td>

@@ -8,9 +8,37 @@ const STORAGE_KEY = 'hr_platform_v5';
 const defaultData = {
     users: [
         { id: 1, username: 'admin', password: 'password', role: 'admin', name: 'Admin HR' },
-        { id: 2, username: 'manager', password: 'password', role: 'manager', name: 'Budi Santoso' }, // Manager
-        { id: 3, username: 'tomy', password: 'password', role: 'employee', name: 'TOMY', department: 'Sales', position: 'Sales Executive' },
-        { id: 12, username: 'andi', password: 'password', role: 'employee', name: 'Andi Saputra', department: 'Sales', position: 'Sales Executive' },
+        { id: 2, username: 'manager', password: 'password', role: 'manager', name: 'Budi Santoso', position: 'Manager HR', email: 'budi.santoso@company.com' }, // Manager
+        {
+            id: 3,
+            username: 'tomy',
+            password: 'password',
+            role: 'employee',
+            name: 'TOMY',
+            department: 'Sales',
+            position: 'Sales Executive',
+            supervisorName: 'Budi Santoso',
+            supervisorJob: 'Manager HR',
+            supervisorEmail: 'budi.santoso@company.com',
+            finalApproverName: 'Admin HR',
+            finalApproverJob: 'Head of HR',
+            finalApproverEmail: 'admin@company.com'
+        },
+        {
+            id: 12,
+            username: 'andi',
+            password: 'password',
+            role: 'employee',
+            name: 'Andi Saputra',
+            department: 'Sales',
+            position: 'Sales Executive',
+            supervisorName: 'TOMY',
+            supervisorJob: 'Sales Executive',
+            supervisorEmail: 'tomy@company.com',
+            finalApproverName: 'Budi Santoso',
+            finalApproverJob: 'Manager HR',
+            finalApproverEmail: 'budi.santoso@company.com'
+        },
         // Candidates
         { id: 4, username: 'siti', password: 'password', role: 'candidate', name: 'Siti Aminah', email: 'siti.aminah@gmail.com', status: 'registered' },
         { id: 5, username: 'rizky', password: 'password', role: 'candidate', name: 'Rizky Pratama', email: 'rizky.pratama@gmail.com', status: 'registered' },
@@ -144,6 +172,10 @@ const defaultData = {
         { code: 'I', name: 'Izin', clockIn: '', clockOut: '' },
         { code: 'A', name: 'Alpa', clockIn: '', clockOut: '' }
     ],
+    companyApprovers: [
+        { id: 1001, name: 'Arif Burhani', position: 'TL Produksi B', email: 'arif.burhani@company.com' },
+        { id: 1002, name: 'Wisnu Wijaya', position: 'Asman OpHar', email: 'wisnu.wijaya@company.com' }
+    ],
     news: [
         {
             id: 1,
@@ -187,7 +219,11 @@ function initData() {
         if (!data.attendance) { data.attendance = defaultData.attendance || []; changed = true; }
         if (!data.roster) { data.roster = defaultData.roster || []; changed = true; }
         if (!data.groupPatterns) { data.groupPatterns = {}; changed = true; }
-        if (!data.shiftDefinitions || data.shiftDefinitions.some(s => s.name.includes('(P)') || s.code === 'D')) {
+        if (!data.companyApprovers) {
+            data.companyApprovers = defaultData.companyApprovers;
+            changed = true;
+        }
+        if (!data.shiftDefinitions || data.shiftDefinitions.length === 0 || data.shiftDefinitions.some(s => s.name.includes('(P)') || s.code === 'D')) {
             data.shiftDefinitions = defaultData.shiftDefinitions;
             changed = true;
         }
@@ -206,6 +242,18 @@ function initData() {
                 tomyUser.department = 'Sales';
                 changed = true;
             }
+
+            // Migration for Hierarchy Fields
+            data.users.forEach(u => {
+                if (u.role === 'employee' || u.role === 'manager') {
+                    if (u.supervisorName === undefined) { u.supervisorName = ''; changed = true; }
+                    if (u.supervisorJob === undefined) { u.supervisorJob = ''; changed = true; }
+                    if (u.supervisorEmail === undefined) { u.supervisorEmail = ''; changed = true; }
+                    if (u.finalApproverName === undefined) { u.finalApproverName = ''; changed = true; }
+                    if (u.finalApproverJob === undefined) { u.finalApproverJob = ''; changed = true; }
+                    if (u.finalApproverEmail === undefined) { u.finalApproverEmail = ''; changed = true; }
+                }
+            });
         }
         if (changed) {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -288,11 +336,12 @@ function updateSidebarForRole() {
     restrictedItems.forEach(item => {
         // Special case: Company News and its label should be visible to all
         const isNewsLink = item.getAttribute('href') && item.getAttribute('href').includes('news.html');
-        const isNewsLabel = item.innerText.trim().toUpperCase() === 'COMMUNICATION';
+        const isNewsLabel = item.textContent.trim().toUpperCase() === 'COMMUNICATION';
 
         if (isAdmin || isNewsLink || isNewsLabel) {
-            item.style.setProperty('display', '', 'important');
-            // We don't remove the class to avoid breaking subsequent renders
+            // Must use explicit value + important to override .role-restricted { display: none !important }
+            const displayStyle = (item.tagName === 'DIV' || item.tagName === 'P') ? 'block' : 'flex';
+            item.style.setProperty('display', displayStyle, 'important');
         } else {
             item.style.setProperty('display', 'none', 'important');
         }

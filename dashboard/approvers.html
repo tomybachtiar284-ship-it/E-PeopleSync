@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Approvers - E-PeopleSync</title>
+    <!-- Premium Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/styles.css?v=3.0">
+    <style>
+        :root {
+            --premium-navy: #1a365d;
+            --premium-gold: #c5a059;
+            --premium-silver: #e2e8f0;
+            --premium-emerald: #2d5a27;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: #f8fafc;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Defensive styles for CSS load failure cases */
+        .brand-icon img {
+            max-width: 40px;
+            height: auto;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            gap: 10px;
+        }
+
+        .approver-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .approver-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .approver-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .approver-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 20px;
+            border: 4px solid var(--premium-gold);
+            padding: 2px;
+        }
+
+        .approver-role-badge {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .role-admin {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .role-manager {
+            background: #e0f2fe;
+            color: #075985;
+        }
+
+        .approver-name {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--premium-navy);
+            margin-bottom: 5px;
+        }
+
+        .approver-info {
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 20px;
+        }
+
+        .approver-contact {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            background: var(--premium-navy);
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .approver-contact:hover {
+            background: var(--premium-gold);
+            transform: scale(1.02);
+        }
+
+        .approver-contact i {
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar glass">
+            <div class="brand">
+                <div class="brand-icon"><img src="../assets/logo.png" alt="Logo"></div>
+                <span>E-PeopleSync</span>
+            </div>
+            <nav class="nav-links">
+                <div class="nav-label premium">Main</div>
+                <a href="index.html" class="nav-link premium"><i class="fas fa-home"></i>
+                    <span>Dashboard</span></a>
+                <a href="approvers.html" class="nav-link premium active"><i class="fas fa-user-tie"></i>
+                    <span>Approvers</span></a>
+
+                <div class="nav-label premium role-restricted">Main Dashboard</div>
+                <a href="../admin/index.html" class="nav-link premium role-restricted"><i class="fas fa-th-large"></i>
+                    <span>Overview</span></a>
+
+                <div class="nav-label premium role-restricted">Workforce Managed</div>
+                <a href="../admin/employees.html" class="nav-link premium role-restricted"><i class="fas fa-users"></i>
+                    <span>Employees</span></a>
+                <a href="../admin/attendance.html" class="nav-link premium role-restricted"><i
+                        class="fas fa-calendar-check"></i>
+                    <span>Attendance & Shifts</span></a>
+                <a href="../evaluation/index.html" class="nav-link premium"><i class="fas fa-chart-line"></i>
+                    <span>Performance</span></a>
+
+                <div class="nav-label premium role-restricted">Finance & Talent</div>
+                <a href="../admin/payroll.html" class="nav-link premium role-restricted"><i
+                        class="fas fa-money-bill-wave"></i>
+                    <span>Payroll & Claims</span></a>
+                <a href="../recruitment/index.html" class="nav-link premium"><i class="fas fa-user-plus"></i>
+                    <span>Recruitment</span></a>
+                <a href="../learning/index.html" class="nav-link premium"><i class="fas fa-graduation-cap"></i>
+                    <span>Learning Hub</span></a>
+
+                <div class="nav-label premium">Communication</div>
+                <a href="../news/index.html" class="nav-link premium"><i class="fas fa-newspaper"></i>
+                    <span>Company News</span></a>
+
+                <div class="nav-label premium role-restricted">Enterprise Tools</div>
+                <a href="../admin/assets.html" class="nav-link premium role-restricted"><i class="fas fa-boxes"></i>
+                    <span>Asset Management</span></a>
+                <a href="../admin/documents.html" class="nav-link premium role-restricted"><i
+                        class="fas fa-file-contract"></i>
+                    <span>Document Center</span></a>
+                <a href="../admin/org_chart.html" class="nav-link premium role-restricted"><i
+                        class="fas fa-sitemap"></i>
+                    <span>Org Chart</span></a>
+
+                <div class="nav-label premium role-restricted" style="margin-top: 20px;">Settings</div>
+                <a href="../admin/settings.html" class="nav-link premium role-restricted"><i class="fas fa-cog"></i>
+                    <span>Administration</span></a>
+                <br>
+                <a href="#" onclick="logout()" class="nav-link premium text-danger"><i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span></a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header rendered dynamically -->
+            <div class="content-area" style="padding: 40px;">
+                <div class="mb-5">
+                    <h4 style="color: var(--primary-color); font-weight: 600; margin-bottom: 5px;">Organization</h4>
+                    <h1 style="font-size: 32px; font-weight: 800; color: var(--premium-navy);">Company Approvers</h1>
+                    <p style="color: #64748b;">List of Directors, Managers, and Administrators registered in the system.
+                    </p>
+                </div>
+
+                <!-- Features Container -->
+                <div class="d-flex flex-wrap gap-3 mb-4">
+                    <div class="search-bar" style="flex: 1; min-width: 300px; position: relative;">
+                        <i class="fas fa-search" style="position: absolute; left: 15px; top: 15px; color: #94a3b8;"></i>
+                        <input type="text" id="searchApprover" placeholder="Search by name..."
+                            style="width: 100%; padding: 12px 12px 12px 45px; border-radius: 12px; border: 1px solid #e2e8f0; outline: none; transition: all 0.3s;"
+                            onkeyup="filterApprovers()">
+                    </div>
+                </div>
+                <button id="addApproverBtn" onclick="openCreateModal()" class="approver-contact"
+                    style="border: none; cursor: pointer; display: none; padding: 0 25px; height: 45px; background: var(--premium-navy); color: #fff;">
+                    <i class="fas fa-plus"></i> Add New Approver
+                </button>
+            </div>
+
+            <div id="approverGrid" class="approver-grid">
+                <!-- Populated by JS -->
+                <div class="text-center w-100 py-5">
+                    <i class="fas fa-circle-notch fa-spin fa-2x" style="color: var(--premium-gold);"></i>
+                    <p class="mt-3">Loading approver data...</p>
+                </div>
+            </div>
+    </div>
+    </main>
+    </div>
+
+    <!-- Create Approver Modal -->
+    <div id="createModal" class="modal"
+        style="display:none; position:fixed; z-index:100; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.5); backdrop-filter: blur(5px);">
+        <div class="modal-content"
+            style="background:#fff; margin:5% auto; padding:30px; border-radius:20px; width:90%; max-width:500px; box-shadow: 0 25px 50px rgba(0,0,0,0.2);">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3 id="createModalTitle" style="color: var(--premium-navy); font-weight: 800;">Register New Approver
+                </h3>
+                <span class="close" onclick="closeCreateModal()"
+                    style="font-size:28px; cursor:pointer; color: #94a3b8;">&times;</span>
+            </div>
+            <form id="createForm" onsubmit="submitCreateApprover(event)">
+                <input type="hidden" id="editApproverId">
+                <div class="mb-3">
+                    <label
+                        style="display: block; font-size: 13px; font-weight: 600; color: #64748b; margin-bottom: 8px;">Full
+                        Name:</label>
+                    <input type="text" id="newApproverName" required placeholder="e.g. John Doe"
+                        style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; outline: none;">
+                </div>
+                <div class="mb-3">
+                    <label
+                        style="display: block; font-size: 13px; font-weight: 600; color: #64748b; margin-bottom: 8px;">Position:</label>
+                    <input type="text" id="newApproverPosition" required placeholder="e.g. Senior Manager"
+                        style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; outline: none;">
+                </div>
+                <div class="mb-4">
+                    <label
+                        style="display: block; font-size: 13px; font-weight: 600; color: #64748b; margin-bottom: 8px;">Email
+                        Address:</label>
+                    <input type="email" id="newApproverEmail" required placeholder="name@company.com"
+                        style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; outline: none;">
+                </div>
+                <button type="submit" class="approver-contact"
+                    style="border: none; cursor: pointer; width: 100%; background: var(--premium-blue); color: #fff;">
+                    <i class="fas fa-user-plus"></i> Register Approver
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Inquiry Modal -->
+    <div id="inquiryModal" class="modal"
+        style="display:none; position:fixed; z-index:100; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.5); backdrop-filter: blur(5px);">
+        <div class="modal-content"
+            style="background:#fff; margin:10% auto; padding:30px; border-radius:20px; width:90%; max-width:500px; box-shadow: 0 25px 50px rgba(0,0,0,0.2);">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3 id="modalTitle" style="color: var(--premium-navy); font-weight: 800;">Send Inquiry</h3>
+                <span class="close" onclick="closeInquiryModal()"
+                    style="font-size:28px; cursor:pointer; color: #94a3b8;">&times;</span>
+            </div>
+            <form id="inquiryForm" onsubmit="submitInquiry(event)">
+                <input type="hidden" id="atasanId">
+                <div class="mb-3">
+                    <label
+                        style="display: block; font-size: 13px; font-weight: 600; color: #64748b; margin-bottom: 8px;">To:</label>
+                    <input type="text" id="atasanName" readonly
+                        style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: #1e293b; font-weight: 600;">
+                </div>
+                <div class="mb-3">
+                    <label
+                        style="display: block; font-size: 13px; font-weight: 600; color: #64748b; margin-bottom: 8px;">Subject:</label>
+                    <input type="text" id="subject" placeholder="e.g. Guidance Request, Policy Question" required
+                        style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; outline: none;">
+                </div>
+                <div class="mb-4">
+                    <label
+                        style="display: block; font-size: 13px; font-weight: 600; color: #64748b; margin-bottom: 8px;">Message:</label>
+                    <textarea id="message" rows="4" placeholder="Write your message here..." required
+                        style="width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; outline: none; resize: none;"></textarea>
+                </div>
+                <button type="submit" class="approver-contact" style="border: none; cursor: pointer; width: 100%;">
+                    <i class="fas fa-paper-plane"></i> Send Message
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/utils.js?v=3.0"></script>
+    <script src="../js/approvers_view.js?v=3.0"></script>
+</body>
+
+</html>

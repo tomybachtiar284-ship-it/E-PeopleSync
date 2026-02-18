@@ -425,20 +425,100 @@
                         required></textarea>
                 </div>
 
+                <!-- Team Leader Section -->
+                <div class="form-group mb-2">
+                    <label class="form-label"
+                        style="border-bottom: 1px solid #eee; padding-bottom: 5px; width:100%; font-weight:700; color: #555;">Mengetahui
+                        (Team Leader)</label>
+                </div>
+                <div class="d-grid-2 gap-15 mb-3">
+                    <div class="form-group">
+                        <label class="form-label" style="font-size:11px;">Nama</label>
+                        <select id="reqSupervisorMobile" class="mobile-input"
+                            onchange="autoFillPositionMobile('supervisor')" required>
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" style="font-size:11px;">Jabatan</label>
+                        <input type="text" id="reqSupervisorPositionMobile" class="mobile-input" readonly
+                            style="background: #f5f5f5; color:#888;">
+                    </div>
+                </div>
+
+                <!-- ASMAN Section -->
+                <div class="form-group mb-2">
+                    <label class="form-label"
+                        style="border-bottom: 1px solid #eee; padding-bottom: 5px; width:100%; font-weight:700; color: #555;">Disetujui
+                        (ASMAN)</label>
+                </div>
+                <div class="d-grid-2 gap-15 mb-4">
+                    <div class="form-group">
+                        <label class="form-label" style="font-size:11px;">Nama</label>
+                        <select id="reqManagerMobile" class="mobile-input" onchange="autoFillPositionMobile('manager')"
+                            required>
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" style="font-size:11px;">Jabatan</label>
+                        <input type="text" id="reqManagerPositionMobile" class="mobile-input" readonly
+                            style="background: #f5f5f5; color:#888;">
+                    </div>
+                </div>
+
                 <button type="submit" class="btn-clock btn-in">
                     <i class="fas fa-paper-plane"></i> Kirim Pengajuan
                 </button>
             </form>
 
             <div class="notif-banner" style="background: #fff3e0; color: #e65100;">
-                <i class="fas fa-exclamation-circle"></i>
-                <span>Pengajuan akan diproses oleh Admin dalam 1x24 jam.</span>
+                <i class="fas fa-info-circle"></i>
+                <span>Pengajuan akan diteruskan ke Team Leader & ASMAN melalui approval sistem.</span>
             </div>
         </div>
     </div>
 
+    <!-- Trial Link Popup (Floating) -->
+    <div id="trialLinkPopup"
+        style="display: none; position: fixed; bottom: 100px; left: 20px; right: 20px; background: #fff; border: 2px solid var(--premium-emerald); border-radius: 15px; padding: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); z-index: 9999; animation: slideUp 0.3s ease-out;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+            <strong style="color: var(--premium-emerald); font-size: 14px;"><i class="fas fa-flask"></i> Trial: Link
+                Persetujuan</strong>
+            <i class="fas fa-times" onclick="this.parentElement.parentElement.style.display='none'"
+                style="color: #ccc; cursor: pointer;"></i>
+        </div>
+        <p style="font-size: 12px; color: #666; margin-bottom: 10px;">Gunakan link ini untuk mencoba alur persetujuan
+            sebagai atasan:</p>
+        <a id="trialLinkHref" href="#"
+            style="display: block; background: #f0fdf4; color: #166534; padding: 10px; border-radius: 8px; font-size: 11px; word-break: break-all; text-decoration: none; border: 1px solid #bbf7d0;">
+            -
+        </a>
+        <div style="margin-top: 10px; font-size: 10px; color: #888;">Klik link di atas untuk bertindak sebagai Atasan.
+        </div>
+    </div>
+
+    <style>
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+    </style>
+
+    <!-- PDF Generation Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
     <script src="../js/utils.js"></script>
     <script src="../js/mobile.js"></script>
+    <script src="../js/receipt.js"></script>
 </body>
 
 </html>

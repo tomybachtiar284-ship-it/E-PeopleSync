@@ -15,7 +15,10 @@ const FIELD_MAP = {
     empEmailPersonal: 'emailPersonal', empEmailCompany: 'emailCompany',
     // Employment
     empJoinDate: 'joinDate', empStatus: 'employeeStatus', empContractPeriod: 'contractPeriod',
-    empPosition: 'position', empDept: 'department', empSupervisor: 'supervisor',
+    empPosition: 'position', empDept: 'department', empSupervisor: 'supervisorName',
+    empSupervisorJob: 'supervisorJob', empSupervisorEmail: 'supervisorEmail',
+    empFinalApproverName: 'finalApproverName', empFinalApproverJob: 'finalApproverJob',
+    empFinalApproverEmail: 'finalApproverEmail',
     empLocation: 'location', empShift: 'shift',
     empGrade: 'grade', empLevel: 'level', empActiveStatus: 'activeStatus',
     empGroup: 'group',
@@ -58,6 +61,47 @@ function populateDeptAndLocation() {
             opt.textContent = g;
             filterSelect.appendChild(opt);
         });
+    }
+
+    // Populate Supervisor & Final Approver dropdowns
+    const approvers = data.companyApprovers || [];
+    const supSelect = document.getElementById('empSupervisor');
+    const finalSelect = document.getElementById('empFinalApproverName');
+
+    if (supSelect) {
+        // Clear and add default
+        supSelect.innerHTML = '<option value="">-- Pilih Approver --</option>';
+        approvers.forEach(app => {
+            const opt = document.createElement('option');
+            opt.value = app.name;
+            opt.textContent = app.name;
+            supSelect.appendChild(opt);
+        });
+
+        // Add change listener for auto-fill
+        supSelect.onchange = (e) => {
+            const selected = approvers.find(a => a.name === e.target.value);
+            document.getElementById('empSupervisorJob').value = selected ? (selected.position || '') : '';
+            document.getElementById('empSupervisorEmail').value = selected ? (selected.email || '') : '';
+        };
+    }
+
+    if (finalSelect) {
+        // Clear and add default
+        finalSelect.innerHTML = '<option value="">-- Pilih Approver --</option>';
+        approvers.forEach(app => {
+            const opt = document.createElement('option');
+            opt.value = app.name;
+            opt.textContent = app.name;
+            finalSelect.appendChild(opt);
+        });
+
+        // Add change listener for auto-fill
+        finalSelect.onchange = (e) => {
+            const selected = approvers.find(a => a.name === e.target.value);
+            document.getElementById('empFinalApproverJob').value = selected ? (selected.position || '') : '';
+            document.getElementById('empFinalApproverEmail').value = selected ? (selected.email || '') : '';
+        };
     }
 }
 
@@ -206,6 +250,8 @@ function viewEmp(id) {
         if (user.department) document.getElementById('empDept').value = user.department;
         if (user.location) document.getElementById('empLocation').value = user.location;
         if (user.group) document.getElementById('empGroup').value = user.group;
+        if (user.supervisorName) document.getElementById('empSupervisor').value = user.supervisorName;
+        if (user.finalApproverName) document.getElementById('empFinalApproverName').value = user.finalApproverName;
     }, 100);
 
     openEmpModal();

@@ -22,17 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initAttendancePage();
 });
 
-function switchTab(tabId) {
-    // Hide all panes
-    document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
-    // Deactivate all buttons
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
 
-    // Show selected pane
-    document.getElementById(tabId).classList.add('active');
-    // Activate selected button
-    event.currentTarget.classList.add('active');
-}
 
 function initAttendancePage() {
     renderStats();
@@ -379,7 +369,7 @@ function renderLogs() {
     const logs = data.attendance || [];
     // Show last 15 logs
     logs.slice(-15).reverse().forEach(log => {
-        const emp = data.users.find(u => u.id === log.empId) || { name: 'Unknown' };
+        const emp = data.users.find(u => u.id == log.empId) || { name: 'Unknown' };
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td style="font-weight:600;">${emp.name}</td>
@@ -407,20 +397,41 @@ function renderApprovalQueue() {
     if (!queueBody || !historyBody) return;
 
     const allRequests = data.leaveRequests || [];
-    const pendingRequests = allRequests.filter(r => r.status === 'Pending');
-    const processedRequests = allRequests.filter(r => r.status !== 'Pending');
+    // Case-insensitive filtering for robustness
+    const pendingRequests = allRequests.filter(r => {
+        const s = (r.status || '').toLowerCase();
+        return s !== 'approved' && s !== 'rejected';
+    });
+    const processedRequests = allRequests.filter(r => {
+        const s = (r.status || '').toLowerCase();
+        return s === 'approved' || s === 'rejected';
+    });
 
-    // Render Queue (Pending)
+    const statusMap = {
+        'waiting_supervisor': '<span class="badge badge-info">Menunggu TL</span>',
+        'waiting_final': '<span class="badge badge-warning">Menunggu ASMAN</span>',
+        'Approved': '<span class="badge badge-success">Diterima</span>',
+        'Rejected': '<span class="badge badge-danger">Ditolak</span>',
+        'Pending': '<span class="badge badge-secondary">Pending</span>'
+    };
+
+    // Clear containers
     queueBody.innerHTML = '';
-    if (pendingRequests.length === 0) {
-        queueBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #888; padding: 20px;">No pending requests found.</td></tr>';
-    } else {
-        pendingRequests.forEach(req => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td style="font-weight: 700; color: var(--premium-navy);">${req.empName}</td>
-                <td><span class="shift-badge ${req.type.toLowerCase()}" style="font-size: 10px; width: 40px;">${req.type}</span></td>
-                <td style="font-size: 13px;">${req.startDate} s/d ${req.endDate}</td>
+    historyBody.innerHTML = '';
+
+    pendingRequests.forEach(req => {
+        const statusKey = req.status || 'Pending';
+        const displayStatus = statusMap[statusKey] || `<span class="badge badge-secondary">${statusKey}</span>`;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="font-weight: 700; color: var(--premium-navy);">${req.empName || req.name || 'No Name'}</td>
+            <td>
+                <div class="d-flex flex-column gap-1">
+                    <span class="shift-badge ${req.type ? req.type.toLowerCase() : 'off'}" style="font-size: 10px; width: 40px;">${req.type || '-'}</span>
+                    ${displayStatus}
+                </div>
+            </td>
+            <td style="font-size: 13px;">${req.startDate || req.dateStart || '-'} s/d ${req.endDate || req.dateEnd || '-'}</td>
                 <td title="${req.reason}"><div style="max-width: 200px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; font-size: 12px; color: #666;">${req.reason}</div></td>
                 <td style="text-align: center;">
                     <div class="d-flex justify-content-center gap-1">
@@ -431,24 +442,27 @@ function renderApprovalQueue() {
                     </div>
                 </td>
             `;
-            queueBody.appendChild(tr);
-        });
-    }
+        queueBody.appendChild(tr);
+    });
 
     // Render History (Approved/Rejected)
-    historyBody.innerHTML = '';
+    // historyBody.innerHTML = ''; // Already cleared above
     // Show last 20 processed requests, newest first
     processedRequests.slice().reverse().slice(0, 20).forEach(req => {
+        const isApproved = (req.status || '').toLowerCase() === 'approved';
+        const statusClass = isApproved ? 'badge-success' : 'badge-danger';
         const tr = document.createElement('tr');
-        const statusClass = req.status === 'Approved' ? 'badge-success' : 'badge-danger';
         tr.innerHTML = `
-            <td style="font-weight: 600;">${req.empName}</td>
-            <td><span class="shift-badge ${req.type.toLowerCase()}" style="font-size: 10px; width: 40px;">${req.type}</span></td>
-            <td style="font-size: 12px;">${req.startDate} - ${req.endDate}</td>
-            <td title="${req.reason}"><div style="max-width: 150px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; font-size: 11px; color: #777;">${req.reason || '-'}</div></td>
-            <td><span class="badge ${statusClass}" style="padding: 4px 10px; border-radius: 6px;">${req.status}</span></td>
+            <td style="font-weight: 600;">${req.empName || req.name || 'No Name'}</td>
+            <td><span class="shift-badge ${req.type ? req.type.toLowerCase() : 'off'}" style="font-size: 10px; width: 40px;">${req.type || '-'}</span></td>
+            <td style="font-size: 12px;">${req.startDate || req.dateStart || '-'} - ${req.endDate || req.dateEnd || '-'}</td>
+            <td title="${req.reason || '-'}"><div style="max-width: 150px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; font-size: 11px; color: #777;">${req.reason || '-'}</div></td>
+            <td><span class="badge ${statusClass}" style="padding: 4px 10px; border-radius: 6px;">${req.status || '-'}</span></td>
             <td style="text-align: center;">
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteRequest(${req.id})"><i class="fas fa-trash"></i></button>
+                <div class="d-flex justify-content-center gap-1">
+                    ${isApproved ? `<button class="btn btn-sm btn-outline-success" onclick="generateReceiptPDF(${req.id})" title="Cetak Resi"><i class="fas fa-print"></i></button>` : ''}
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteRequest(${req.id})"><i class="fas fa-trash"></i></button>
+                </div>
             </td>
         `;
         historyBody.appendChild(tr);
@@ -457,30 +471,52 @@ function renderApprovalQueue() {
     if (processedRequests.length === 0) {
         historyBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #888; padding: 20px;">No history records found.</td></tr>';
     }
+
+    // Update pending count badge
+    const badge = document.getElementById('pendingCountBadge');
+    if (badge) badge.textContent = `${pendingRequests.length} Pending`;
 }
 
 function approveRequest(id) {
+    if (!confirm('Setujui pengajuan ini secara manual (Admin Overwrite)?')) return;
+
     const data = getData();
     const req = data.leaveRequests.find(r => r.id === id);
     if (!req) return;
 
     req.status = 'Approved';
     req.approvedAt = new Date().toISOString();
+    if (!req.approvalHistory) req.approvalHistory = [];
+    req.approvalHistory.push({
+        role: 'admin',
+        action: 'Approved (Manual)',
+        time: new Date().toISOString()
+    });
 
-    // SINKRONISASI KE ROSTER
-    const start = new Date(req.startDate);
-    const end = new Date(req.endDate);
+    // Sync to Roster
+    const start = new Date(req.startDate || req.dateStart);
+    const end = new Date(req.endDate || req.dateEnd);
+
+    // Leave Type to Roster Code Mapping
+    const typeMapping = {
+        'Cuti Tahunan': 'CT',
+        'Sakit': 'SD',
+        'Izin': 'I',
+        'Dinas Luar': 'DL',
+        'Alpa': 'A'
+    };
+    const rosterCode = typeMapping[req.type] || req.type || 'Off';
 
     for (let dt = new Date(start); dt <= end; dt.setDate(dt.getDate() + 1)) {
         const dateStr = dt.toISOString().split('T')[0];
-
         if (!data.roster) data.roster = [];
-        const rosterIdx = data.roster.findIndex(r => r.empId === req.empId && r.date === dateStr);
+        // Corrected: Use userId for roster matching
+        const rosterIdx = data.roster.findIndex(r => r.userId === req.userId && r.date === dateStr);
 
         if (rosterIdx > -1) {
-            data.roster[rosterIdx].shift = req.type;
+            data.roster[rosterIdx].shift = rosterCode;
         } else {
-            data.roster.push({ empId: req.empId, date: dateStr, shift: req.type });
+            data.roster.push({ empId: req.userId, date: dateStr, shift: rosterCode });
         }
     }
 
@@ -590,11 +626,10 @@ function downloadRosterTemplate() {
     }
 
     employees.forEach(emp => {
-        const row = [emp.nid || '', emp.name];
+        const row = [emp.nid || '-', emp.name];
         for (let i = 1; i <= daysInMonth; i++) {
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-            const shift = rosterMap[`${emp.id}_${dateStr}`] || 'Off';
-            row.push(shift);
+            row.push(rosterMap[`${emp.id}_${dateStr}`] || 'Off');
         }
         rows.push(row);
     });
@@ -604,6 +639,175 @@ function downloadRosterTemplate() {
     XLSX.utils.book_append_sheet(workbook, worksheet, "Roster");
     XLSX.writeFile(workbook, `Roster_Karyawan_${monthName}_${year}.xlsx`);
 }
+
+/**
+ * Request Leave Logic (Desktop)
+ */
+function openRequestModal() {
+    document.getElementById('requestModal').style.display = 'block';
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('reqStart').value = today;
+    document.getElementById('reqEnd').value = today;
+
+    const data = getData();
+    const approvers = data.companyApprovers || [];
+
+    const spvSelect = document.getElementById('reqSupervisor');
+    const mgrSelect = document.getElementById('reqManager');
+
+    if (spvSelect) {
+        spvSelect.innerHTML = '<option value="">-- Pilih SPV --</option>' +
+            approvers.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+    }
+
+    if (mgrSelect) {
+        mgrSelect.innerHTML = '<option value="">-- Pilih Manager --</option>' +
+            approvers.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+    }
+}
+
+function closeRequestModal() {
+    document.getElementById('requestModal').style.display = 'none';
+}
+
+function submitDesktopRequest(event) {
+    if (event) event.preventDefault();
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+    const data = getData();
+
+    const type = document.getElementById('reqType').value;
+    const start = document.getElementById('reqStart').value;
+    const end = document.getElementById('reqEnd').value;
+    const reason = document.getElementById('reqReason').value;
+
+    const spvSelect = document.getElementById('reqSupervisor');
+    const mgrSelect = document.getElementById('reqManager');
+
+    const spvId = spvSelect.value;
+    const mgrId = mgrSelect.value;
+
+    const approvers = data.companyApprovers || [];
+    const spvObj = approvers.find(a => a.id == spvId);
+    const mgrObj = approvers.find(a => a.id == mgrId);
+
+    const spvName = spvObj ? spvObj.name : 'Unknown';
+    const spvEmail = spvObj ? (spvObj.email || 'supervisor@test.com') : 'supervisor@test.com';
+    const mgrName = mgrObj ? mgrObj.name : 'Unknown';
+    const mgrEmail = mgrObj ? (mgrObj.email || 'manager@test.com') : 'manager@test.com';
+
+    if (!type || !start || !end || !reason || !spvId || !mgrId) {
+        alert('Mohon lengkapi semua data pengajuan termasuk approver.');
+        return;
+    }
+
+    const newRequest = {
+        id: Date.now(),
+        userId: user.id,
+        empId: user.nid || 'EMP-' + user.id,
+        empName: user.name,
+        type: type,
+        startDate: start,
+        endDate: end,
+        reason: reason,
+        status: 'waiting_supervisor',
+
+        supervisorId: spvId,
+        supervisorName: spvName,
+        supervisorEmail: spvEmail,
+
+        managerId: mgrId,
+        managerName: mgrName,
+        managerEmail: mgrEmail,
+
+        submittedAt: new Date().toISOString(),
+        approvalHistory: []
+    };
+
+    if (!data.leaveRequests) data.leaveRequests = [];
+    data.leaveRequests.push(newRequest);
+    saveData(data);
+
+    const approvalToken = Math.random().toString(36).substr(2);
+    const path = window.location.pathname.replace('admin/attendance.html', 'mobile/approval.html');
+    const origin = window.location.origin === 'null' ? 'file://' : window.location.origin;
+
+    let approvalLink = `${origin}${path}?requestId=${newRequest.id}&role=supervisor&token=${approvalToken}`;
+    if (window.location.protocol === 'file:') {
+        approvalLink = `${path}?requestId=${newRequest.id}&role=supervisor&token=${approvalToken}`;
+    }
+
+    console.log("%c[SIMULASI EMAIL SERVER]", "color: #d35400; font-weight: bold; font-size: 16px;");
+    console.log(`To: ${spvEmail} (${spvName})`);
+    console.log(`Subject: PERSETUJUAN CUTI (SPV) - ${user.name}`);
+    console.log(`Link: ${approvalLink}`);
+
+    alert(`Pengajuan berhasil sent to Supervisor: ${spvName}! Link simulasi ada di Console.`);
+
+    closeRequestModal();
+    document.getElementById('leaveRequestForm')?.reset();
+    renderMyRequests();
+    renderApprovalQueue();
+}
+
+function renderMyRequests() {
+    const data = getData();
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+    const body = document.getElementById('myRequestsBody');
+    if (!body) return;
+
+    if (!data.leaveRequests) data.leaveRequests = [];
+    const myRequests = data.leaveRequests.filter(r => r.userId === user.id);
+
+    body.innerHTML = '';
+    if (myRequests.length === 0) {
+        body.innerHTML = '<tr><td colspan="7" class="text-center p-4">Anda belum memiliki riwayat pengajuan cuti.</td></tr>';
+        return;
+    }
+
+    myRequests.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+
+    myRequests.forEach(req => {
+        let statusBadge = '';
+        let tracking = '';
+
+        switch (req.status) {
+            case 'waiting_supervisor':
+                statusBadge = '<span class="badge badge-warning">Menunggu Supervisor</span>';
+                tracking = '<i class="fas fa-user-tie text-warning"></i> Supervisor sedang meninjau';
+                break;
+            case 'waiting_final':
+                statusBadge = '<span class="badge badge-info">Menunggu Manajer</span>';
+                tracking = '<i class="fas fa-check text-success"></i> Spv OK &rarr; <i class="fas fa-user-shield text-info"></i> Mgr meninjau';
+                break;
+            case 'Approved':
+            case 'approved':
+                statusBadge = '<span class="badge badge-success">Disetujui</span>';
+                tracking = '<i class="fas fa-check-circle text-success"></i> Selesai';
+                break;
+            case 'Rejected':
+            case 'rejected':
+                statusBadge = '<span class="badge badge-danger">Ditolak</span>';
+                tracking = '<i class="fas fa-times-circle text-danger"></i> Ditolak';
+                break;
+            default:
+                statusBadge = '<span class="badge badge-secondary">Pending</span>';
+                tracking = 'Menunggu proses';
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${new Date(req.submittedAt).toLocaleDateString('id-ID')}</td>
+            <td><strong>${req.type}</strong></td>
+            <td>${formatDate(req.startDate)}</td>
+            <td>${formatDate(req.endDate)}</td>
+            <td>${req.reason}</td>
+            <td>${statusBadge}</td>
+            <td style="font-size: 12px; color: #555;">${tracking}</td>
+        `;
+        body.appendChild(tr);
+    });
+}
+
 
 /**
  * Handle Excel file import for Roster
@@ -790,7 +994,6 @@ window.onclick = function (event) {
     if (event.target == document.getElementById('shiftModal')) closeShiftModal();
     if (event.target == document.getElementById('bulkModal')) closeBulkModal();
     if (event.target == document.getElementById('editLogModal')) closeModal('editLogModal');
-    if (event.target == document.getElementById('editRequestModal')) closeModal('editRequestModal');
 }
 
 /**
@@ -838,9 +1041,6 @@ document.getElementById('editLogForm')?.addEventListener('submit', function (e) 
     data.attendance[logIndex].clockIn = newIn;
     data.attendance[logIndex].clockOut = newOut;
 
-    // Simple logic update for isLate if date/time changed
-    // In real app, we would re-check against shift definition
-
     saveData(data);
     closeModal('editLogModal');
     renderLogs();
@@ -848,7 +1048,6 @@ document.getElementById('editLogForm')?.addEventListener('submit', function (e) 
     alert('Log updated successfully.');
 });
 
-// LEAVE REQUESTS
 function editRequest(id) {
     const data = getData();
     const req = data.leaveRequests.find(r => r.id === id);
@@ -856,33 +1055,20 @@ function editRequest(id) {
 
     document.getElementById('editRequestId').value = req.id;
     document.getElementById('editRequestType').value = req.type;
-    document.getElementById('editRequestStart').value = req.startDate;
-    document.getElementById('editRequestEnd').value = req.endDate;
-    document.getElementById('editRequestReason').value = req.reason;
+    document.getElementById('editRequestStart').value = req.startDate || req.dateStart || '';
+    document.getElementById('editRequestEnd').value = req.endDate || req.dateEnd || '';
+    document.getElementById('editRequestReason').value = req.reason || '';
+
     document.getElementById('editRequestModal').style.display = 'block';
 }
 
 function deleteRequest(id) {
-    if (!confirm('Are you sure you want to delete this leave request? This will also remove any synced entries in the Roster.')) return;
+    if (!confirm('Are you sure you want to delete this request record?')) return;
     const data = getData();
-    const req = data.leaveRequests.find(r => r.id === id);
-
-    if (req && req.status === 'Approved') {
-        const start = new Date(req.startDate);
-        const end = new Date(req.endDate);
-
-        for (let dt = new Date(start); dt <= end; dt.setDate(dt.getDate() + 1)) {
-            const dateStr = dt.toISOString().split('T')[0];
-            if (data.roster) {
-                // Remove the roster entry for this leave
-                data.roster = data.roster.filter(r => !(r.empId === req.empId && r.date === dateStr && r.shift === req.type));
-            }
-        }
-    }
-
-    data.leaveRequests = data.leaveRequests.filter(r => r.id !== id);
+    data.leaveRequests = (data.leaveRequests || []).filter(r => r.id !== id);
     saveData(data);
-    initAttendancePage();
+    renderApprovalQueue();
+    renderStats();
 }
 
 document.getElementById('editRequestForm')?.addEventListener('submit', function (e) {
@@ -892,13 +1078,19 @@ document.getElementById('editRequestForm')?.addEventListener('submit', function 
     const reqIndex = data.leaveRequests.findIndex(r => r.id === id);
     if (reqIndex === -1) return;
 
-    data.leaveRequests[reqIndex].type = document.getElementById('editRequestType').value;
-    data.leaveRequests[reqIndex].startDate = document.getElementById('editRequestStart').value;
-    data.leaveRequests[reqIndex].endDate = document.getElementById('editRequestEnd').value;
-    data.leaveRequests[reqIndex].reason = document.getElementById('editRequestReason').value;
+    const newType = document.getElementById('editRequestType').value;
+    const newStart = document.getElementById('editRequestStart').value;
+    const newEnd = document.getElementById('editRequestEnd').value;
+    const newReason = document.getElementById('editRequestReason').value;
+
+    data.leaveRequests[reqIndex].type = newType;
+    data.leaveRequests[reqIndex].startDate = newStart;
+    data.leaveRequests[reqIndex].endDate = newEnd;
+    data.leaveRequests[reqIndex].reason = newReason;
 
     saveData(data);
     closeModal('editRequestModal');
     renderApprovalQueue();
-    alert('Request updated successfully.');
+    renderStats();
+    alert('Leave request updated successfully.');
 });

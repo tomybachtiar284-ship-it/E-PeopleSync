@@ -118,6 +118,8 @@
                 <div class="nav-label premium">Main</div>
                 <a href="../dashboard/index.html" class="nav-link premium"><i class="fas fa-home"></i>
                     <span>Dashboard</span></a>
+                <a href="../dashboard/approvers.html" class="nav-link premium"><i class="fas fa-user-tie"></i>
+                    <span>Approvers</span></a>
 
                 <div class="nav-label premium role-restricted">Main Dashboard</div>
                 <a href="index.html" class="nav-link premium role-restricted"><i class="fas fa-th-large"></i>
@@ -154,6 +156,7 @@
                 <a href="org_chart.html" class="nav-link premium role-restricted"><i class="fas fa-sitemap"></i>
                     <span>Org
                         Chart</span></a>
+
 
                 <div class="nav-label premium role-restricted" style="margin-top: 20px;">Settings</div>
                 <a href="settings.html" class="nav-link premium role-restricted"><i class="fas fa-cog"></i>
@@ -396,9 +399,42 @@
                                     <!-- JS Populated -->
                                 </select>
                             </div>
-                            <div class="form-group">
-                                <label>Atasan Langsung</label>
-                                <input type="text" id="empSupervisor" class="form-control">
+                            <div class="section-title">Hierarki Persetujuan (Approval)</div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Nama Supervisor *</label>
+                                    <select id="empSupervisor" class="form-control" required>
+                                        <option value="">-- Pilih Approver --</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Jabatan Supervisor</label>
+                                    <input type="text" id="empSupervisorJob" class="form-control" readonly
+                                        placeholder="Auto-filled">
+                                </div>
+                                <div class="form-group">
+                                    <label>Email Supervisor *</label>
+                                    <input type="email" id="empSupervisorEmail" class="form-control" readonly
+                                        placeholder="Auto-filled">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Nama Final Approver (Asman/Manager) *</label>
+                                    <select id="empFinalApproverName" class="form-control" required>
+                                        <option value="">-- Pilih Approver --</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Jabatan Final Approver</label>
+                                    <input type="text" id="empFinalApproverJob" class="form-control" readonly
+                                        placeholder="Auto-filled">
+                                </div>
+                                <div class="form-group">
+                                    <label>Email Final Approver *</label>
+                                    <input type="email" id="empFinalApproverEmail" class="form-control" readonly
+                                        placeholder="Auto-filled">
+                                </div>
                             </div>
                         </div>
                         <div class="form-row">

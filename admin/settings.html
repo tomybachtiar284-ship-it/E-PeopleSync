@@ -22,6 +22,8 @@
                 <div class="nav-label premium">Main</div>
                 <a href="../dashboard/index.html" class="nav-link premium"><i class="fas fa-home"></i>
                     <span>Dashboard</span></a>
+                <a href="../dashboard/approvers.html" class="nav-link premium"><i class="fas fa-user-tie"></i>
+                    <span>Approvers</span></a>
 
                 <div class="nav-label premium role-restricted">Main Dashboard</div>
                 <a href="index.html" class="nav-link premium role-restricted"><i class="fas fa-th-large"></i>
@@ -58,6 +60,7 @@
                 <a href="org_chart.html" class="nav-link premium role-restricted"><i class="fas fa-sitemap"></i>
                     <span>Org
                         Chart</span></a>
+
 
                 <div class="nav-label premium role-restricted" style="margin-top: 20px;">Settings</div>
                 <a href="settings.html" class="nav-link premium active role-restricted"><i class="fas fa-cog"></i>
@@ -265,8 +268,10 @@
                         <div class="mt-3">
                             <button class="btn btn-primary" onclick="saveShiftDefinitions()"><i class="fas fa-save"></i>
                                 Submit Changes</button>
+                            <button class="btn btn-warning" onclick="resetShiftDefaults()"><i
+                                    class="fas fa-sync-alt"></i> Reset to Defaults</button>
                             <button class="btn btn-outline-secondary" onclick="renderShiftDefinitions()"><i
-                                    class="fas fa-undo"></i> Reset</button>
+                                    class="fas fa-undo"></i> Undo Changes</button>
                         </div>
                     </div>
                 </div>
@@ -328,6 +333,27 @@
             renderModernHeader();
             renderModernFooter();
         });
+
+        function resetShiftDefaults() {
+            if (confirm('Reset shift definitions to system defaults (P, S, M, DT, L)? This will overwrite current changes.')) {
+                const data = getData();
+                data.shiftDefinitions = [
+                    { code: 'P', name: 'Shift Pagi', clockIn: '07:30', clockOut: '15:30' },
+                    { code: 'S', name: 'Shift Siang', clockIn: '15:30', clockOut: '23:30' },
+                    { code: 'M', name: 'Shift Malam', clockIn: '23:30', clockOut: '07:30' },
+                    { code: 'DT', name: 'Daytime', clockIn: '07:30', clockOut: '16:00' },
+                    { code: 'L', name: 'Libur', clockIn: '', clockOut: '' },
+                    { code: 'CT', name: 'Cuti', clockIn: '', clockOut: '' },
+                    { code: 'SD', name: 'Sakit', clockIn: '', clockOut: '' },
+                    { code: 'DL', name: 'Dinas Luar', clockIn: '', clockOut: '' },
+                    { code: 'I', name: 'Izin', clockIn: '', clockOut: '' },
+                    { code: 'A', name: 'Alpa', clockIn: '', clockOut: '' }
+                ];
+                saveData(data);
+                renderShiftDefinitions();
+                alert('Shifts reset to defaults. Please check patterns tab.');
+            }
+        }
     </script>
 </body>
 

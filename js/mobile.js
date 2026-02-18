@@ -314,6 +314,7 @@ function submitMobileQuiz(quiz) {
 /**
  * Leave Request Logic
  */
+
 function showLeaveModal() {
     const modal = document.getElementById('leaveModal');
     if (!modal) return;
@@ -321,41 +322,119 @@ function showLeaveModal() {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('leaveStartDate').value = today;
     document.getElementById('leaveEndDate').value = today;
+
+    // POPULATE APPROVERS (Mobile) - Pull from NEW bucket
+    const data = getData();
+    const approvers = data.companyApprovers || [];
+
+    const spvSelect = document.getElementById('reqSupervisorMobile');
+    const mgrSelect = document.getElementById('reqManagerMobile');
+
+    if (spvSelect) {
+        spvSelect.innerHTML = '<option value="">-- Pilih SPV --</option>' +
+            approvers.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+    }
+
+    if (mgrSelect) {
+        mgrSelect.innerHTML = '<option value="">-- Pilih Manager --</option>' +
+            approvers.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+    }
+}
+
+function autoFillPositionMobile(type) {
+    const data = getData();
+    const approvers = data.companyApprovers || [];
+    const id = document.getElementById(type === 'supervisor' ? 'reqSupervisorMobile' : 'reqManagerMobile').value;
+    const posInput = document.getElementById(type === 'supervisor' ? 'reqSupervisorPositionMobile' : 'reqManagerPositionMobile');
+
+    if (!posInput) return;
+
+    const selected = approvers.find(a => a.id == id);
+    posInput.value = selected ? (selected.position || 'Approver') : '';
+
+    // If Trial Link is visible, hide it on any change to avoid confusion
+    const trialPopup = document.getElementById('trialLinkPopup');
+    if (trialPopup) trialPopup.style.display = 'none';
+}
+
+function showTrialLink(link) {
+    const trialPopup = document.getElementById('trialLinkPopup');
+    const trialLinkHref = document.getElementById('trialLinkHref');
+    if (!trialPopup || !trialLinkHref) return;
+
+    trialLinkHref.href = link;
+    trialLinkHref.textContent = link;
+    trialPopup.style.display = 'block';
 }
 
 function submitLeaveRequest(event) {
     event.preventDefault();
     const user = JSON.parse(localStorage.getItem('currentUser'));
     const data = getData();
+    const approvers = data.companyApprovers || [];
+
     const type = document.getElementById('leaveType').value;
     const start = document.getElementById('leaveStartDate').value;
     const end = document.getElementById('leaveEndDate').value;
     const reason = document.getElementById('leaveReason').value;
 
-    if (!type || !start || !end || !reason) {
+    const spvSelect = document.getElementById('reqSupervisorMobile');
+    const mgrSelect = document.getElementById('reqManagerMobile');
+
+    if (!type || !start || !end || !reason || !spvSelect.value || !mgrSelect.value) {
         alert('Mohon lengkapi semua data pengajuan.');
         return;
     }
 
+    const spvObj = approvers.find(a => a.id == spvSelect.value);
+    const mgrObj = approvers.find(a => a.id == mgrSelect.value);
+
+    const spvName = spvObj ? spvObj.name : 'Unknown';
+    const spvEmail = spvObj ? (spvObj.email || 'supervisor@test.com') : 'supervisor@test.com';
+    const mgrName = mgrObj ? mgrObj.name : 'Unknown';
+    const mgrEmail = mgrObj ? (mgrObj.email || 'manager@test.com') : 'manager@test.com';
+
     const newRequest = {
         id: Date.now(),
         userId: user.id,
-        empId: user.empId || 'EMP001',
-        name: user.name,
+        empId: user.nid || 'EMP-001',
+        empName: user.name,
         type: type,
         startDate: start,
         endDate: end,
         reason: reason,
-        status: 'Pending',
-        submittedAt: new Date().toISOString()
+        status: 'waiting_supervisor',
+
+        // Approver Info
+        supervisorId: spvSelect.value,
+        supervisorName: spvName,
+        supervisorEmail: spvEmail,
+        managerId: mgrSelect.value,
+        managerName: mgrName,
+        managerEmail: mgrEmail,
+
+        submittedAt: new Date().toISOString(),
+        approvalHistory: []
     };
 
     if (!data.leaveRequests) data.leaveRequests = [];
     data.leaveRequests.push(newRequest);
     saveData(data);
-    alert('Pengajuan Anda berhasil dikirim! Mohon tunggu persetujuan Admin.');
+
+    // Simulate Email to Team Leader
+    const approvalLink = `${window.location.origin}${window.location.pathname.replace('index.html', 'approval.html')}?requestId=${newRequest.id}&role=supervisor&token=${Math.random().toString(36).substr(2)}`;
+
+    console.log("%c[SIMULASI EMAIL TL]", "color: #00796b; font-weight: bold; font-size: 14px;");
+    console.log(`Kepada (TL): ${spvEmail}`);
+    console.log(`Subjek: Persetujuan Pengajuan Cuti - ${user.name}`);
+    console.log(`Link Persetujuan: ${approvalLink}`);
+
+    alert(`Pengajuan Anda berhasil dikirim ke Team Leader: ${spvName}!`);
+    showTrialLink(approvalLink);
+
     closeModal('leaveModal');
     document.getElementById('leaveForm').reset();
+    renderMobileHistory('leave'); // Refresh history if viewing
 }
 
 /**
@@ -676,29 +755,51 @@ function renderMobileHistory(type, el) {
         `).join('');
     } else {
         const myRequests = (data.leaveRequests || [])
-            .filter(r => r.userId === user.id)
-            .sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+            .filter(r => r.userId === user.id);
 
         if (myRequests.length === 0) {
             list.innerHTML = '<div class="text-center p-5"><i class="fas fa-plane-slash mb-3" style="font-size:40px; color:#cbd5e0;"></i><p>Belum ada riwayat pengajuan cuti.</p></div>';
             return;
         }
+        const sortedItems = myRequests.sort((a, b) => new Date(b.date || b.dateStart || b.submittedAt) - new Date(a.date || a.dateStart || a.submittedAt));
 
-        list.innerHTML = myRequests.map(r => `
-            <div class="hist-card">
-                <div class="hist-info">
-                    <div class="hist-date">${formatDate(r.startDate)} ${r.endDate !== r.startDate ? '- ' + formatDate(r.endDate) : ''}</div>
-                    <div class="hist-time-row">
-                        <span><strong>${r.type.toUpperCase()}</strong></span>
+        list.innerHTML = sortedItems.map(item => {
+            let statusLabel = item.status;
+            let badgeClass = item.status.toLowerCase();
+
+            const statusLower = (item.status || '').toLowerCase();
+            if (statusLower === 'waiting_supervisor') {
+                statusLabel = 'Menunggu TL';
+                badgeClass = 'pending';
+            } else if (statusLower === 'waiting_final') {
+                statusLabel = 'Menunggu ASMAN';
+                badgeClass = 'pending';
+            } else if (statusLower === 'approved') {
+                statusLabel = 'Disetujui';
+                badgeClass = 'approved';
+            } else if (statusLower === 'rejected') {
+                statusLabel = 'Ditolak';
+                badgeClass = 'rejected';
+            }
+
+            const displayDate = item.date ? formatDate(item.date) : (item.dateStart ? formatDate(item.dateStart) : 'Date Error');
+
+            return `
+                <div class="hist-card" style="position: relative;">
+                    <div class="hist-info">
+                        <span class="hist-date">${displayDate}</span>
+                        <div class="hist-time-row">
+                            <span><i class="far fa-clock"></i> ${item.type || 'Attendance'}</span>
+                            ${item.reason ? `<span style="display:block; font-size:10px; color:#999;">${item.reason}</span>` : ''}
+                        </div>
                     </div>
-                    <span class="hist-meta">${r.reason}</span>
+                    <div class="hist-status-box" style="text-align: right;">
+                        <span class="hist-badge ${badgeClass}">${statusLabel}</span>
+                        ${item.status === 'Approved' ? `<button onclick="generateReceiptPDF(${item.id})" style="display:block; margin-top:5px; background: none; border: 1px solid var(--premium-emerald); color: var(--premium-emerald); padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 700; width: 100%;"><i class="fas fa-print"></i> Cetak Resi</button>` : ''}
+                    </div>
                 </div>
-                <div class="hist-status-box">
-                    <span class="hist-badge ${r.status.toLowerCase()}">${r.status}</span>
-                    <span class="hist-meta">${r.approvedAt ? 'Disetujui: ' + formatDate(r.approvedAt.split('T')[0]).split(' ').slice(0, 2).join(' ') : 'Dalam Antrean'}</span>
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 }
 
@@ -795,3 +896,9 @@ window.renderMobileHistory = renderMobileHistory;
 window.renderMobileNews = renderMobileNews;
 window.openNewsDetail = openNewsDetail;
 window.closeNewsDetail = closeNewsDetail;
+window.autoFillPositionMobile = autoFillPositionMobile;
+window.showLeaveModal = showLeaveModal;
+window.submitLeaveRequest = submitLeaveRequest;
+window.closeModal = closeModal;
+window.showAttendanceModal = showAttendanceModal;
+window.processClock = processClock;
