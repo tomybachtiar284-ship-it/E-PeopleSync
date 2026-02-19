@@ -495,29 +495,33 @@ function checkClockStatus() {
 }
 
 function processClock(type) {
-    const user = JSON.parse(localStorage.getItem('currentUser'));
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     const data = getData();
     const now = new Date();
     const today = now.toISOString().split('T')[0];
     const time = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
 
+    // 1. Determine Effective Shift Code
+    const effectiveShiftCode = getEffectiveShiftCode(data, currentUser, today);
+    const shiftDef = (data.shiftDefinitions || []).find(s => s.code === effectiveShiftCode);
+
     if (!data.attendance) data.attendance = [];
 
     // Find existing log for today
-    let log = data.attendance.find(l => l.userId === user.id && l.date === today);
+    let log = data.attendance.find(l => l.userId === currentUser.id && l.date === today);
     let isNew = false;
 
     if (!log) {
         isNew = true;
         log = {
             id: Date.now(),
-            userId: user.id,
-            empId: user.id, // Admin view expects user.id as empId based on previous audit
-            name: user.name,
+            userId: currentUser.id,
+            empId: currentUser.id, // Admin view expects user.id as empId
+            name: currentUser.name,
             date: today,
             clockIn: '',
             clockOut: '',
-            status: 'P',
+            status: effectiveShiftCode, // Initialize with shift code
             locationIn: '',
             locationOut: '',
             isLate: false
@@ -527,10 +531,20 @@ function processClock(type) {
     if (type === 'In') {
         log.clockIn = time;
         log.locationIn = 'Mobile App';
-        // Simple late detection (hardcoded 08:00 for demo)
-        if (now.getHours() >= 8 && now.getMinutes() > 0) {
-            log.isLate = true;
-            log.status = 'DT';
+        log.status = effectiveShiftCode; // Ensure status matches shift code (e.g., DT, P)
+
+        // Dynamic Late Detection based on Shift Definition
+        if (shiftDef && shiftDef.clockIn) {
+            const [defH, defM] = shiftDef.clockIn.split(':').map(Number);
+            const currentH = now.getHours();
+            const currentM = now.getMinutes();
+
+            // Late if current time > shift start time
+            if (currentH > defH || (currentH === defH && currentM > defM)) {
+                log.isLate = true;
+            } else {
+                log.isLate = false;
+            }
         }
     } else {
         log.clockOut = time;
@@ -539,13 +553,56 @@ function processClock(type) {
 
     if (isNew) data.attendance.push(log);
 
+    // 2. Sync to Roster Table
+    if (!data.roster) data.roster = [];
+    const rosterIdx = data.roster.findIndex(r => r.empId === currentUser.id && r.date === today);
+    if (rosterIdx > -1) {
+        data.roster[rosterIdx].shift = effectiveShiftCode;
+    } else {
+        data.roster.push({ empId: currentUser.id, date: today, shift: effectiveShiftCode });
+    }
+
     saveData(data);
 
     // NOTIFIKASI
-    createNotification(user.id, `Absensi ${type} Berhasil`, `Anda telah melakukan Clock ${type} pada pukul ${time} via Mobile.`, "attendance");
+    createNotification(currentUser.id, `Absensi ${type} Berhasil`, `Anda telah melakukan Clock ${type} pada pukul ${time} via Mobile.`, "attendance");
 
-    alert(`Berhasil Absen ${type} pada ${time}`);
+    alert(`Berhasil Absen ${type} pada ${time}\nStatus: ${effectiveShiftCode}`);
     checkClockStatus();
+}
+
+/**
+ * Helper to determine the expected shift code based on individual roster or group patterns
+ */
+function getEffectiveShiftCode(data, user, date) {
+    // 1. Check Individual Roster (Specific mapping for this employee)
+    const rosterEntry = (data.roster || []).find(r => r.empId === user.id && r.date === date);
+    if (rosterEntry && rosterEntry.shift && !['Off', 'L', 'Libur'].includes(rosterEntry.shift)) {
+        return rosterEntry.shift;
+    }
+
+    // 2. Check Group Patterns (The system-wide schedule from "Shift Patterns" tab)
+    const [year, month, day] = date.split('-').map(Number);
+    const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+    const dayIndex = day - 1;
+    const group = user.group || '';
+
+    if (data.groupPatterns && data.groupPatterns[monthKey] && data.groupPatterns[monthKey][group]) {
+        const groupShift = data.groupPatterns[monthKey][group][dayIndex];
+        if (groupShift && !['Off', 'L', 'Libur'].includes(groupShift)) {
+            return groupShift;
+        }
+    }
+
+    // 3. Fallback to hardcoded group defaults (based on user's system configuration)
+    const groupLower = group.toLowerCase();
+    if (groupLower.includes('daytime') || group === 'DT') return 'DT';
+    if (groupLower.includes('grup a')) return 'P';
+    if (groupLower.includes('grup b')) return 'M'; // Malam
+    if (groupLower.includes('grup c')) return 'S'; // Siang
+    if (groupLower.includes('grup d')) return 'L'; // Libur/Off
+
+    return 'DT'; // Default fallback
 }
 
 function renderWinners(data, currentUser) {
