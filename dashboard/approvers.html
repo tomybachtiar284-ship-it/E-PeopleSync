@@ -9,35 +9,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="../css/styles.css?v=3.0">
+    <link rel="stylesheet" href="../css/styles.css?v=3.1">
     <style>
-        :root {
-            --premium-navy: #1a365d;
-            --premium-gold: #c5a059;
-            --premium-silver: #e2e8f0;
-            --premium-emerald: #2d5a27;
-        }
-
-        body {
-            font-family: 'Outfit', sans-serif;
-            background: #f8fafc;
-            margin: 0;
-            padding: 0;
-        }
-
-        /* Defensive styles for CSS load failure cases */
-        .brand-icon img {
-            max-width: 40px;
-            height: auto;
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            padding: 15px;
-            gap: 10px;
-        }
-
+        /* Specific Styles for Approvers Page */
         .approver-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -130,8 +104,9 @@
             transform: scale(1.02);
         }
 
-        .approver-contact i {
-            font-size: 14px;
+        /* Modal Styles fix */
+        .modal {
+            z-index: 1000 !important;
         }
     </style>
 </head>
@@ -144,7 +119,7 @@
                 <div class="brand-icon"><img src="../assets/logo.png" alt="Logo"></div>
                 <span>E-PeopleSync</span>
             </div>
-            <nav class="nav-links">
+            <div class="nav-links">
                 <div class="nav-label premium">Main</div>
                 <a href="index.html" class="nav-link premium"><i class="fas fa-home"></i>
                     <span>Dashboard</span></a>
@@ -168,13 +143,14 @@
                 <a href="../admin/payroll.html" class="nav-link premium role-restricted"><i
                         class="fas fa-money-bill-wave"></i>
                     <span>Payroll & Claims</span></a>
-                <a href="../recruitment/index.html" class="nav-link premium"><i class="fas fa-user-plus"></i>
+                <a href="../recruitment/index.html" class="nav-link premium role-restricted"><i
+                        class="fas fa-user-plus"></i>
                     <span>Recruitment</span></a>
                 <a href="../learning/index.html" class="nav-link premium"><i class="fas fa-graduation-cap"></i>
                     <span>Learning Hub</span></a>
 
-                <div class="nav-label premium">Communication</div>
-                <a href="../news/index.html" class="nav-link premium"><i class="fas fa-newspaper"></i>
+                <div class="nav-label premium role-restricted">Communication</div>
+                <a href="../admin/news.html" class="nav-link premium role-restricted"><i class="fas fa-newspaper"></i>
                     <span>Company News</span></a>
 
                 <div class="nav-label premium role-restricted">Enterprise Tools</div>
@@ -187,50 +163,57 @@
                         class="fas fa-sitemap"></i>
                     <span>Org Chart</span></a>
 
+
                 <div class="nav-label premium role-restricted" style="margin-top: 20px;">Settings</div>
                 <a href="../admin/settings.html" class="nav-link premium role-restricted"><i class="fas fa-cog"></i>
                     <span>Administration</span></a>
                 <br>
-                <a href="#" onclick="logout()" class="nav-link premium text-danger"><i class="fas fa-sign-out-alt"></i>
+            </div>
+            <div class="sidebar-footer">
+                <a href="javascript:void(0)" onclick="logout()" class="nav-link premium text-danger"><i
+                        class="fas fa-sign-out-alt"></i>
                     <span>Logout</span></a>
-            </nav>
+            </div>
         </aside>
 
         <!-- Main Content -->
         <main class="main-content">
-            <!-- Header rendered dynamically -->
-            <div class="content-area" style="padding: 40px;">
-                <div class="mb-5">
-                    <h4 style="color: var(--primary-color); font-weight: 600; margin-bottom: 5px;">Organization</h4>
-                    <h1 style="font-size: 32px; font-weight: 800; color: var(--premium-navy);">Company Approvers</h1>
-                    <p style="color: #64748b;">List of Directors, Managers, and Administrators registered in the system.
-                    </p>
-                </div>
+            <!-- Header rendered dynamically via renderModernHeader() -->
 
-                <!-- Features Container -->
-                <div class="d-flex flex-wrap gap-3 mb-4">
-                    <div class="search-bar" style="flex: 1; min-width: 300px; position: relative;">
-                        <i class="fas fa-search" style="position: absolute; left: 15px; top: 15px; color: #94a3b8;"></i>
-                        <input type="text" id="searchApprover" placeholder="Search by name..."
-                            style="width: 100%; padding: 12px 12px 12px 45px; border-radius: 12px; border: 1px solid #e2e8f0; outline: none; transition: all 0.3s;"
-                            onkeyup="filterApprovers()">
+            <div class="content-area" style="padding: 40px;">
+                <div class="d-flex justify-content-between align-items-end mb-5">
+                    <div>
+                        <h4 style="color: var(--primary-color); font-weight: 600; margin-bottom: 5px;">Organization</h4>
+                        <h1 style="font-size: 32px; font-weight: 800; color: var(--premium-navy);">Company Approvers
+                        </h1>
+                        <p style="color: #64748b; margin-bottom: 0;">List of Directors, Managers, and Administrators
+                            registered in the system.</p>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <div class="search-bar" style="position: relative;">
+                            <i class="fas fa-search"
+                                style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #94a3b8;"></i>
+                            <input type="text" id="searchApprover" placeholder="Search by name..."
+                                style="padding: 10px 10px 10px 40px; border-radius: 10px; border: 1px solid #e2e8f0; outline: none; transition: all 0.3s; width: 250px;"
+                                onkeyup="filterApprovers()">
+                        </div>
+                        <button id="addApproverBtn" onclick="openCreateModal()" class="btn btn-primary"
+                            style="display: none; background: var(--premium-navy); border-radius: 10px;">
+                            <i class="fas fa-plus mr-2"></i> Add Approver
+                        </button>
                     </div>
                 </div>
-                <button id="addApproverBtn" onclick="openCreateModal()" class="approver-contact"
-                    style="border: none; cursor: pointer; display: none; padding: 0 25px; height: 45px; background: var(--premium-navy); color: #fff;">
-                    <i class="fas fa-plus"></i> Add New Approver
-                </button>
-            </div>
 
-            <div id="approverGrid" class="approver-grid">
-                <!-- Populated by JS -->
-                <div class="text-center w-100 py-5">
-                    <i class="fas fa-circle-notch fa-spin fa-2x" style="color: var(--premium-gold);"></i>
-                    <p class="mt-3">Loading approver data...</p>
+                <div id="approverGrid" class="approver-grid">
+                    <!-- Populated by JS -->
+                    <div class="text-center w-100 py-5">
+                        <i class="fas fa-circle-notch fa-spin fa-2x" style="color: var(--premium-gold);"></i>
+                        <p class="mt-3">Loading approver data...</p>
+                    </div>
                 </div>
             </div>
-    </div>
-    </main>
+        </main>
     </div>
 
     <!-- Create Approver Modal -->
@@ -311,8 +294,8 @@
         </div>
     </div>
 
-    <script src="../js/utils.js?v=3.0"></script>
-    <script src="../js/approvers_view.js?v=3.0"></script>
+    <script src="../js/utils.js?v=3.1"></script>
+    <script src="../js/approvers_view.js?v=3.1"></script>
 </body>
 
 </html>

@@ -138,8 +138,8 @@
                 <div class="nav-label premium role-restricted">Enterprise Tools</div>
                 <a href="assets.html" class="nav-link premium role-restricted"><i class="fas fa-boxes"></i> <span>Asset
                         Management</span></a>
-                <a href="documents.html" class="nav-link premium active role-restricted"><i
-                        class="fas fa-file-contract"></i> <span>Document
+                <a href="documents.html" class="nav-link premium role-restricted"><i class="fas fa-file-contract"></i>
+                    <span>Document
                         Center</span></a>
                 <a href="org_chart.html" class="nav-link premium role-restricted"><i class="fas fa-sitemap"></i>
                     <span>Org
@@ -150,6 +150,8 @@
                 <a href="settings.html" class="nav-link premium role-restricted"><i class="fas fa-cog"></i>
                     <span>Administration</span></a>
                 <br>
+            </div>
+            <div class="sidebar-footer">
                 <a href="javascript:void(0)" onclick="logout()" class="nav-link premium text-danger"><i
                         class="fas fa-sign-out-alt"></i>
                     <span>Logout</span></a>
@@ -258,10 +260,6 @@
     <script src="../js/utils.js"></script>
     <script src="../js/admin_documents.js"></script>
     <script>
-        function toggleSidebar() {
-            document.querySelector('.sidebar').classList.toggle('collapsed');
-            document.querySelector('.main-content').classList.toggle('sidebar-collapsed');
-        }
 
         document.addEventListener('DOMContentLoaded', () => {
             renderModernHeader();

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - E-PeopleSync</title>
-    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="../css/styles.css?v=3.1">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -26,7 +26,7 @@
                     <span>Approvers</span></a>
 
                 <div class="nav-label premium role-restricted">Main Dashboard</div>
-                <a href="index.html" class="nav-link premium active role-restricted"><i class="fas fa-th-large"></i>
+                <a href="index.html" class="nav-link premium role-restricted"><i class="fas fa-th-large"></i>
                     <span>Overview</span></a>
 
                 <div class="nav-label premium role-restricted">Workforce Managed</div>
@@ -63,6 +63,8 @@
                 <a href="settings.html" class="nav-link premium role-restricted"><i class="fas fa-cog"></i>
                     <span>Administration</span></a>
                 <br>
+            </div>
+            <div class="sidebar-footer">
                 <a href="javascript:void(0)" onclick="logout()" class="nav-link premium text-danger"><i
                         class="fas fa-sign-out-alt"></i>
                     <span>Logout</span></a>
@@ -149,14 +151,9 @@
         </main>
     </div>
 
-    <script src="../js/utils.js"></script>
+    <script src="../js/utils.js?v=3.1"></script>
     <script src="../js/admin.js"></script>
     <script>
-        // Sidebar Toggle
-        function toggleSidebar() {
-            document.querySelector('.sidebar').classList.toggle('collapsed');
-            document.querySelector('.main-content').classList.toggle('sidebar-collapsed');
-        }
 
         document.addEventListener('DOMContentLoaded', () => {
             const currentUser = checkAuth(['admin']);

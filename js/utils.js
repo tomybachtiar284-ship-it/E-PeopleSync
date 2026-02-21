@@ -334,13 +334,23 @@ function updateSidebarForRole() {
 
     // 1. Handle role-restricted elements (Primary logic)
     restrictedItems.forEach(item => {
-        // Special case: Company News and its label should be visible to all
-        const isNewsLink = item.getAttribute('href') && item.getAttribute('href').includes('news.html');
+        const href = item.getAttribute('href') || '';
+        const isNewsLink = href.includes('news.html');
         const isNewsLabel = item.textContent.trim().toUpperCase() === 'COMMUNICATION';
+        const isRecruitment = href.includes('recruitment/');
 
-        if (isAdmin || isNewsLink || isNewsLabel) {
+        // Visibility rules:
+        // - Admin: Sees everything
+        // - Candidate: Sees Recruitment (Jobs) and News
+        // - Everyone: Sees News
+        const shouldShow = isAdmin ||
+            isNewsLink ||
+            isNewsLabel ||
+            (isCandidate && isRecruitment);
+
+        if (shouldShow) {
             // Must use explicit value + important to override .role-restricted { display: none !important }
-            const displayStyle = (item.tagName === 'DIV' || item.tagName === 'P') ? 'block' : 'flex';
+            const displayStyle = (item.tagName === 'DIV' || item.tagName === 'P' || item.classList.contains('glass-card')) ? 'block' : 'flex';
             item.style.setProperty('display', displayStyle, 'important');
         } else {
             item.style.setProperty('display', 'none', 'important');
@@ -384,17 +394,90 @@ function updateSidebarForRole() {
         }
     });
 
-    // Hide labels if all their subsequent links are hidden (simple approach)
+    // Final check for Settings label
     if (!isAdmin) {
         labels.forEach(lbl => {
-            const text = lbl.innerText.trim().toUpperCase();
-            if (text.includes('SETTINGS') && !isAdmin) {
-                lbl.style.display = 'none';
-            }
-            if (isCandidate) {
+            if (lbl.textContent.trim().toUpperCase() === 'SETTINGS') {
                 lbl.style.display = 'none';
             }
         });
+    }
+}
+
+/**
+ * Automatically set 'active' class on sidebar link based on current URL
+ */
+function syncActiveSidebarLink() {
+    const currentPath = window.location.pathname;
+    const navLinks = document.querySelectorAll('.nav-link.premium');
+
+    // Normalize current path
+    let currentFile = currentPath.split('/').pop() || 'index.html';
+    if (currentFile === '') currentFile = 'index.html';
+
+    navLinks.forEach(link => {
+        link.classList.remove('active');
+        const href = link.getAttribute('href');
+        if (!href || href === 'javascript:void(0)') return;
+
+        // Extract filename from href (e.g., "employees.html" or "../admin/index.html")
+        const parts = href.split('/');
+        const linkFile = parts[parts.length - 1] || 'index.html';
+
+        // Check if director matches for index.html files to avoid collisions
+        let isMatch = false;
+        if (linkFile === currentFile) {
+            if (linkFile === 'index.html' || linkFile === '') {
+                // For index.html, also check the parent directory if possible
+                const linkDir = parts[parts.length - 2] || '';
+                const currentSegments = currentPath.split('/');
+                const currentDir = currentSegments[currentSegments.length - 2] || '';
+
+                if (linkDir === '' || currentDir.includes(linkDir)) {
+                    isMatch = true;
+                }
+            } else {
+                isMatch = true;
+            }
+        }
+
+        if (isMatch) {
+            link.classList.add('active');
+        }
+    });
+}
+
+/**
+ * Persistently toggle sidebar collapsed state
+ */
+function toggleSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const mainContent = document.querySelector('.main-content');
+    if (!sidebar || !mainContent) return;
+
+    const isCollapsed = sidebar.classList.toggle('collapsed');
+    mainContent.classList.toggle('sidebar-collapsed', isCollapsed);
+
+    // Persist state
+    localStorage.setItem('sidebarCollapsed', isCollapsed);
+}
+
+/**
+ * Apply persisted sidebar state on load
+ */
+function applySidebarPersistence() {
+    const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+    const sidebar = document.querySelector('.sidebar');
+    const mainContent = document.querySelector('.main-content');
+
+    if (sidebar && mainContent) {
+        if (isCollapsed) {
+            sidebar.classList.add('collapsed');
+            mainContent.classList.add('sidebar-collapsed');
+        } else {
+            sidebar.classList.remove('collapsed');
+            mainContent.classList.remove('sidebar-collapsed');
+        }
     }
 }
 
@@ -405,7 +488,8 @@ function initUserProfile() {
 
     // Sync with Master Data
     const allData = getData();
-    const updatedUser = allData.users.find(u => u.id === currentUser.id);
+    // Sync by Username to avoid ID conflicts between Postgres and LocalStorage
+    const updatedUser = allData.users.find(u => u.username === currentUser.username);
     if (updatedUser) {
         localStorage.setItem('currentUser', JSON.stringify(updatedUser));
         currentUser = updatedUser;
@@ -577,24 +661,38 @@ function populateDropdown(elementId, items, typeName) {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('E-PeopleSync: DOMContentLoaded - Initializing Sidebar Persistence');
     initData();
+    applySidebarPersistence(); // Apply collapsed state before role updates
+    updateSidebarForRole(); // Run early to prevent layout shifts
+    syncActiveSidebarLink(); // Ensure correct page is highlighted
 
-    // Sidebar Scroll Persistence (Targeting .nav-links which has overflow-y: auto)
+    // Sidebar Scroll Persistence
     const scrollContainer = document.querySelector('.nav-links');
     if (scrollContainer) {
-        // Restore scroll position
         const savedScroll = sessionStorage.getItem('sidebarScroll');
         if (savedScroll) {
-            console.log('E-PeopleSync: Restoring Sidebar Scroll to', savedScroll);
-            scrollContainer.scrollTop = parseInt(savedScroll);
-            // Multi-stage restoration to handle dynamic content loads
-            setTimeout(() => { scrollContainer.scrollTop = parseInt(savedScroll); }, 50);
-            setTimeout(() => { scrollContainer.scrollTop = parseInt(savedScroll); }, 150);
-            setTimeout(() => { scrollContainer.scrollTop = parseInt(savedScroll); }, 400);
+            const scrollVal = parseInt(savedScroll);
+
+            // Immediate restoration
+            scrollContainer.scrollTop = scrollVal;
+
+            // requestAnimationFrame is smoother and more reliable than multiple setTimeouts
+            requestAnimationFrame(() => {
+                scrollContainer.scrollTop = scrollVal;
+            });
+
+            // Fallback for slower dynamic content
+            setTimeout(() => { scrollContainer.scrollTop = scrollVal; }, 100);
+            setTimeout(() => { scrollContainer.scrollTop = scrollVal; }, 300);
         }
 
         // Save scroll position on scroll
+        let scrollTimeout;
         scrollContainer.addEventListener('scroll', () => {
-            sessionStorage.setItem('sidebarScroll', scrollContainer.scrollTop);
+            // Debounce saving to sessionStorage for better performance
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                sessionStorage.setItem('sidebarScroll', scrollContainer.scrollTop);
+            }, 50);
         });
 
         // Save scroll position before page unload

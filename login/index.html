@@ -35,62 +35,57 @@
             </div>
         </div>
 
-        <!-- Login Form Side -->
         <div class="login-right">
-            <div style="width: 100%; max-width: 380px;">
-                <div style="margin-bottom: 40px;">
-                    <h2 style="font-size: 2rem; font-weight: 700; color: var(--premium-navy); margin-bottom: 8px;">
-                        Welcome Back</h2>
-                    <p style="color: #666; font-size: 1rem;">Please enter your credentials to access the platform.</p>
-                </div>
+            <div style="width: 100%; max-width: 400px; padding: 20px;">
 
-                <div class="form-container">
-                    <!-- Google Login -->
-                    <button onclick="handleGoogleLogin()" class="google-btn mb-4"
-                        style="padding: 14px; border-radius: 10px; transition: 0.3s; font-size: 0.95rem;">
+                <!-- Section 1: Candidate Access -->
+                <div class="candidate-section"
+                    style="text-align: center; margin-bottom: 30px; padding-bottom: 30px; border-bottom: 1px solid #eee;">
+                    <h3 style="font-size: 1.2rem; font-weight: 700; color: #333; margin-bottom: 5px;">Join Our Team</h3>
+                    <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px;">Candidates & Job Seekers</p>
+
+                    <button onclick="handleGoogleLogin()" class="google-btn"
+                        style="width: 100%; padding: 12px; border-radius: 50px; border: 1px solid #ddd; background: white; transition: 0.3s; font-size: 0.95rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; color: #444; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
                         <img src="https://www.gstatic.com/images/branding/product/1x/googleg_48dp.png" alt="Google"
                             style="width: 20px; height: 20px;">
                         <span>Continue with Google</span>
                     </button>
+                    <p style="font-size: 0.8rem; color: #999; margin-top: 10px;">Apply for jobs, track status, and take
+                        tests.</p>
+                </div>
 
-                    <div style="display: flex; align-items: center; margin-bottom: 25px;">
-                        <div style="flex: 1; height: 1px; background: #eee;"></div>
-                        <span
-                            style="padding: 0 15px; font-size: 12px; color: #bbb; font-weight: 600; text-transform: uppercase;">or
-                            access as</span>
-                        <div style="flex: 1; height: 1px; background: #eee;"></div>
-                    </div>
-
-                    <!-- Trial Logins -->
-                    <div class="d-grid gap-2">
-                        <button onclick="handleTrialLogin('employee')" class="btn btn-block mb-3"
-                            style="background-color: #f8f9fa; color: #333; height: 50px; display: flex; align-items: center; justify-content: center; gap: 12px; border: 1px solid #eee; border-radius: 10px; transition: 0.3s; font-weight: 600;">
-                            <i class="fas fa-user-tie" style="color: var(--premium-blue);"></i>
-                            Login as Sales (TOMY)
+                <!-- Section 2: Internal Access -->
+                <div class="internal-section">
+                    <h3 style="font-size: 1.2rem; font-weight: 700; color: #333; margin-bottom: 15px;">Internal Login
+                    </h3>
+                    <form id="internalLoginForm" onsubmit="handleStandardLogin(event)">
+                        <div style="margin-bottom: 15px;">
+                            <input type="text" id="intUser" placeholder="Username / NID / Email" class="form-control"
+                                required
+                                style="width: 100%; padding: 12px 15px; border-radius: 8px; border: 1px solid #ddd; background: #f9f9f9; font-size: 0.9rem;">
+                        </div>
+                        <div style="margin-bottom: 20px;">
+                            <input type="password" id="intPass" placeholder="Password" class="form-control" required
+                                style="width: 100%; padding: 12px 15px; border-radius: 8px; border: 1px solid #ddd; background: #f9f9f9; font-size: 0.9rem;">
+                        </div>
+                        <button type="submit" class="btn-primary"
+                            style="width: 100%; padding: 12px; border-radius: 8px; border: none; background: var(--premium-navy); color: white; font-weight: 700; cursor: pointer; transition: 0.3s;">
+                            Login to Dashboard
                         </button>
-
-                        <button onclick="handleTrialLogin('manager')" class="btn btn-block mb-3"
-                            style="background-color: #f8f9fa; color: #333; height: 50px; display: flex; align-items: center; justify-content: center; gap: 12px; border: 1px solid #eee; border-radius: 10px; transition: 0.3s; font-weight: 600;">
-                            <i class="fas fa-user-shield" style="color: #f39c12;"></i>
-                            Login as Manager (Budi)
-                        </button>
-
-                        <button onclick="handleCandidateTrial()" class="btn btn-block mb-3"
-                            style="background-color: #f8f9fa; color: #333; height: 50px; display: flex; align-items: center; justify-content: center; gap: 12px; border: 1px solid #eee; border-radius: 10px; transition: 0.3s; font-weight: 600;">
-                            <i class="fas fa-id-card-alt" style="color: #27ae60;"></i>
-                            Login as Candidate
-                        </button>
-                    </div>
-
-                    <div class="text-center" style="margin-top: 40px;">
-                        <p style="font-size: 13px; color: #999;">Restricted access area.</p>
-                        <a href="admin.html"
-                            style="font-size: 14px; color: var(--premium-blue); font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;">
-                            <span>Admin Portal Access</span>
-                            <i class="fas fa-arrow-right" style="font-size: 10px;"></i>
-                        </a>
+                    </form>
+                    <div style="text-align: center; margin-top: 15px;">
+                        <small style="color: #888;">For Admin, HR, and Employees only.</small>
                     </div>
                 </div>
+
+                <!-- Deprecated Trial Buttons (Hidden for Cleanliness, uncomment for debug) -->
+                <!-- 
+                <div style="margin-top: 40px; padding-top: 20px; border-top: 1px dashed #eee; opacity: 0.5;">
+                     <button onclick="handleTrialLogin('employee')">Test Employee</button>
+                     <button onclick="handleTrialLogin('admin')">Test Admin</button>
+                </div> 
+                -->
+
             </div>
         </div>
     </div>

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - HR Platform</title>
-    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="../css/styles.css?v=3.1">
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap"
         rel="stylesheet">
@@ -27,9 +27,9 @@
                 <div class="brand-icon"><img src="../assets/logo.png" alt="Logo"></div>
                 <span>E-PeopleSync</span>
             </div>
-            <nav class="nav-links">
+            <div class="nav-links">
                 <div class="nav-label premium">Main</div>
-                <a href="index.html" class="nav-link premium active"><i class="fas fa-home"></i>
+                <a href="index.html" class="nav-link premium"><i class="fas fa-home"></i>
                     <span>Dashboard</span></a>
                 <a href="approvers.html" class="nav-link premium"><i class="fas fa-user-tie"></i>
                     <span>Approvers</span></a>
@@ -51,13 +51,14 @@
                 <a href="../admin/payroll.html" class="nav-link premium role-restricted"><i
                         class="fas fa-money-bill-wave"></i>
                     <span>Payroll & Claims</span></a>
-                <a href="../recruitment/index.html" class="nav-link premium"><i class="fas fa-user-plus"></i>
+                <a href="../recruitment/index.html" class="nav-link premium role-restricted"><i
+                        class="fas fa-user-plus"></i>
                     <span>Recruitment</span></a>
                 <a href="../learning/index.html" class="nav-link premium"><i class="fas fa-graduation-cap"></i>
                     <span>Learning Hub</span></a>
 
-                <div class="nav-label premium">Communication</div>
-                <a href="../news/index.html" class="nav-link premium"><i class="fas fa-newspaper"></i>
+                <div class="nav-label premium role-restricted">Communication</div>
+                <a href="../admin/news.html" class="nav-link premium role-restricted"><i class="fas fa-newspaper"></i>
                     <span>Company News</span></a>
 
                 <div class="nav-label premium role-restricted">Enterprise Tools</div>
@@ -75,9 +76,12 @@
                 <a href="../admin/settings.html" class="nav-link premium role-restricted"><i class="fas fa-cog"></i>
                     <span>Administration</span></a>
                 <br>
-                <a href="#" onclick="logout()" class="nav-link premium text-danger"><i class="fas fa-sign-out-alt"></i>
+            </div>
+            <div class="sidebar-footer">
+                <a href="javascript:void(0)" onclick="logout()" class="nav-link premium text-danger"><i
+                        class="fas fa-sign-out-alt"></i>
                     <span>Logout</span></a>
-            </nav>
+            </div>
         </aside>
 
         <!-- Main Content -->
@@ -219,7 +223,8 @@
                             <span style="font-size: 14px; font-weight: 700; color: #2d3748;">Company News</span>
                         </div>
                     </div>
-                    <div class="glass-card clickable-card" onclick="window.location.href='../recruitment/index.html'"
+                    <div class="glass-card clickable-card role-restricted"
+                        onclick="window.location.href='../recruitment/index.html'"
                         style="padding: 20px; display: flex; align-items: center; gap: 15px;">
                         <div
                             style="width: 45px; height: 45px; border-radius: 12px; background: #fff5f5; display: flex; align-items: center; justify-content: center;">
@@ -392,7 +397,7 @@
         </div>
     </div>
 
-    <script src="../js/utils.js"></script>
+    <script src="../js/utils.js?v=3.1"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const user = checkAuth(['employee', 'manager', 'admin', 'candidate']); // Allow candidate

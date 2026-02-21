@@ -26,7 +26,13 @@ function initMobileUI(user) {
 
     // 2. Navigation & Profile Images
     const userAvatar = user.avatar || `https://i.pravatar.cc/150?u=${user.id}`;
-    document.getElementById('navAvatar').src = userAvatar;
+
+    // Update all avatar instances
+    const navAvatar = document.getElementById('navAvatar');
+    if (navAvatar) navAvatar.src = userAvatar;
+
+    const homeAvatar = document.getElementById('homeProfileImg');
+    if (homeAvatar) homeAvatar.src = userAvatar;
 
     // 3. Render Leaderboard (Winners)
     renderWinners(data, user);
@@ -37,6 +43,54 @@ function initMobileUI(user) {
 
     // 5. Render News
     renderMobileNews();
+}
+
+/**
+ * Handle Avatar Upload
+ */
+async function handleAvatarUpload(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const formData = new FormData();
+        formData.append('avatar', file);
+
+        // Get current user to identify who is uploading
+        const user = JSON.parse(localStorage.getItem('currentUser'));
+        formData.append('username', user.username);
+
+        // UI Optimistic Update (Preview)
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            document.getElementById('homeProfileImg').src = e.target.result;
+            document.getElementById('navAvatar').src = e.target.result;
+        }
+        reader.readAsDataURL(file);
+
+        try {
+            // Send to Backend
+            const response = await fetch('http://localhost:3001/api/upload-avatar', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Update Local Storage with new Avatar URL from server
+                user.avatar = result.avatar;
+                localStorage.setItem('currentUser', JSON.stringify(user));
+
+                // Show Success Toast
+                showToast("Foto Profil Berhasil Diupdate! 📸");
+            } else {
+                alert('Gagal upload foto: ' + result.message);
+                // Revert UI if needed (refresh page or reload user data)
+            }
+        } catch (error) {
+            console.error('Upload Error:', error);
+            alert('Gagal menghubungi server. Pastikan server backend berjalan.');
+        }
+    }
 }
 
 function updateTime() {
@@ -50,16 +104,26 @@ function updateTime() {
  * Switch between different views (Home, Stats, Learning, etc.)
  */
 function switchView(viewId, el) {
+    // Haptic Feedback
+    if (navigator.vibrate) navigator.vibrate(5);
+
     // Update active nav item
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
     if (el) el.classList.add('active');
 
-    // Update active view
-    document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
+    // Update active view with animation reset
+    document.querySelectorAll('.view').forEach(view => {
+        view.classList.remove('active');
+        view.style.animation = 'none'; // Reset animation
+        view.offsetHeight; /* trigger reflow */
+        view.style.animation = null;
+    });
 
     const targetView = document.getElementById(viewId + 'View');
     if (targetView) {
         targetView.classList.add('active');
+
+        // Render View Content
         if (viewId === 'learning') renderMobileLearning('all');
         if (viewId === 'perform') renderMobilePerformance();
         if (viewId === 'notifications') renderNotifications();
@@ -77,31 +141,71 @@ function switchView(viewId, el) {
 }
 
 /**
- * Feature Navigation
+ * Feature Navigation with Haptic Feedback
  */
 function navigateTo(feature) {
-    switch (feature) {
-        case 'attendance':
-            showAttendanceModal();
-            break;
-        case 'leave':
-            showLeaveModal();
-            break;
-        case 'learning':
-            switchView('learning', document.querySelector('.nav-item:nth-child(2)'));
-            break;
-        case 'perform':
-            switchView('perform', document.querySelector('.nav-item:nth-child(4)'));
-            break;
-        case 'stats':
-            switchView('stats', document.querySelector('.nav-item:nth-child(4)'));
-            break;
-        case 'learning_detail':
-            // Logic for opening detail from home cards etc if needed
-            break;
-        default:
-            alert(`Fitur ${feature.toUpperCase()} segera hadir!`);
+    // Haptic Feedback (if supported)
+    if (navigator.vibrate) navigator.vibrate(10);
+
+    const card = event.currentTarget;
+    if (card) {
+        card.style.transform = "scale(0.95)";
+        setTimeout(() => card.style.transform = "", 150);
     }
+
+    setTimeout(() => {
+        switch (feature) {
+            case 'attendance':
+                showAttendanceModal();
+                break;
+            case 'leave':
+                showLeaveModal();
+                break;
+            case 'learning':
+                switchView('learning', document.querySelector('.nav-item:nth-child(2)'));
+                break;
+            case 'perform':
+                switchView('perform', document.querySelector('.nav-item:nth-child(4)'));
+                break;
+            case 'stats':
+                switchView('stats', document.querySelector('.nav-item:nth-child(4)')); // Corrected index for stats if needed, or link to history/profile
+                break;
+            case 'learning_detail':
+                break;
+            default:
+                // Toast notification instead of alert
+                showToast(`Fitur ${feature} segera hadir!`);
+        }
+    }, 100); // Small delay for animation
+}
+
+function showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'mobile-toast';
+    toast.textContent = message;
+
+    // Inline styles for toast if not in CSS
+    Object.assign(toast.style, {
+        position: 'fixed',
+        bottom: '100px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        background: 'rgba(0,0,0,0.8)',
+        color: 'white',
+        padding: '10px 20px',
+        borderRadius: '20px',
+        fontSize: '12px',
+        zIndex: '9999',
+        opacity: '0',
+        transition: 'opacity 0.3s'
+    });
+
+    document.body.appendChild(toast);
+    setTimeout(() => toast.style.opacity = '1', 10);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+    }, 2000);
 }
 
 /**
@@ -773,24 +877,51 @@ function renderMobileHistory(type, el) {
     const list = document.getElementById('mobileHistoryList');
     if (!list) return;
 
+    // Default to 'attendance' if type is undefined, or keep current type
+    if (!type) {
+        // Find active tab to determine type
+        const activeTab = document.querySelector('.hist-tab.active');
+        type = activeTab ? (activeTab.textContent.includes('Absensi') ? 'attendance' : 'leaves') : 'attendance';
+    }
+
     // Handle Tab UI
     if (el) {
         document.querySelectorAll('.hist-tab').forEach(t => t.classList.remove('active'));
         el.classList.add('active');
     }
 
+    // Initialize Filter Date if empty
+    const filterInput = document.getElementById('historyFilterMonth');
+    if (filterInput && !filterInput.value) {
+        const now = new Date();
+        const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        filterInput.value = monthStr;
+    }
+    const selectedMonth = filterInput ? filterInput.value : '';
+
     const data = getData();
     const user = JSON.parse(localStorage.getItem('currentUser'));
 
     list.innerHTML = '';
 
+    // Show/Hide Summary Panel based on type
+    const summaryPanel = document.getElementById('leaveSummaryPanel');
+    if (summaryPanel) {
+        summaryPanel.style.display = type === 'leaves' ? 'grid' : 'none';
+    }
+
     if (type === 'attendance') {
-        const myLogs = (data.attendance || [])
-            .filter(l => l.userId === user.id)
-            .sort((a, b) => new Date(b.date) - new Date(a.date));
+        let myLogs = (data.attendance || []).filter(l => l.userId === user.id);
+
+        // Filter by Month
+        if (selectedMonth) {
+            myLogs = myLogs.filter(l => l.date.startsWith(selectedMonth));
+        }
+
+        myLogs.sort((a, b) => new Date(b.date) - new Date(a.date));
 
         if (myLogs.length === 0) {
-            list.innerHTML = '<div class="text-center p-5"><i class="fas fa-calendar-times mb-3" style="font-size:40px; color:#cbd5e0;"></i><p>Belum ada riwayat absensi.</p></div>';
+            list.innerHTML = `<div class="text-center p-5"><i class="fas fa-calendar-times mb-3" style="font-size:40px; color:#cbd5e0;"></i><p>Tidak ada riwayat absensi pada bulan ${selectedMonth}.</p></div>`;
             return;
         }
 

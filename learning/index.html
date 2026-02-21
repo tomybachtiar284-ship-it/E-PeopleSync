@@ -40,9 +40,10 @@
                 <a href="../admin/payroll.html" class="nav-link premium role-restricted"><i
                         class="fas fa-money-bill-wave"></i>
                     <span>Payroll & Claims</span></a>
-                <a href="../recruitment/index.html" class="nav-link premium"><i class="fas fa-user-plus"></i>
+                <a href="../recruitment/index.html" class="nav-link premium role-restricted"><i
+                        class="fas fa-user-plus"></i>
                     <span>Recruitment</span></a>
-                <a href="index.html" class="nav-link premium active"><i class="fas fa-graduation-cap"></i>
+                <a href="index.html" class="nav-link premium"><i class="fas fa-graduation-cap"></i>
                     <span>Learning Hub</span></a>
 
                 <div class="nav-label premium role-restricted">Communication</div>
@@ -64,6 +65,8 @@
                 <a href="../admin/settings.html" class="nav-link premium role-restricted"><i class="fas fa-cog"></i>
                     <span>Administration</span></a>
                 <br>
+            </div>
+            <div class="sidebar-footer">
                 <a href="javascript:void(0)" onclick="logout()" class="nav-link premium text-danger"><i
                         class="fas fa-sign-out-alt"></i>
                     <span>Logout</span></a>
@@ -176,11 +179,6 @@
     </div>
 
     <script>
-        // Sidebar Toggle
-        function toggleSidebar() {
-            document.querySelector('.sidebar').classList.toggle('collapsed');
-            document.querySelector('.main-content').classList.toggle('sidebar-collapsed');
-        }
     </script>
     <script src="../js/utils.js"></script>
     <script>

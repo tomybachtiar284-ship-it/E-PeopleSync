@@ -33,26 +33,39 @@
             <!-- Home Screen View -->
             <div id="homeView" class="view active">
                 <div class="header-wave">
-                    <div class="header-content">
-                        <div class="greeting-area">
-                            <span class="greeting-prefix">Good Afternoon</span>
-                            <h2 class="user-name" id="userGreetingName">M. Tomy Bachtiar</h2>
-                            <p class="mission-text">Ready to power up today?</p>
+                    <div class="header-content"
+                        style="display: flex; align-items: center; justify-content: space-between;">
+                        <div class="d-flex align-items-center gap-15">
+                            <div style="position: relative;">
+                                <img src="https://i.pravatar.cc/150?u=tomy" id="homeProfileImg"
+                                    style="width: 50px; height: 50px; border-radius: 50%; border: 2px solid white; object-fit: cover;"
+                                    onclick="document.getElementById('avatarUpload').click()">
+                                <div
+                                    style="position: absolute; bottom: 0; right: 0; background: white; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--mobile-primary); border: 1px solid #eee;">
+                                    <i class="fas fa-camera"></i>
+                                </div>
+                                <input type="file" id="avatarUpload" accept="image/*" style="display: none;"
+                                    onchange="handleAvatarUpload(this)">
+                            </div>
+                            <div class="greeting-area">
+                                <span class="greeting-prefix" style="color: rgba(255,255,255,0.9);">Good
+                                    Afternoon,</span>
+                                <h2 class="user-name" id="userGreetingName" style="font-size: 18px; margin: 0;">M. Tomy
+                                    Bachtiar</h2>
+                            </div>
                         </div>
                         <div class="weather-widget">
-                            <i class="fas fa-cloud-sun"></i>
+                            <i class="fas fa-cloud-sun text-warning"></i>
                             <div class="temp">29°C</div>
-                            <div class="weather-desc">Cloudy</div>
                         </div>
                     </div>
                 </div>
 
                 <div class="content-body">
-                    <h3 class="section-title">Start your activity</h3>
-
+                    <!-- Quick Actions Grid -->
                     <div class="feature-grid">
                         <!-- Absensi Card -->
-                        <div class="feature-card" onclick="navigateTo('attendance')">
+                        <div class="feature-card card-purple" onclick="navigateTo('attendance')">
                             <div class="icon-box purple">
                                 <i class="fas fa-fingerprint"></i>
                             </div>
@@ -60,15 +73,15 @@
                         </div>
 
                         <!-- Request Leave Card -->
-                        <div class="feature-card" onclick="navigateTo('leave')">
+                        <div class="feature-card card-orange" onclick="navigateTo('leave')">
                             <div class="icon-box orange">
-                                <i class="fas fa-calendar-plus"></i>
+                                <i class="fas fa-calendar-alt"></i>
                             </div>
                             <span class="feature-name">Cuti / Izin</span>
                         </div>
 
                         <!-- Learning Hub Card -->
-                        <div class="feature-card" onclick="navigateTo('learning')">
+                        <div class="feature-card card-blue" onclick="navigateTo('learning')">
                             <div class="icon-box blue">
                                 <i class="fas fa-graduation-cap"></i>
                             </div>
@@ -76,13 +89,25 @@
                         </div>
 
                         <!-- My Performance Card -->
-                        <div class="feature-card" onclick="navigateTo('perform')">
+                        <div class="feature-card card-green" onclick="navigateTo('perform')">
                             <div class="icon-box green">
-                                <i class="fas fa-chart-line"></i>
+                                <i class="fas fa-chart-pie"></i>
                             </div>
                             <span class="feature-name">My Perform</span>
                         </div>
+                    </div>
 
+                    <!-- Recent Activity / Promo (Optional) -->
+                    <div class="m-card mt-3"
+                        style="padding: 15px; display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 2px;">Butuh Bantuan HR?</h4>
+                            <p style="font-size: 11px; color: #718096;">Chat langsung dengan tim HR via WhatsApp</p>
+                        </div>
+                        <button
+                            style="background: #25D366; color: white; border: none; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(37, 211, 102, 0.3);">
+                            <i class="fab fa-whatsapp"></i>
+                        </button>
                     </div>
 
                 </div>
@@ -274,13 +299,53 @@
 
             <!-- History View -->
             <div id="historyView" class="view">
-                <div class="view-header">
+                <div class="view-header" style="display: flex; justify-content: space-between; align-items: center;">
                     <h3>Riwayat Aktivitas</h3>
+                    <input type="month" id="historyFilterMonth" class="mobile-input"
+                        style="width: auto; padding: 5px 10px; font-size: 12px; margin: 0;"
+                        onchange="renderMobileHistory()">
                 </div>
 
                 <div class="history-tabs">
                     <div class="hist-tab active" onclick="renderMobileHistory('attendance', this)">Absensi</div>
                     <div class="hist-tab" onclick="renderMobileHistory('leaves', this)">Cuti / Izin</div>
+                </div>
+
+                <!-- Leave Summary Panel (Visible only on Leaves tab) -->
+                <div id="leaveSummaryPanel" class="feature-grid"
+                    style="display: none; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px 0;">
+                    <div class="m-card"
+                        style="padding: 15px; display: flex; align-items: center; gap: 10px; border-left: 4px solid #FF9B6A;">
+                        <i class="fas fa-calendar-check" style="font-size: 20px; color: #FF9B6A;"></i>
+                        <div>
+                            <span style="font-size: 10px; color: #888; display: block;">Cuti Tahunan</span>
+                            <strong id="summaryCuti" style="font-size: 16px; color: #2D3436;">0</strong>
+                        </div>
+                    </div>
+                    <div class="m-card"
+                        style="padding: 15px; display: flex; align-items: center; gap: 10px; border-left: 4px solid #0984E3;">
+                        <i class="fas fa-info-circle" style="font-size: 20px; color: #0984E3;"></i>
+                        <div>
+                            <span style="font-size: 10px; color: #888; display: block;">Izin Pribadi</span>
+                            <strong id="summaryIzin" style="font-size: 16px; color: #2D3436;">0</strong>
+                        </div>
+                    </div>
+                    <div class="m-card"
+                        style="padding: 15px; display: flex; align-items: center; gap: 10px; border-left: 4px solid #D63031;">
+                        <i class="fas fa-procedures" style="font-size: 20px; color: #D63031;"></i>
+                        <div>
+                            <span style="font-size: 10px; color: #888; display: block;">Sakit</span>
+                            <strong id="summarySakit" style="font-size: 16px; color: #2D3436;">0</strong>
+                        </div>
+                    </div>
+                    <div class="m-card"
+                        style="padding: 15px; display: flex; align-items: center; gap: 10px; border-left: 4px solid #6C5CE7;">
+                        <i class="fas fa-briefcase" style="font-size: 20px; color: #6C5CE7;"></i>
+                        <div>
+                            <span style="font-size: 10px; color: #888; display: block;">Dinas Luar</span>
+                            <strong id="summaryDL" style="font-size: 16px; color: #2D3436;">0</strong>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="mobileHistoryList" class="history-list">
@@ -355,7 +420,7 @@
     </div>
 
     <!-- Attendance Modal -->
-    <div id="attendanceModal" class="mobile-modal">
+    <div id="attendanceModal" class="mobile-modal bottom-sheet">
         <div class="modal-content">
             <div class="modal-header">
                 <h3 class="modal-title">Absensi Kehadiran</h3>
@@ -388,7 +453,7 @@
     </div>
 
     <!-- Leave Request Modal -->
-    <div id="leaveModal" class="mobile-modal">
+    <div id="leaveModal" class="mobile-modal bottom-sheet">
         <div class="modal-content">
             <div class="modal-header">
                 <h3 class="modal-title">Pengajuan Cuti / Izin</h3>

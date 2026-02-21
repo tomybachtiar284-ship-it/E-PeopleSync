@@ -90,6 +90,7 @@
             line-height: 1.6;
             display: -webkit-box;
             -webkit-line-clamp: 3;
+            line-clamp: 3;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
@@ -179,7 +180,7 @@
                 <div class="brand-icon"><img src="../assets/logo.png" alt="Logo"></div>
                 <span>E-PeopleSync</span>
             </div>
-            <nav class="nav-links">
+            <div class="nav-links">
                 <div class="nav-label premium">Main</div>
                 <a href="../dashboard/index.html" class="nav-link premium"><i class="fas fa-home"></i>
                     <span>Dashboard</span></a>
@@ -227,9 +228,12 @@
                 <a href="../admin/settings.html" class="nav-link premium role-restricted"><i class="fas fa-cog"></i>
                     <span>Administration</span></a>
                 <br>
-                <a href="#" onclick="logout()" class="nav-link premium text-danger"><i class="fas fa-sign-out-alt"></i>
+            </div>
+            <div class="sidebar-footer">
+                <a href="javascript:void(0)" onclick="logout()" class="nav-link premium text-danger"><i
+                        class="fas fa-sign-out-alt"></i>
                     <span>Logout</span></a>
-            </nav>
+            </div>
         </aside>
 
         <!-- Main Content -->

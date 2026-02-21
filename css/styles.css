@@ -250,11 +250,17 @@ ul {
     padding: 20px 0;
     flex: 1;
     overflow-y: auto;
-    overflow-x: visible;
-    /* Allow notches to overflow if needed */
+    overflow-x: hidden;
     scrollbar-width: thin;
-    scrollbar-color: #ddd transparent;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
+
+.sidebar-footer {
+    padding: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: inherit;
+}
+
 
 .nav-link.premium {
     color: rgba(255, 255, 255, 0.9);
@@ -293,12 +299,14 @@ aside.sidebar .nav-link.premium.active::before {
     top: -20px;
     border-radius: 0 0 20px 0;
     box-shadow: 5px 5px 0 5px #f0f4f8;
+    z-index: 1;
 }
 
 aside.sidebar .nav-link.premium.active::after {
     bottom: -20px;
     border-radius: 0 20px 0 0;
     box-shadow: 5px -5px 0 5px #f0f4f8;
+    z-index: 1;
 }
 
 .nav-links::-webkit-scrollbar {

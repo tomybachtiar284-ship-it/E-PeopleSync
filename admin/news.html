@@ -194,6 +194,8 @@
                 <div class="nav-label premium">Main</div>
                 <a href="../dashboard/index.html" class="nav-link premium"><i class="fas fa-home"></i>
                     <span>Dashboard</span></a>
+                <a href="../dashboard/approvers.html" class="nav-link premium"><i class="fas fa-user-tie"></i>
+                    <span>Approvers</span></a>
 
                 <div class="nav-label premium role-restricted">Main Dashboard</div>
                 <a href="index.html" class="nav-link premium role-restricted"><i class="fas fa-th-large"></i>
@@ -217,7 +219,7 @@
                     <span>Learning Hub</span></a>
 
                 <div class="nav-label premium role-restricted">Communication</div>
-                <a href="news.html" class="nav-link premium role-restricted active"><i class="fas fa-newspaper"></i>
+                <a href="news.html" class="nav-link premium role-restricted"><i class="fas fa-newspaper"></i>
                     <span>Company News</span></a>
 
                 <div class="nav-label premium role-restricted">Enterprise Tools</div>
@@ -227,12 +229,14 @@
                     <span>Document Center</span></a>
                 <a href="org_chart.html" class="nav-link premium role-restricted"><i class="fas fa-sitemap"></i>
                     <span>Org Chart</span></a>
-                
+
 
                 <div class="nav-label premium role-restricted" style="margin-top: 20px;">Settings</div>
                 <a href="settings.html" class="nav-link premium role-restricted"><i class="fas fa-cog"></i>
                     <span>Administration</span></a>
                 <br>
+            </div>
+            <div class="sidebar-footer">
                 <a href="javascript:void(0)" onclick="logout()" class="nav-link premium text-danger"><i
                         class="fas fa-sign-out-alt"></i>
                     <span>Logout</span></a>
@@ -329,10 +333,6 @@
     <script src="../js/utils.js"></script>
     <script src="../js/admin_news.js"></script>
     <script>
-        // Inline script for sidebar toggle reused from other pages
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('active');
-        }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -344,4 +344,3 @@
 </body>
 
 </html>
-
