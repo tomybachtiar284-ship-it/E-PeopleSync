@@ -1,35 +1,36 @@
 /**
- * Digital Approval Logic
- * Handles multi-stage transitions: Supervisor -> Manager -> Final
+ * Digital Approval Logic — PostgreSQL API Version
+ * Multi-stage transitions: Supervisor → Manager → Final
  */
 
+const API = 'http://localhost:3001';
 let currentRequest = null;
-let currentRole = null; // 'supervisor' or 'manager'
+let currentRole = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     initApprovalPage();
 });
 
-function initApprovalPage() {
+async function initApprovalPage() {
     const params = new URLSearchParams(window.location.search);
     const requestId = parseInt(params.get('requestId'));
     currentRole = params.get('role');
-    const token = params.get('token');
 
     if (!requestId || !currentRole) {
         showError("Invalid Parameters: Missing ID or Role.");
         return;
     }
 
-    const data = getData();
-    currentRequest = (data.leaveRequests || []).find(r => r.id === requestId);
-
-    if (!currentRequest) {
+    try {
+        const res = await fetch(`${API}/api/leave/${requestId}`);
+        if (!res.ok) throw new Error('Not found');
+        currentRequest = await res.json();
+    } catch (e) {
         showError("Data pengajuan tidak ditemukan.");
         return;
     }
 
-    // Security check (Simulation: match status with requested role)
+    // Security check
     if (currentRole === 'supervisor' && currentRequest.status !== 'waiting_supervisor') {
         showError("Pengajuan ini sudah diproses atau bukan tahap Supervisor.");
         return;
@@ -43,113 +44,92 @@ function initApprovalPage() {
 }
 
 function renderDetails() {
-    document.getElementById('dispName').textContent = currentRequest.empName || currentRequest.name;
-    document.getElementById('dispType').textContent = currentRequest.type;
-    document.getElementById('dispPeriod').textContent = `${currentRequest.startDate || currentRequest.dateStart} s/d ${currentRequest.endDate || currentRequest.dateEnd}`;
+    document.getElementById('dispName').textContent = currentRequest.emp_name || currentRequest.empName || currentRequest.name || '-';
+    document.getElementById('dispType').textContent = currentRequest.type || '-';
+    document.getElementById('dispPeriod').textContent = `${currentRequest.start_date || currentRequest.startDate || '-'} s/d ${currentRequest.end_date || currentRequest.endDate || '-'}`;
     document.getElementById('dispReason').textContent = currentRequest.reason || '-';
-
     document.getElementById('roleBadge').textContent = currentRole === 'supervisor' ? 'TEAM LEADER APPROVAL' : 'ASMAN APPROVAL';
-    document.getElementById('viewTitle').textContent = `Persetujuan ${currentRequest.type}`;
+    document.getElementById('viewTitle').textContent = `Persetujuan ${currentRequest.type || ''}`;
 }
 
-function handleAction(action) {
+async function handleAction(action) {
     if (!currentRequest) return;
 
-    const data = getData();
-    const req = data.leaveRequests.find(r => r.id === currentRequest.id);
-    if (!req) return;
+    try {
+        if (action === 'Rejected') {
+            await fetch(`${API}/api/leave/${currentRequest.id}/approve`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'Rejected', approved_by: currentRole })
+            });
+            showSuccess("Pengajuan Ditolak", "Status telah diperbarui menjadi Ditolak.");
+            return;
+        }
 
-    if (action === 'Rejected') {
-        req.status = 'Rejected';
-        req.approvalHistory.push({
-            role: currentRole,
-            action: 'Rejected',
-            time: new Date().toISOString()
-        });
-        saveData(data);
-        showSuccess("Pengajuan Ditolak", "Status telah diperbarui menjadi Ditolak.");
+        // APPROVAL LOGIC
+        if (currentRole === 'supervisor') {
+            // Stage 1: Supervisor approved → move to waiting_final
+            await fetch(`${API}/api/leave/${currentRequest.id}/approve`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'waiting_final', approved_by: 'supervisor' })
+            });
+            showSuccess("Persetujuan Diterima", "Berhasil! Pengajuan diteruskan ke ASMAN untuk persetujuan akhir.");
+            simulateEmailToASMAN(currentRequest);
 
-        // Notify Employee
-        createNotification(req.userId, "Pengajuan Ditolak", `Pengajuan ${req.type} Anda ditolak oleh ${currentRole === 'supervisor' ? 'Team Leader' : 'ASMAN'}.`, "leave");
-        return;
-    }
-
-    // APPROVAL LOGIC
-    if (currentRole === 'supervisor') {
-        // Stage 1: Move to ASMAN
-        req.status = 'waiting_final';
-        req.approvalHistory.push({
-            role: 'supervisor',
-            action: 'Approved',
-            time: new Date().toISOString()
-        });
-        saveData(data);
-
-        showSuccess("Persetujuan Diterima", "Berhasil! Pengajuan diteruskan ke ASMAN untuk persetujuan akhir.");
-
-        // SIMULATE EMAIL TO ASMAN
-        simulateEmailToASMAN(req);
-
-    } else if (currentRole === 'manager') {
-        // Stage 2: ASMAN Final Approval
-        req.status = 'Approved';
-        req.approvedAt = new Date().toISOString();
-        req.approvalHistory.push({
-            role: 'asman',
-            action: 'Approved',
-            time: new Date().toISOString()
-        });
-
-        // SYNC TO ROSTER
-        syncToRoster(req, data);
-
-        saveData(data);
-        showSuccess("Persetujuan ASMAN Berhasil", "Pengajuan telah disetujui sepenuhnya oleh ASMAN dan sinkron ke Roster Kehadiran.");
-
-        // Notify Employee
-        createNotification(req.userId, "Pengajuan Disetujui", `Pengajuan ${req.type} Anda telah disetujui oleh ASMAN.`, "leave");
+        } else if (currentRole === 'manager') {
+            // Stage 2: ASMAN final approval → sync roster
+            await fetch(`${API}/api/leave/${currentRequest.id}/approve`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'Approved', approved_by: 'manager' })
+            });
+            // Sync to roster via API
+            await syncToRosterAPI(currentRequest);
+            showSuccess("Persetujuan ASMAN Berhasil", "Pengajuan disetujui sepenuhnya dan sinkron ke Roster Kehadiran.");
+        }
+    } catch (e) {
+        alert('Gagal memproses: ' + e.message);
     }
 }
 
-function syncToRoster(req, data) {
-    const start = new Date(req.startDate || req.dateStart);
-    const end = new Date(req.endDate || req.dateEnd);
-
-    // Leave Type to Roster Code Mapping
+async function syncToRosterAPI(req) {
     const typeMapping = {
-        'Cuti Tahunan': 'CT',
-        'Sakit': 'SD',
-        'Izin': 'I',
-        'Dinas Luar': 'DL',
-        'Alpa': 'A'
+        'Cuti Tahunan': 'CT', 'Sakit': 'SD', 'Izin': 'I',
+        'Dinas Luar': 'DL', 'Alpa': 'A'
     };
-    const rosterCode = typeMapping[req.type] || req.type || 'Off';
+    const shift_code = typeMapping[req.type] || req.type || 'Off';
+    const start = new Date(req.start_date || req.startDate);
+    const end = new Date(req.end_date || req.endDate);
+    const changes = [];
 
     for (let dt = new Date(start); dt <= end; dt.setDate(dt.getDate() + 1)) {
-        const dateStr = dt.toISOString().split('T')[0];
-        if (!data.roster) data.roster = [];
-        // Corrected: Use req.userId (numeric ID) instead of req.empId (display NID)
-        const rosterIdx = data.roster.findIndex(r => r.empId === req.userId && r.date === dateStr);
-        if (rosterIdx > -1) {
-            data.roster[rosterIdx].shift = rosterCode;
-        } else {
-            data.roster.push({ empId: req.userId, date: dateStr, shift: rosterCode });
-        }
+        changes.push({
+            user_id: req.user_id || req.userId,
+            date: dt.toISOString().split('T')[0],
+            shift_code
+        });
     }
+
+    await Promise.all(changes.map(c =>
+        fetch(`${API}/api/attendance/roster`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(c)
+        })
+    ));
 }
 
 function simulateEmailToASMAN(req) {
     const token = Math.random().toString(36).substr(2);
     const origin = window.location.origin === 'null' ? 'file://' : window.location.origin;
-    const path = window.location.pathname;
-    const approvalLink = `${origin}${path}?requestId=${req.id}&role=manager&token=${token}`;
+    const approvalLink = `${origin}${window.location.pathname}?requestId=${req.id}&role=manager&token=${token}`;
 
-    console.log("%c[SIMULASI EMAIL ASMAN]", "color: #1976d2; font-weight: bold; font-size: 16px;");
-    console.log(`Kepada: ${req.managerEmail}`);
-    console.log(`Subjek: PERSETUJUAN FINAL - ${req.empName}`);
+    console.log("%c[SIMULASI EMAIL ASMAN]", "color:#1976d2;font-weight:bold;font-size:16px;");
+    console.log(`Kepada: ${req.manager_email || req.managerEmail || '-'}`);
+    console.log(`Subjek: PERSETUJUAN FINAL - ${req.emp_name || req.empName}`);
     console.log(`Link: ${approvalLink}`);
 
-    // Show Trial Link for next stage
     const nextStageDiv = document.getElementById('trialNextStage');
     const nextStageLink = document.getElementById('trialNextLink');
     if (nextStageDiv && nextStageLink) {

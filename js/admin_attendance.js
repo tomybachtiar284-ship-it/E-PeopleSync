@@ -1,412 +1,294 @@
 /**
- * Admin Attendance & Shift Logic
+ * Admin Attendance & Shift Logic — PostgreSQL API Version
  */
 
+const API = 'http://localhost:3001';
 let currentViewDate = new Date();
 let activeRosterCell = null;
 
-document.addEventListener('DOMContentLoaded', () => {
+// ── Cache ─────────────────────────────────────────────────────
+let _cache = { employees: [], roster: [], attendance: [], leave: [], shifts: [] };
+
+async function loadCache() {
+    const yr = currentViewDate.getFullYear();
+    const mo = currentViewDate.getMonth() + 1;
+    try {
+        const [emps, roster, att, leave, shifts] = await Promise.all([
+            fetch(`${API}/api/employees`).then(r => r.json()),
+            fetch(`${API}/api/attendance/roster?month=${mo}&year=${yr}`).then(r => r.json()),
+            fetch(`${API}/api/attendance?month=${mo}&year=${yr}`).then(r => r.json()),
+            fetch(`${API}/api/leave`).then(r => r.json()),
+            fetch(`${API}/api/attendance/shifts`).then(r => r.json()),
+        ]);
+        _cache.employees = emps.filter(u => ['employee', 'manager'].includes(u.role));
+        _cache.roster = Array.isArray(roster) ? roster : [];
+        _cache.attendance = Array.isArray(att) ? att : [];
+        _cache.leave = Array.isArray(leave) ? leave : [];
+        _cache.shifts = Array.isArray(shifts) ? shifts : [];
+    } catch (e) { console.error('loadCache error:', e.message); }
+}
+
+// ── Init ──────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
     const user = checkAuth(['admin', 'manager', 'employee']);
     if (user) initUserProfile();
-
-    // Disable admin features for employees
     if (user && user.role === 'employee') {
-        const adminButtons = document.querySelectorAll('.btn-outline-warning, .btn-outline-danger, .btn-primary');
-        adminButtons.forEach(btn => {
-            if (btn.innerText.includes('Bulk') || btn.innerText.includes('Clear') || btn.innerText.includes('Save')) {
-                btn.style.display = 'none';
-            }
+        document.querySelectorAll('.btn-outline-warning,.btn-outline-danger,.btn-primary').forEach(btn => {
+            if (btn.innerText.includes('Bulk') || btn.innerText.includes('Clear') || btn.innerText.includes('Save')) btn.style.display = 'none';
         });
     }
-
+    await loadCache();
     initAttendancePage();
 });
 
-
-
 function initAttendancePage() {
-    renderStats();
-    renderRoster();
-    renderLogs();
-    renderApprovalQueue();
+    renderStats(); renderRoster(); renderLogs(); renderApprovalQueue();
 }
 
+// ── Stats ─────────────────────────────────────────────────────
 function renderStats() {
-    const data = getData();
     const today = new Date().toISOString().split('T')[0];
-    const logsToday = (data.attendance || []).filter(log => log.date === today);
-    const employees = data.users.filter(u => ['employee', 'manager'].includes(u.role));
-
-    // Shift category definitions
     const workShifts = ['P', 'S', 'M', 'DT', 'Pagi', 'Siang', 'Malam', 'Daytime'];
     const leaveShifts = ['CT', 'SD', 'DL', 'I', 'Cuti', 'Sakit', 'Dinas Luar', 'Izin'];
-
-    // Present count
-    const presentCount = logsToday.length;
-    const lateCount = logsToday.filter(log => log.isLate).length;
-
-    // Absent count: Scheduled for Work but no scan today
-    const presentIds = new Set(logsToday.map(log => log.empId));
-    const absentCount = employees.filter(emp => {
-        const shift = getShiftForDate(emp.id, today);
+    const logsToday = _cache.attendance.filter(l => l.date?.startsWith(today));
+    const presentIds = new Set(logsToday.map(l => l.user_id));
+    const lateCount = logsToday.filter(l => l.late_minutes > 0).length;
+    const absentCount = _cache.employees.filter(emp => {
+        const shift = getRosterShift(emp.id, today);
         return workShifts.includes(shift) && !presentIds.has(emp.id);
     }).length;
-
-    // On Leave count: Roster shows Leave status
-    const leaveCount = employees.filter(emp => {
-        const shift = getShiftForDate(emp.id, today);
-        return leaveShifts.includes(shift);
-    }).length;
-
-    document.getElementById('statPresent').textContent = presentCount;
+    const leaveCount = _cache.employees.filter(emp => leaveShifts.includes(getRosterShift(emp.id, today))).length;
+    document.getElementById('statPresent').textContent = logsToday.length;
     document.getElementById('statLate').textContent = lateCount;
     document.getElementById('statAbsent').textContent = absentCount;
     document.getElementById('statLeave').textContent = leaveCount;
 }
 
+// ── Roster Render ─────────────────────────────────────────────
+function getRosterShift(userId, date) {
+    const e = _cache.roster.find(r => r.user_id == userId && r.date?.startsWith(date));
+    return e ? e.shift_code : 'Off';
+}
+
 function renderRoster() {
-    const data = getData();
     const year = currentViewDate.getFullYear();
     const month = currentViewDate.getMonth();
-
-    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-    document.getElementById('currentMonthYear').textContent = `${monthNames[month]} ${year}`;
-
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const mNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    document.getElementById('currentMonthYear').textContent = `${mNames[month]} ${year}`;
+    const days = new Date(year, month + 1, 0).getDate();
     const header = document.getElementById('rosterHeader');
     const body = document.getElementById('rosterBody');
 
-    // 1. Render Header
-    header.innerHTML = '<th style="width: 50px; text-align: center;">No</th><th class="emp-col">Employee</th>';
-    for (let i = 1; i <= daysInMonth; i++) {
-        const isToday = (i === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear());
+    header.innerHTML = '<th style="width:50px;text-align:center;">No</th><th class="emp-col">Employee</th>';
+    for (let i = 1; i <= days; i++) {
+        const today = new Date();
+        const isToday = i === today.getDate() && month === today.getMonth() && year === today.getFullYear();
         header.innerHTML += `<th class="date-col ${isToday ? 'active-day' : ''}">${i}</th>`;
     }
 
-    // 2. Render Body
     body.innerHTML = '';
-    const employees = data.users
-        .filter(u => ['employee', 'manager'].includes(u.role))
-        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-
-    // Optimasi: Buat map untuk pencarian roster yang cepat O(1)
-    const rosterMap = {};
-    if (data.roster) {
-        data.roster.forEach(entry => {
-            rosterMap[`${entry.empId}_${entry.date}`] = entry.shift;
-        });
-    }
-
-    const fragment = document.createDocumentFragment();
+    const employees = [..._cache.employees].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    // roster map for fast lookup
+    const rMap = {};
+    _cache.roster.forEach(r => { rMap[`${r.user_id}_${r.date?.split('T')[0]}`] = r.shift_code; });
+    const frag = document.createDocumentFragment();
 
     employees.forEach((emp, idx) => {
         const tr = document.createElement('tr');
-        let rowHtml = `
-            <td style="text-align: center; vertical-align: middle; padding: 5px;">
-                <input type="number" class="order-input" value="${idx + 1}" 
-                    style="width: 40px; text-align: center; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; font-weight: 600; color: #555;"
-                    onchange="jumpOrder(${emp.id}, this.value)">
+        let html = `
+            <td style="text-align:center;vertical-align:middle;padding:5px;">
+                <input type="number" class="order-input" value="${idx + 1}"
+                    style="width:40px;text-align:center;border:1px solid #ddd;border-radius:4px;font-size:12px;font-weight:600;color:#555;"
+                    onchange="jumpOrder(${emp.id},this.value)">
             </td>
             <td class="emp-col">
                 <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        ${emp.name}<br>
-                        <small style="color:#999;">${emp.nid || ''} <span style="color:#555; background:#eee; padding:1px 4px; border-radius:3px; margin-left:5px;">${emp.group || 'No Group'}</span></small>
-                    </div>
+                    <div>${emp.name}<br><small style="color:#999;">${emp.nid || ''} <span style="color:#555;background:#eee;padding:1px 4px;border-radius:3px;margin-left:5px;">${emp.group || 'No Group'}</span></small></div>
                     <div class="reorder-btns d-flex flex-column gap-1 no-print">
-                        <button class="btn btn-xs btn-outline-secondary p-0" style="font-size: 8px; line-height: 1;" onclick="moveEmp(${emp.id}, -1)" ${idx === 0 ? 'disabled' : ''}><i class="fas fa-chevron-up"></i></button>
-                        <button class="btn btn-xs btn-outline-secondary p-0" style="font-size: 8px; line-height: 1;" onclick="moveEmp(${emp.id}, 1)" ${idx === employees.length - 1 ? 'disabled' : ''}><i class="fas fa-chevron-down"></i></button>
+                        <button class="btn btn-xs btn-outline-secondary p-0" style="font-size:8px;line-height:1;" onclick="moveEmp(${emp.id},-1)" ${idx === 0 ? 'disabled' : ''}><i class="fas fa-chevron-up"></i></button>
+                        <button class="btn btn-xs btn-outline-secondary p-0" style="font-size:8px;line-height:1;" onclick="moveEmp(${emp.id},1)" ${idx === employees.length - 1 ? 'disabled' : ''}><i class="fas fa-chevron-down"></i></button>
                     </div>
                 </div>
             </td>`;
-
-        for (let i = 1; i <= daysInMonth; i++) {
+        for (let i = 1; i <= days; i++) {
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-            const shift = rosterMap[`${emp.id}_${dateStr}`] || 'Off';
-            rowHtml += `<td><span class="shift-badge ${shift.toLowerCase()}" onclick="openShiftSelection(this, '${emp.id}', '${dateStr}')">${shift}</span></td>`;
+            const shift = rMap[`${emp.id}_${dateStr}`] || 'Off';
+            html += `<td><span class="shift-badge ${shift.toLowerCase()}" onclick="openShiftSelection(this,'${emp.id}','${dateStr}')">${shift}</span></td>`;
         }
-        tr.innerHTML = rowHtml;
-        fragment.appendChild(tr);
+        tr.innerHTML = html;
+        frag.appendChild(tr);
     });
-    body.appendChild(fragment);
+    body.appendChild(frag);
 }
 
-function moveEmp(empId, direction) {
-    const data = getData();
-    const staff = data.users.filter(u => ['employee', 'manager'].includes(u.role));
-    staff.forEach((u, i) => {
-        if (u.order === undefined) u.order = i;
-    });
-
-    const employees = staff.sort((a, b) => a.order - b.order);
+// ── Reorder ───────────────────────────────────────────────────
+async function moveEmp(empId, dir) {
+    const employees = [..._cache.employees].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     const idx = employees.findIndex(e => e.id == empId);
     if (idx === -1) return;
-
-    const newIdx = idx + direction;
+    const newIdx = idx + dir;
     if (newIdx < 0 || newIdx >= employees.length) return;
-
-    // 1. Swap logical order in underlying data
-    const tempOrder = employees[idx].order;
-    employees[idx].order = employees[newIdx].order;
-    employees[newIdx].order = tempOrder;
-    saveData(data);
-
-    // 2. Perform DOM Swap for instant visual feedback
+    [employees[idx].order, employees[newIdx].order] = [employees[newIdx].order, employees[idx].order];
+    // DOM swap for instant feedback
     const tbody = document.getElementById('rosterBody');
-    if (!tbody) return;
-
     const rows = Array.from(tbody.children);
-    const rowA = rows[idx];
-    const rowB = rows[newIdx];
+    dir === -1 ? tbody.insertBefore(rows[idx], rows[newIdx]) : tbody.insertBefore(rows[newIdx], rows[idx]);
+    _refreshOrderUI(tbody.children);
+    // Save to API
+    await Promise.all([
+        fetch(`${API}/api/employees/${employees[idx].id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order: employees[idx].order }) }),
+        fetch(`${API}/api/employees/${employees[newIdx].id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order: employees[newIdx].order }) })
+    ]).catch(e => console.error('moveEmp save error:', e.message));
+}
 
-    if (direction === -1) {
-        // Move Up: Insert Row A before Row B
-        tbody.insertBefore(rowA, rowB);
-    } else {
-        // Move Down: Insert Row B before Row A
-        tbody.insertBefore(rowB, rowA);
-    }
-
-    // 3. Update sequences and button disabled states
-    const updatedRows = Array.from(tbody.children);
-    updatedRows.forEach((row, i) => {
-        // Update Number Input
-        const input = row.querySelector('.order-input');
-        if (input) input.value = i + 1;
-
-        // Update Buttons
-        const btnUp = row.querySelector('.reorder-btns button:first-child');
-        const btnDown = row.querySelector('.reorder-btns button:last-child');
-        if (btnUp) btnUp.disabled = (i === 0);
-        if (btnDown) btnDown.disabled = (i === updatedRows.length - 1);
+function _refreshOrderUI(rows) {
+    Array.from(rows).forEach((row, i) => {
+        const inp = row.querySelector('.order-input'); if (inp) inp.value = i + 1;
+        const btnU = row.querySelector('.reorder-btns button:first-child');
+        const btnD = row.querySelector('.reorder-btns button:last-child');
+        if (btnU) btnU.disabled = (i === 0);
+        if (btnD) btnD.disabled = (i === rows.length - 1);
     });
 }
 
-function jumpOrder(empId, newDisplayOrder) {
-    const data = getData();
-    const staff = data.users.filter(u => ['employee', 'manager'].includes(u.role));
-    staff.forEach((u, i) => { if (u.order === undefined) u.order = i; });
-
-    const employees = staff.sort((a, b) => a.order - b.order);
+async function jumpOrder(empId, newDisplay) {
+    const employees = [..._cache.employees].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     const oldIdx = employees.findIndex(e => e.id == empId);
     if (oldIdx === -1) return;
-
-    let newIdx = parseInt(newDisplayOrder) - 1;
+    let newIdx = parseInt(newDisplay) - 1;
     if (isNaN(newIdx)) return renderRoster();
-    if (newIdx < 0) newIdx = 0;
-    if (newIdx >= employees.length) newIdx = employees.length - 1;
-
+    newIdx = Math.max(0, Math.min(employees.length - 1, newIdx));
     if (oldIdx === newIdx) return;
-
-    // 1. Swap data logically
-    const [movedEmp] = employees.splice(oldIdx, 1);
-    employees.splice(newIdx, 0, movedEmp);
-    employees.forEach((emp, i) => { emp.order = i; });
-    saveData(data);
-
-    // 2. Perform DOM movement for instant feedback
-    const tbody = document.getElementById('rosterBody');
-    if (!tbody) return;
-    const rows = Array.from(tbody.children);
-    const rowToMove = rows[oldIdx];
-    const targetRow = rows[newIdx];
-
-    if (newIdx < oldIdx) {
-        // Moving up: Insert before the target row
-        tbody.insertBefore(rowToMove, targetRow);
-    } else {
-        // Moving down: Insert after the target row
-        tbody.insertBefore(rowToMove, targetRow.nextSibling);
-    }
-
-    // 3. Refresh Numbers & Buttons (Fast)
-    const updatedRows = Array.from(tbody.children);
-    updatedRows.forEach((row, i) => {
-        const input = row.querySelector('.order-input');
-        if (input) input.value = i + 1;
-
-        const btnUp = row.querySelector('.reorder-btns button:first-child');
-        const btnDown = row.querySelector('.reorder-btns button:last-child');
-        if (btnUp) btnUp.disabled = (i === 0);
-        if (btnDown) btnDown.disabled = (i === updatedRows.length - 1);
-    });
-}
-
-function getShiftForDate(empId, date) {
-    const data = getData();
-    if (!data.roster) data.roster = [];
-    const entry = data.roster.find(r => r.empId === empId && r.date === date);
-    return entry ? entry.shift : 'Off';
-}
-
-function autoFillRosterFromPatterns() {
-    const data = getData();
-    const year = currentViewDate.getFullYear();
-    const month = currentViewDate.getMonth();
-    const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-    const patterns = (data.groupPatterns || {})[monthKey];
-    if (!patterns) {
-        alert(`Pola shift master untuk bulan ${monthKey} belum dikonfigurasi di menu Settings.`);
-        return;
-    }
-
-    if (!confirm(`Apakah Anda yakin ingin mengisi jadwal secara otomatis untuk bulan ${monthKey} berdasarkan pola grup? Jadwal yang sudah ada akan ditimpa.`)) {
-        return;
-    }
-
-    const employees = data.users.filter(u => ['employee', 'manager'].includes(u.role));
-    if (!data.roster) data.roster = [];
-
-    let filledCount = 0;
-    employees.forEach(emp => {
-        const group = emp.group || '';
-        const groupPattern = patterns[group];
-
-        if (groupPattern && Array.isArray(groupPattern)) {
-            for (let i = 1; i <= daysInMonth; i++) {
-                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-                // Shift in pattern is 0-indexed (day 1 is index 0)
-                const shiftCode = groupPattern[i - 1] || 'Off';
-
-                // Map "Off" to "L" if needed, or keep as is. Let's keep consistency.
-                const finalShift = shiftCode === 'Off' ? 'Off' : shiftCode;
-
-                const idx = data.roster.findIndex(r => r.empId === emp.id && r.date === dateStr);
-                if (idx > -1) {
-                    data.roster[idx].shift = finalShift;
-                } else {
-                    data.roster.push({ empId: emp.id, date: dateStr, shift: finalShift });
-                }
-            }
-            filledCount++;
-        }
-    });
-
-    saveData(data);
+    const [moved] = employees.splice(oldIdx, 1);
+    employees.splice(newIdx, 0, moved);
+    employees.forEach((e, i) => e.order = i);
+    _cache.employees = employees;
     renderRoster();
-    alert(`Berhasil sinkronisasi jadwal untuk ${filledCount} karyawan berdasarkan grup.`);
+    await Promise.all(employees.map(e =>
+        fetch(`${API}/api/employees/${e.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order: e.order }) })
+    )).catch(e => console.error('jumpOrder save error:', e.message));
 }
 
+// ── Shift Selection ───────────────────────────────────────────
 function openShiftSelection(cell, empId, date) {
     const user = JSON.parse(localStorage.getItem('currentUser'));
-    if (user && user.role === 'employee') return; // Read-only for employees
-
+    if (user && user.role === 'employee') return;
     activeRosterCell = { cell, empId, date };
-
-    // Dynamically generate shift buttons based on shiftDefinitions
-    const data = getData();
-    const shifts = data.shiftDefinitions || [];
     const container = document.querySelector('#shiftModal .d-flex.flex-column');
     if (container) {
         container.innerHTML = '';
-        shifts.forEach(s => {
+        _cache.shifts.forEach(s => {
             const btn = document.createElement('button');
-            btn.className = `btn btn-outline-primary w-100 mb-2 py-2`;
-            btn.style.textAlign = 'left';
-            btn.style.paddingLeft = '15px';
-            btn.style.borderRadius = '10px';
-            const timeInfo = (s.clockIn && s.clockOut) ? ` <small style="color: #666;">(${s.clockIn} - ${s.clockOut})</small>` : '';
-            btn.innerHTML = `<strong>${s.code}</strong> - ${s.name}${timeInfo}`;
+            btn.className = 'btn btn-outline-primary w-100 mb-2 py-2';
+            btn.style.cssText = 'text-align:left;padding-left:15px;border-radius:10px;';
+            const time = (s.clock_in && s.clock_out) ? ` <small style="color:#666;">(${s.clock_in} - ${s.clock_out})</small>` : '';
+            btn.innerHTML = `<strong>${s.code}</strong> - ${s.name}${time}`;
             btn.onclick = () => applyShift(s.code);
             container.appendChild(btn);
         });
     }
-
     document.getElementById('shiftModal').style.display = 'block';
 }
 
-function closeShiftModal() {
-    document.getElementById('shiftModal').style.display = 'none';
-}
+function closeShiftModal() { document.getElementById('shiftModal').style.display = 'none'; }
 
-function applyShift(shiftCode) {
+async function applyShift(shiftCode) {
     if (!activeRosterCell) return;
-
     const { cell, empId, date } = activeRosterCell;
     cell.textContent = shiftCode;
     cell.className = `shift-badge ${shiftCode.toLowerCase()}`;
-
-    updateRosterData(empId, date, shiftCode);
+    // Update cache
+    const existing = _cache.roster.find(r => r.user_id == empId && r.date?.startsWith(date));
+    if (existing) existing.shift_code = shiftCode;
+    else _cache.roster.push({ user_id: Number(empId), date, shift_code: shiftCode });
+    window._pendingRosterChanges = window._pendingRosterChanges || [];
+    window._pendingRosterChanges.push({ user_id: empId, date, shift_code: shiftCode });
     closeShiftModal();
 }
 
-function updateRosterData(empId, date, shift) {
-    const data = getData();
-    if (!data.roster) data.roster = [];
-
-    const idx = data.roster.findIndex(r => r.empId === empId && r.date === date);
-    if (idx > -1) {
-        data.roster[idx].shift = shift;
-    } else {
-        data.roster.push({ empId, date, shift });
-    }
-    // Note: We don't saveData(data) here yet, we'll do it on "Save Schedule" button
-    window.tempRosterData = data;
-}
-
-function saveRoster() {
-    if (window.tempRosterData) {
-        saveData(window.tempRosterData);
-        alert('Work schedule saved successfully!');
-    } else {
-        alert('No changes to save.');
-    }
+async function saveRoster() {
+    const changes = window._pendingRosterChanges || [];
+    if (changes.length === 0) { alert('Tidak ada perubahan untuk disimpan.'); return; }
+    try {
+        await Promise.all(changes.map(c =>
+            fetch(`${API}/api/attendance/roster`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(c) })
+        ));
+        window._pendingRosterChanges = [];
+        alert('Jadwal berhasil disimpan!');
+    } catch (e) { alert('Gagal menyimpan: ' + e.message); }
 }
 
 function changeMonth(dir) {
     currentViewDate.setMonth(currentViewDate.getMonth() + dir);
-    renderRoster();
+    loadCache().then(() => { renderRoster(); renderStats(); });
 }
 
+// ── Bulk & Clear ──────────────────────────────────────────────
+function openBulkModal() { document.getElementById('bulkModal').style.display = 'block'; }
+function closeBulkModal() { document.getElementById('bulkModal').style.display = 'none'; }
+
+function applyBulkShift() {
+    const shiftCode = document.getElementById('bulkShiftType').value;
+    const year = currentViewDate.getFullYear(), month = currentViewDate.getMonth();
+    const days = new Date(year, month + 1, 0).getDate();
+    _cache.employees.forEach(emp => {
+        for (let i = 1; i <= days; i++) {
+            const date = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+            const ex = _cache.roster.find(r => r.user_id == emp.id && r.date?.startsWith(date));
+            if (ex) ex.shift_code = shiftCode;
+            else _cache.roster.push({ user_id: emp.id, date, shift_code: shiftCode });
+            window._pendingRosterChanges = window._pendingRosterChanges || [];
+            window._pendingRosterChanges.push({ user_id: emp.id, date, shift_code: shiftCode });
+        }
+    });
+    renderRoster(); closeBulkModal();
+    alert(`Shift ${shiftCode} diterapkan. Klik "Save Schedule" untuk menyimpan.`);
+}
+
+async function clearMonth() {
+    if (!confirm('Hapus seluruh jadwal bulan ini?')) return;
+    const year = currentViewDate.getFullYear(), month = currentViewDate.getMonth();
+    const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+    _cache.roster = _cache.roster.filter(r => !r.date?.startsWith(prefix));
+    // Mark as pending (will be overwritten as Off when saved, or just re-fetch)
+    renderRoster(); alert('Jadwal dikosongkan. Klik "Save Schedule" untuk menyimpan ke database.');
+}
+
+// ── Logs ──────────────────────────────────────────────────────
 function renderLogs() {
-    const data = getData();
     const body = document.getElementById('attendanceLogsBody');
     if (!body) return;
     body.innerHTML = '';
-
-    const logs = data.attendance || [];
-    // Show last 15 logs
-    logs.slice(-15).reverse().forEach(log => {
-        const emp = data.users.find(u => u.id == log.empId) || { name: 'Unknown' };
+    const logs = [..._cache.attendance].slice(0, 15);
+    if (logs.length === 0) {
+        body.innerHTML = '<tr><td colspan="6" class="text-center" style="color:#999;padding:20px;">No attendance logs found.</td></tr>';
+        return;
+    }
+    logs.forEach(log => {
+        const isLate = log.late_minutes > 0;
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td style="font-weight:600;">${emp.name}</td>
-            <td style="font-size: 13px;">${log.date}</td>
-            <td style="font-weight:700;">${log.clockIn || '--:--'}</td>
-            <td style="font-weight:700;">${log.clockOut || '--:--'}</td>
-            <td><span class="badge ${log.isLate ? 'badge-danger' : 'badge-success'}" style="padding: 4px 10px; border-radius: 6px;">${log.isLate ? 'Late' : 'On Time'}</span></td>
-            <td style="text-align: center;">
+            <td style="font-weight:600;">${log.name || 'Unknown'}</td>
+            <td style="font-size:13px;">${log.date?.split('T')[0] || ''}</td>
+            <td style="font-weight:700;">${log.clock_in || '--:--'}</td>
+            <td style="font-weight:700;">${log.clock_out || '--:--'}</td>
+            <td><span class="badge ${isLate ? 'badge-danger' : 'badge-success'}" style="padding:4px 10px;border-radius:6px;">${isLate ? 'Late' : 'On Time'}</span></td>
+            <td style="text-align:center;">
                 <button class="btn btn-sm btn-outline-primary me-1" onclick="editLog(${log.id})"><i class="fas fa-edit"></i></button>
                 <button class="btn btn-sm btn-outline-danger" onclick="deleteLog(${log.id})"><i class="fas fa-trash"></i></button>
-            </td>
-        `;
+            </td>`;
         body.appendChild(tr);
     });
-
-    if (logs.length === 0) {
-        body.innerHTML = '<tr><td colspan="6" class="text-center" style="color:#999; padding: 20px;">No attendance logs found.</td></tr>';
-    }
 }
 
+// ── Leave Queue ───────────────────────────────────────────────
 function renderApprovalQueue() {
-    const data = getData();
     const queueBody = document.getElementById('leaveApprovalBody');
     const historyBody = document.getElementById('leaveHistoryBody');
     if (!queueBody || !historyBody) return;
 
-    const allRequests = data.leaveRequests || [];
-    // Case-insensitive filtering for robustness
-    const pendingRequests = allRequests.filter(r => {
-        const s = (r.status || '').toLowerCase();
-        return s !== 'approved' && s !== 'rejected';
-    });
-    const processedRequests = allRequests.filter(r => {
-        const s = (r.status || '').toLowerCase();
-        return s === 'approved' || s === 'rejected';
-    });
-
+    const pending = _cache.leave.filter(r => !['approved', 'rejected'].includes((r.status || '').toLowerCase()));
+    const processed = _cache.leave.filter(r => ['approved', 'rejected'].includes((r.status || '').toLowerCase()));
     const statusMap = {
         'waiting_supervisor': '<span class="badge badge-info">Menunggu TL</span>',
         'waiting_final': '<span class="badge badge-warning">Menunggu ASMAN</span>',
@@ -414,683 +296,341 @@ function renderApprovalQueue() {
         'Rejected': '<span class="badge badge-danger">Ditolak</span>',
         'Pending': '<span class="badge badge-secondary">Pending</span>'
     };
-
-    // Clear containers
     queueBody.innerHTML = '';
-    historyBody.innerHTML = '';
-
-    pendingRequests.forEach(req => {
-        const statusKey = req.status || 'Pending';
-        const displayStatus = statusMap[statusKey] || `<span class="badge badge-secondary">${statusKey}</span>`;
+    pending.forEach(req => {
+        const st = statusMap[req.status] || `<span class="badge badge-secondary">${req.status}</span>`;
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td style="font-weight: 700; color: var(--premium-navy);">${req.empName || req.name || 'No Name'}</td>
-            <td>
-                <div class="d-flex flex-column gap-1">
-                    <span class="shift-badge ${req.type ? req.type.toLowerCase() : 'off'}" style="font-size: 10px; width: 40px;">${req.type || '-'}</span>
-                    ${displayStatus}
+            <td style="font-weight:700;">${req.emp_name || req.empName || 'No Name'}</td>
+            <td><div class="d-flex flex-column gap-1"><span class="shift-badge ${(req.type || 'off').toLowerCase()}" style="font-size:10px;width:40px;">${req.type || '-'}</span>${st}</div></td>
+            <td style="font-size:13px;">${req.start_date || '-'} s/d ${req.end_date || '-'}</td>
+            <td title="${req.reason}"><div style="max-width:200px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;font-size:12px;color:#666;">${req.reason || ''}</div></td>
+            <td style="text-align:center;">
+                <div class="d-flex justify-content-center gap-1">
+                    <button class="btn btn-sm btn-success" onclick="approveRequest(${req.id})" style="border:none;font-weight:700;border-radius:8px;">ACC</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="rejectRequest(${req.id})">Rej</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteRequest(${req.id})"><i class="fas fa-trash"></i></button>
                 </div>
-            </td>
-            <td style="font-size: 13px;">${req.startDate || req.dateStart || '-'} s/d ${req.endDate || req.dateEnd || '-'}</td>
-                <td title="${req.reason}"><div style="max-width: 200px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; font-size: 12px; color: #666;">${req.reason}</div></td>
-                <td style="text-align: center;">
-                    <div class="d-flex justify-content-center gap-1">
-                        <button class="btn btn-sm btn-success" onclick="approveRequest(${req.id})" style="background: var(--premium-emerald); border: none; font-weight: 700; border-radius: 8px;">ACC</button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="rejectRequest(${req.id})">Rej</button>
-                        <button class="btn btn-sm btn-outline-primary" onclick="editRequest(${req.id})"><i class="fas fa-edit"></i></button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteRequest(${req.id})"><i class="fas fa-trash"></i></button>
-                    </div>
-                </td>
-            `;
+            </td>`;
         queueBody.appendChild(tr);
     });
 
-    // Render History (Approved/Rejected)
-    // historyBody.innerHTML = ''; // Already cleared above
-    // Show last 20 processed requests, newest first
-    processedRequests.slice().reverse().slice(0, 20).forEach(req => {
-        const isApproved = (req.status || '').toLowerCase() === 'approved';
-        const statusClass = isApproved ? 'badge-success' : 'badge-danger';
+    historyBody.innerHTML = '';
+    processed.slice().reverse().slice(0, 20).forEach(req => {
+        const isApp = (req.status || '').toLowerCase() === 'approved';
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td style="font-weight: 600;">${req.empName || req.name || 'No Name'}</td>
-            <td><span class="shift-badge ${req.type ? req.type.toLowerCase() : 'off'}" style="font-size: 10px; width: 40px;">${req.type || '-'}</span></td>
-            <td style="font-size: 12px;">${req.startDate || req.dateStart || '-'} - ${req.endDate || req.dateEnd || '-'}</td>
-            <td title="${req.reason || '-'}"><div style="max-width: 150px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; font-size: 11px; color: #777;">${req.reason || '-'}</div></td>
-            <td><span class="badge ${statusClass}" style="padding: 4px 10px; border-radius: 6px;">${req.status || '-'}</span></td>
-            <td style="text-align: center;">
-                <div class="d-flex justify-content-center gap-1">
-                    ${isApproved ? `<button class="btn btn-sm btn-outline-success" onclick="generateReceiptPDF(${req.id})" title="Cetak Resi"><i class="fas fa-print"></i></button>` : ''}
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteRequest(${req.id})"><i class="fas fa-trash"></i></button>
-                </div>
-            </td>
-        `;
+            <td style="font-weight:600;">${req.emp_name || req.empName || 'No Name'}</td>
+            <td><span class="shift-badge ${(req.type || 'off').toLowerCase()}" style="font-size:10px;width:40px;">${req.type || '-'}</span></td>
+            <td style="font-size:12px;">${req.start_date || '-'} - ${req.end_date || '-'}</td>
+            <td><div style="max-width:150px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;font-size:11px;color:#777;">${req.reason || '-'}</div></td>
+            <td><span class="badge ${isApp ? 'badge-success' : 'badge-danger'}" style="padding:4px 10px;border-radius:6px;">${req.status || '-'}</span></td>
+            <td style="text-align:center;"><button class="btn btn-sm btn-outline-danger" onclick="deleteRequest(${req.id})"><i class="fas fa-trash"></i></button></td>`;
         historyBody.appendChild(tr);
     });
+    if (processed.length === 0) historyBody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#888;padding:20px;">No history records found.</td></tr>';
 
-    if (processedRequests.length === 0) {
-        historyBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #888; padding: 20px;">No history records found.</td></tr>';
-    }
-
-    // Update pending count badge
     const badge = document.getElementById('pendingCountBadge');
-    if (badge) badge.textContent = `${pendingRequests.length} Pending`;
+    if (badge) badge.textContent = `${pending.length} Pending`;
 }
 
-function approveRequest(id) {
-    if (!confirm('Setujui pengajuan ini secara manual (Admin Overwrite)?')) return;
+// ── Approve / Reject ──────────────────────────────────────────
+async function approveRequest(id) {
+    if (!confirm('Setujui pengajuan ini secara manual?')) return;
+    try {
+        const res = await fetch(`${API}/api/leave/${id}/approve`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'Approved', approved_by: 'admin' }) });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed');
+        // Update cache
+        const req = _cache.leave.find(r => r.id === id);
+        if (req) req.status = 'Approved';
+        alert('Pengajuan disetujui! Roster diperbarui otomatis.');
+        await loadCache();
+        initAttendancePage();
+    } catch (e) { alert('Gagal: ' + e.message); }
+}
 
-    const data = getData();
-    const req = data.leaveRequests.find(r => r.id === id);
-    if (!req) return;
+async function rejectRequest(id) {
+    if (!confirm('Yakin ingin menolak?')) return;
+    try {
+        await fetch(`${API}/api/leave/${id}/approve`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'Rejected', approved_by: 'admin' }) });
+        const req = _cache.leave.find(r => r.id === id);
+        if (req) req.status = 'Rejected';
+        renderApprovalQueue();
+    } catch (e) { alert('Gagal: ' + e.message); }
+}
 
-    req.status = 'Approved';
-    req.approvedAt = new Date().toISOString();
-    if (!req.approvalHistory) req.approvalHistory = [];
-    req.approvalHistory.push({
-        role: 'admin',
-        action: 'Approved (Manual)',
-        time: new Date().toISOString()
-    });
+async function deleteRequest(id) {
+    if (!confirm('Hapus record ini?')) return;
+    try {
+        await fetch(`${API}/api/leave/${id}`, { method: 'DELETE' });
+        _cache.leave = _cache.leave.filter(r => r.id !== id);
+        renderApprovalQueue(); renderStats();
+    } catch (e) { alert('Gagal: ' + e.message); }
+}
 
-    // Sync to Roster
-    const start = new Date(req.startDate || req.dateStart);
-    const end = new Date(req.endDate || req.dateEnd);
+// ── Edit/Delete Log ───────────────────────────────────────────
+function editLog(id) {
+    const log = _cache.attendance.find(l => l.id === id);
+    if (!log) return;
+    document.getElementById('editLogId').value = log.id;
+    document.getElementById('editLogDate').value = log.date?.split('T')[0] || '';
+    document.getElementById('editLogClockIn').value = log.clock_in || '';
+    document.getElementById('editLogClockOut').value = log.clock_out || '';
+    document.getElementById('editLogModal').style.display = 'block';
+}
 
-    // Leave Type to Roster Code Mapping
-    const typeMapping = {
-        'Cuti Tahunan': 'CT',
-        'Sakit': 'SD',
-        'Izin': 'I',
-        'Dinas Luar': 'DL',
-        'Alpa': 'A'
+async function deleteLog(id) {
+    if (!confirm('Hapus log absensi ini?')) return;
+    try {
+        await fetch(`${API}/api/attendance/${id}`, { method: 'DELETE' });
+        _cache.attendance = _cache.attendance.filter(l => l.id !== id);
+        renderLogs(); renderStats();
+    } catch (e) { alert('Gagal: ' + e.message); }
+}
+
+document.getElementById('editLogForm')?.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const id = document.getElementById('editLogId').value;
+    const body = {
+        clock_in: document.getElementById('editLogClockIn').value,
+        clock_out: document.getElementById('editLogClockOut').value,
     };
-    const rosterCode = typeMapping[req.type] || req.type || 'Off';
+    try {
+        const res = await fetch(`${API}/api/attendance/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const updated = await res.json();
+        const idx = _cache.attendance.findIndex(l => l.id == id);
+        if (idx > -1) Object.assign(_cache.attendance[idx], updated);
+        closeModal('editLogModal'); renderLogs(); renderStats();
+        alert('Log updated successfully.');
+    } catch (e) { alert('Gagal: ' + e.message); }
+});
 
-    for (let dt = new Date(start); dt <= end; dt.setDate(dt.getDate() + 1)) {
-        const dateStr = dt.toISOString().split('T')[0];
-        if (!data.roster) data.roster = [];
-        // Corrected: Use userId for roster matching
-        const rosterIdx = data.roster.findIndex(r => r.userId === req.userId && r.date === dateStr);
-
-        if (rosterIdx > -1) {
-            data.roster[rosterIdx].shift = rosterCode;
-        } else {
-            data.roster.push({ empId: req.userId, date: dateStr, shift: rosterCode });
-        }
-    }
-
-    saveData(data);
-
-    // NOTIFIKASI KARYAWAN
-    createNotification(req.userId, "Pengajuan Cuti Disetujui", `Pengajuan ${req.type} Anda (${req.startDate} s/d ${req.endDate}) telah disetujui.`, "leave");
-
-    alert('Pengajuan disetujui! Roster untuk periode tersebut telah diperbarui otomatis.');
-    initAttendancePage();
-}
-
-function rejectRequest(id) {
-    if (!confirm('Yakin ingin menolak pengajuan ini?')) return;
-    const data = getData();
-    const req = data.leaveRequests.find(r => r.id === id);
-    if (!req) return;
-
-    req.status = 'Rejected';
-    saveData(data);
-
-    // NOTIFIKASI KARYAWAN
-    createNotification(req.userId, "Pengajuan Cuti Ditolak", `Mohon maaf, pengajuan ${req.type} Anda (${req.startDate}) tidak dapat disetujui saat ini.`, "leave");
-
-    renderApprovalQueue();
-}
-
-function openBulkModal() {
-    document.getElementById('bulkModal').style.display = 'block';
-}
-
-function closeBulkModal() {
-    document.getElementById('bulkModal').style.display = 'none';
-}
-
-function applyBulkShift() {
-    const shiftCode = document.getElementById('bulkShiftType').value;
-    const data = getData();
+// ── Auto-fill Roster from Patterns ───────────────────────────
+async function autoFillRosterFromPatterns() {
     const year = currentViewDate.getFullYear();
     const month = currentViewDate.getMonth();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const employees = data.users.filter(u => ['employee', 'manager'].includes(u.role));
+    const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+    const days = new Date(year, month + 1, 0).getDate();
+    // Ambil group_patterns dari settings
+    try {
+        const settings = await fetch(`${API}/api/settings`).then(r => r.json());
+        const gpSetting = settings.find(s => s.key === 'group_patterns');
+        const allPatterns = gpSetting ? (typeof gpSetting.value === 'string' ? JSON.parse(gpSetting.value) : gpSetting.value) : {};
+        const patterns = allPatterns[monthKey];
+        if (!patterns) { alert(`Pola shift untuk ${monthKey} belum dikonfigurasi.`); return; }
+        if (!confirm(`Isi jadwal otomatis untuk bulan ${monthKey}? Jadwal yang ada akan ditimpa.`)) return;
 
-    if (!data.roster) data.roster = [];
-
-    employees.forEach(emp => {
-        for (let i = 1; i <= daysInMonth; i++) {
-            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-            const idx = data.roster.findIndex(r => r.empId === emp.id && r.date === dateStr);
-            if (idx > -1) {
-                data.roster[idx].shift = shiftCode;
-            } else {
-                data.roster.push({ empId: emp.id, date: dateStr, shift: shiftCode });
+        const changes = [];
+        _cache.employees.forEach(emp => {
+            const gpat = patterns[emp.group || ''];
+            if (!gpat || !Array.isArray(gpat)) return;
+            for (let i = 1; i <= days; i++) {
+                const date = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                const shift_code = gpat[i - 1] || 'Off';
+                changes.push({ user_id: emp.id, date, shift_code });
+                const ex = _cache.roster.find(r => r.user_id == emp.id && r.date?.startsWith(date));
+                if (ex) ex.shift_code = shift_code;
+                else _cache.roster.push({ user_id: emp.id, date, shift_code });
             }
-        }
-    });
-
-    window.tempRosterData = data;
-    renderRoster();
-    closeBulkModal();
-    alert(`Berhasil menetapkan shift ${shiftCode} untuk semua karyawan di bulan ini.`);
-}
-
-function clearMonth() {
-    if (!confirm('Are you sure you want to clear the entire schedule for this month?')) return;
-
-    const data = getData();
-    const year = currentViewDate.getFullYear();
-    const month = currentViewDate.getMonth();
-    const startPattern = `${year}-${String(month + 1).padStart(2, '0')}`;
-
-    if (data.roster) {
-        data.roster = data.roster.filter(r => !r.date.startsWith(startPattern));
-    }
-
-    saveData(data);
-    renderRoster();
-    alert('Monthly schedule cleared.');
-}
-
-function triggerRosterImport() {
-    document.getElementById('rosterImportInput').click();
-}
-
-function downloadRosterTemplate() {
-    const data = getData();
-    const year = currentViewDate.getFullYear();
-    const month = currentViewDate.getMonth();
-    const monthName = new Intl.DateTimeFormat('id-ID', { month: 'long' }).format(currentViewDate);
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-    // Header
-    const header = ['NID', 'Nama Karyawan'];
-    for (let i = 1; i <= daysInMonth; i++) header.push(i);
-
-    const rows = [header];
-    const employees = data.users
-        .filter(u => ['employee', 'manager'].includes(u.role))
-        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-
-    // Optimasi: Buat map untuk pencarian roster yang cepat
-    const rosterMap = {};
-    if (data.roster) {
-        data.roster.forEach(entry => {
-            rosterMap[`${entry.empId}_${entry.date}`] = entry.shift;
         });
-    }
-
-    employees.forEach(emp => {
-        const row = [emp.nid || '-', emp.name];
-        for (let i = 1; i <= daysInMonth; i++) {
-            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-            row.push(rosterMap[`${emp.id}_${dateStr}`] || 'Off');
-        }
-        rows.push(row);
-    });
-
-    const worksheet = XLSX.utils.aoa_to_sheet(rows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Roster");
-    XLSX.writeFile(workbook, `Roster_Karyawan_${monthName}_${year}.xlsx`);
+        await Promise.all(changes.map(c => fetch(`${API}/api/attendance/roster`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(c) })));
+        renderRoster();
+        alert(`Jadwal berhasil diisi untuk ${_cache.employees.length} karyawan.`);
+    } catch (e) { alert('Error: ' + e.message); }
 }
 
-/**
- * Request Leave Logic (Desktop)
- */
+// ── Leave Request (Desktop) ───────────────────────────────────
 function openRequestModal() {
     document.getElementById('requestModal').style.display = 'block';
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('reqStart').value = today;
     document.getElementById('reqEnd').value = today;
-
-    const data = getData();
-    const approvers = data.companyApprovers || [];
-
-    const spvSelect = document.getElementById('reqSupervisor');
-    const mgrSelect = document.getElementById('reqManager');
-
-    if (spvSelect) {
-        spvSelect.innerHTML = '<option value="">-- Pilih SPV --</option>' +
-            approvers.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
-    }
-
-    if (mgrSelect) {
-        mgrSelect.innerHTML = '<option value="">-- Pilih Manager --</option>' +
-            approvers.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
-    }
+    // Populate approvers from employees (managers)
+    const managers = _cache.employees.filter(e => e.role === 'manager');
+    ['reqSupervisor', 'reqManager'].forEach(selId => {
+        const sel = document.getElementById(selId);
+        if (!sel) return;
+        sel.innerHTML = '<option value="">-- Pilih --</option>' + managers.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+    });
 }
+function closeRequestModal() { document.getElementById('requestModal').style.display = 'none'; }
 
-function closeRequestModal() {
-    document.getElementById('requestModal').style.display = 'none';
-}
-
-function submitDesktopRequest(event) {
+async function submitDesktopRequest(event) {
     if (event) event.preventDefault();
     const user = JSON.parse(localStorage.getItem('currentUser'));
-    const data = getData();
-
     const type = document.getElementById('reqType').value;
     const start = document.getElementById('reqStart').value;
     const end = document.getElementById('reqEnd').value;
     const reason = document.getElementById('reqReason').value;
-
-    const spvSelect = document.getElementById('reqSupervisor');
-    const mgrSelect = document.getElementById('reqManager');
-
-    const spvId = spvSelect.value;
-    const mgrId = mgrSelect.value;
-
-    const approvers = data.companyApprovers || [];
-    const spvObj = approvers.find(a => a.id == spvId);
-    const mgrObj = approvers.find(a => a.id == mgrId);
-
-    const spvName = spvObj ? spvObj.name : 'Unknown';
-    const spvEmail = spvObj ? (spvObj.email || 'supervisor@test.com') : 'supervisor@test.com';
-    const mgrName = mgrObj ? mgrObj.name : 'Unknown';
-    const mgrEmail = mgrObj ? (mgrObj.email || 'manager@test.com') : 'manager@test.com';
-
-    if (!type || !start || !end || !reason || !spvId || !mgrId) {
-        alert('Mohon lengkapi semua data pengajuan termasuk approver.');
-        return;
-    }
-
-    const newRequest = {
-        id: Date.now(),
-        userId: user.id,
-        empId: user.nid || 'EMP-' + user.id,
-        empName: user.name,
-        type: type,
-        startDate: start,
-        endDate: end,
-        reason: reason,
-        status: 'waiting_supervisor',
-
-        supervisorId: spvId,
-        supervisorName: spvName,
-        supervisorEmail: spvEmail,
-
-        managerId: mgrId,
-        managerName: mgrName,
-        managerEmail: mgrEmail,
-
-        submittedAt: new Date().toISOString(),
-        approvalHistory: []
-    };
-
-    if (!data.leaveRequests) data.leaveRequests = [];
-    data.leaveRequests.push(newRequest);
-    saveData(data);
-
-    const approvalToken = Math.random().toString(36).substr(2);
-    const path = window.location.pathname.replace('admin/attendance.html', 'mobile/approval.html');
-    const origin = window.location.origin === 'null' ? 'file://' : window.location.origin;
-
-    let approvalLink = `${origin}${path}?requestId=${newRequest.id}&role=supervisor&token=${approvalToken}`;
-    if (window.location.protocol === 'file:') {
-        approvalLink = `${path}?requestId=${newRequest.id}&role=supervisor&token=${approvalToken}`;
-    }
-
-    console.log("%c[SIMULASI EMAIL SERVER]", "color: #d35400; font-weight: bold; font-size: 16px;");
-    console.log(`To: ${spvEmail} (${spvName})`);
-    console.log(`Subject: PERSETUJUAN CUTI (SPV) - ${user.name}`);
-    console.log(`Link: ${approvalLink}`);
-
-    alert(`Pengajuan berhasil sent to Supervisor: ${spvName}! Link simulasi ada di Console.`);
-
-    closeRequestModal();
-    document.getElementById('leaveRequestForm')?.reset();
-    renderMyRequests();
-    renderApprovalQueue();
+    const spvId = document.getElementById('reqSupervisor').value;
+    const mgrId = document.getElementById('reqManager').value;
+    if (!type || !start || !end || !reason || !spvId || !mgrId) { alert('Lengkapi semua data.'); return; }
+    try {
+        const res = await fetch(`${API}/api/leave`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+                user_id: user.id, emp_name: user.name, type, start_date: start, end_date: end,
+                reason, status: 'waiting_supervisor', supervisor_id: spvId, manager_id: mgrId
+            })
+        });
+        if (!res.ok) throw new Error('Submit failed');
+        alert('Pengajuan berhasil dikirim!');
+        closeRequestModal();
+        await loadCache(); renderApprovalQueue(); renderStats();
+    } catch (e) { alert('Gagal: ' + e.message); }
 }
 
 function renderMyRequests() {
-    const data = getData();
     const user = JSON.parse(localStorage.getItem('currentUser'));
     const body = document.getElementById('myRequestsBody');
     if (!body) return;
-
-    if (!data.leaveRequests) data.leaveRequests = [];
-    const myRequests = data.leaveRequests.filter(r => r.userId === user.id);
-
+    const mine = _cache.leave.filter(r => r.user_id == user.id).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     body.innerHTML = '';
-    if (myRequests.length === 0) {
-        body.innerHTML = '<tr><td colspan="7" class="text-center p-4">Anda belum memiliki riwayat pengajuan cuti.</td></tr>';
+    if (mine.length === 0) {
+        body.innerHTML = '<tr><td colspan="7" class="text-center p-4">Belum ada riwayat pengajuan.</td></tr>';
         return;
     }
-
-    myRequests.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
-
-    myRequests.forEach(req => {
-        let statusBadge = '';
-        let tracking = '';
-
-        switch (req.status) {
-            case 'waiting_supervisor':
-                statusBadge = '<span class="badge badge-warning">Menunggu Supervisor</span>';
-                tracking = '<i class="fas fa-user-tie text-warning"></i> Supervisor sedang meninjau';
-                break;
-            case 'waiting_final':
-                statusBadge = '<span class="badge badge-info">Menunggu Manajer</span>';
-                tracking = '<i class="fas fa-check text-success"></i> Spv OK &rarr; <i class="fas fa-user-shield text-info"></i> Mgr meninjau';
-                break;
-            case 'Approved':
-            case 'approved':
-                statusBadge = '<span class="badge badge-success">Disetujui</span>';
-                tracking = '<i class="fas fa-check-circle text-success"></i> Selesai';
-                break;
-            case 'Rejected':
-            case 'rejected':
-                statusBadge = '<span class="badge badge-danger">Ditolak</span>';
-                tracking = '<i class="fas fa-times-circle text-danger"></i> Ditolak';
-                break;
-            default:
-                statusBadge = '<span class="badge badge-secondary">Pending</span>';
-                tracking = 'Menunggu proses';
-        }
-
+    mine.forEach(req => {
+        const statusMap2 = {
+            'waiting_supervisor': '<span class="badge badge-warning">Menunggu Supervisor</span>',
+            'waiting_final': '<span class="badge badge-info">Menunggu Manajer</span>',
+            'Approved': '<span class="badge badge-success">Disetujui</span>',
+            'approved': '<span class="badge badge-success">Disetujui</span>',
+            'Rejected': '<span class="badge badge-danger">Ditolak</span>',
+            'rejected': '<span class="badge badge-danger">Ditolak</span>',
+        };
+        const badge = statusMap2[req.status] || `<span class="badge badge-secondary">${req.status}</span>`;
         const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${new Date(req.submittedAt).toLocaleDateString('id-ID')}</td>
-            <td><strong>${req.type}</strong></td>
-            <td>${formatDate(req.startDate)}</td>
-            <td>${formatDate(req.endDate)}</td>
-            <td>${req.reason}</td>
-            <td>${statusBadge}</td>
-            <td style="font-size: 12px; color: #555;">${tracking}</td>
-        `;
+        tr.innerHTML = `<td>${new Date(req.created_at).toLocaleDateString('id-ID')}</td><td><strong>${req.type}</strong></td><td>${req.start_date || '-'}</td><td>${req.end_date || '-'}</td><td>${req.reason || ''}</td><td>${badge}</td><td></td>`;
         body.appendChild(tr);
     });
 }
 
+// ── Roster Import/Export ──────────────────────────────────────
+function triggerRosterImport() { document.getElementById('rosterImportInput').click(); }
 
-/**
- * Handle Excel file import for Roster
- * Requires SheetJS (XLSX) library (already present in parent/other pages)
- */
 function handleRosterImport(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
+    const file = event.target.files[0]; if (!file) return;
     const reader = new FileReader();
-    reader.onload = function (e) {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-        processRosterExcel(jsonData);
-    };
+    reader.onload = e => { processRosterExcel(XLSX.utils.sheet_to_json(XLSX.read(new Uint8Array(e.target.result), { type: 'array' }).Sheets[XLSX.read(new Uint8Array(e.target.result), { type: 'array' }).SheetNames[0]], { header: 1 })); };
     reader.readAsArrayBuffer(file);
-    event.target.value = ''; // Reset for re-upload
+    event.target.value = '';
 }
 
-function processRosterExcel(rows) {
-    if (!rows || rows.length < 2) {
-        alert("File Excel kosong atau format tidak sesuai.");
-        return;
-    }
-
-    const data = getData();
-    const year = currentViewDate.getFullYear();
-    const month = currentViewDate.getMonth();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-    if (!data.roster) data.roster = [];
-    let updatedCount = 0;
-
-    // Start from row 2 (index 1) assuming row 1 is header
+async function processRosterExcel(rows) {
+    if (!rows || rows.length < 2) { alert('File kosong atau format tidak sesuai.'); return; }
+    const year = currentViewDate.getFullYear(), month = currentViewDate.getMonth();
+    const days = new Date(year, month + 1, 0).getDate();
+    const changes = []; let count = 0;
     for (let i = 1; i < rows.length; i++) {
-        const row = rows[i];
-        if (!row || row.length < 3) continue;
-
-        const nid = row[0]; // Assuming Column A is NID
-        const emp = data.users.find(u => u.nid && u.nid.toString() === nid.toString());
-
+        const row = rows[i]; if (!row || row.length < 3) continue;
+        const emp = _cache.employees.find(e => e.nid && e.nid.toString() === row[0].toString());
         if (!emp) continue;
-
-        // Days start from column 3 (index 2)
-        for (let day = 1; day <= daysInMonth; day++) {
-            const shiftCode = (row[day + 1] || 'Off').toString().trim();
-            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-
-            const idx = data.roster.findIndex(r => r.empId === emp.id && r.date === dateStr);
-            if (idx > -1) {
-                data.roster[idx].shift = shiftCode;
-            } else {
-                data.roster.push({ empId: emp.id, date: dateStr, shift: shiftCode });
-            }
+        for (let d = 1; d <= days; d++) {
+            const shift_code = (row[d + 1] || 'Off').toString().trim();
+            const date = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            changes.push({ user_id: emp.id, date, shift_code });
         }
-        updatedCount++;
+        count++;
     }
-
-    saveData(data);
-    renderRoster();
-    alert(`Berhasil mengimpor roster untuk ${updatedCount} karyawan.`);
+    await Promise.all(changes.map(c => fetch(`${API}/api/attendance/roster`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(c) })));
+    await loadCache(); renderRoster();
+    alert(`Berhasil mengimpor roster untuk ${count} karyawan.`);
 }
 
-/**
- * EXPORT FUNCTIONS (EXCEL REPORTING)
- */
-
-function downloadAttendanceExcel() {
-    const data = getData();
-    const logs = data.attendance || [];
-    if (logs.length === 0) {
-        alert("Tidak ada data log kehadiran untuk diekspor.");
-        return;
-    }
-
-    const rows = [
-        ['Nama Karyawan', 'Tanggal', 'Jam Masuk', 'Jam Pulang', 'Status', 'Keterlambatan']
-    ];
-
-    // Export all logs, sorted by date DESC
-    logs.slice().reverse().forEach(log => {
-        const emp = data.users.find(u => u.id === log.empId) || { name: 'Unknown' };
-        rows.push([
-            emp.name,
-            log.date,
-            log.clockIn || '-',
-            log.clockOut || '-',
-            log.status,
-            log.isLate ? 'Terlambat' : 'Tepat Waktu'
-        ]);
+function downloadRosterTemplate() {
+    const year = currentViewDate.getFullYear(), month = currentViewDate.getMonth();
+    const days = new Date(year, month + 1, 0).getDate();
+    const header = ['NID', 'Nama Karyawan'];
+    for (let i = 1; i <= days; i++) header.push(i);
+    const rows = [header];
+    const rMap = {}; _cache.roster.forEach(r => { rMap[`${r.user_id}_${r.date?.split('T')[0]}`] = r.shift_code; });
+    [..._cache.employees].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).forEach(emp => {
+        const row = [emp.nid || '-', emp.name];
+        for (let i = 1; i <= days; i++) {
+            const d = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+            row.push(rMap[`${emp.id}_${d}`] || 'Off');
+        }
+        rows.push(row);
     });
+    const ws = XLSX.utils.aoa_to_sheet(rows), wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Roster');
+    XLSX.writeFile(wb, `Roster_${new Intl.DateTimeFormat('id-ID', { month: 'long' }).format(currentViewDate)}_${year}.xlsx`);
+}
 
-    const worksheet = XLSX.utils.aoa_to_sheet(rows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance Logs");
-    XLSX.writeFile(workbook, `Laporan_Kehadiran_${new Date().toISOString().split('T')[0]}.xlsx`);
+// ── Download Reports ──────────────────────────────────────────
+function downloadAttendanceExcel() {
+    if (_cache.attendance.length === 0) { alert('Tidak ada data.'); return; }
+    const rows = [['Nama', 'Tanggal', 'Jam Masuk', 'Jam Pulang', 'Status', 'Keterlambatan']];
+    _cache.attendance.slice().reverse().forEach(l => rows.push([l.name || 'Unknown', l.date?.split('T')[0] || '', l.clock_in || '-', l.clock_out || '-', l.status || '-', l.late_minutes > 0 ? 'Terlambat' : 'Tepat Waktu']));
+    const ws = XLSX.utils.aoa_to_sheet(rows), wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Attendance');
+    XLSX.writeFile(wb, `Laporan_Kehadiran_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
 
 function downloadLeaveHistoryExcel() {
-    const data = getData();
-    const history = (data.leaveRequests || []).filter(r => r.status !== 'Pending');
-    if (history.length === 0) {
-        alert("Tidak ada riwayat pengajuan cuti untuk diekspor.");
-        return;
-    }
-
-    const rows = [
-        ['Nama Karyawan', 'Tipe', 'Tanggal Mulai', 'Tanggal Selesai', 'Alasan', 'Status', 'Tanggal Diproses']
-    ];
-
-    history.slice().reverse().forEach(req => {
-        rows.push([
-            req.empName,
-            req.type,
-            req.startDate,
-            req.endDate,
-            req.reason,
-            req.status,
-            req.approvedAt ? new Date(req.approvedAt).toLocaleDateString() : '-'
-        ]);
-    });
-
-    const worksheet = XLSX.utils.aoa_to_sheet(rows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Leave History");
-    XLSX.writeFile(workbook, `Laporan_Riwayat_Cuti_${new Date().toISOString().split('T')[0]}.xlsx`);
+    const hist = _cache.leave.filter(r => ['approved', 'rejected'].includes((r.status || '').toLowerCase()));
+    if (hist.length === 0) { alert('Tidak ada data.'); return; }
+    const rows = [['Nama', 'Tipe', 'Mulai', 'Selesai', 'Alasan', 'Status']];
+    hist.slice().reverse().forEach(r => rows.push([r.emp_name || r.empName || '-', r.type || '-', r.start_date || '-', r.end_date || '-', r.reason || '-', r.status || '-']));
+    const ws = XLSX.utils.aoa_to_sheet(rows), wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Leave History');
+    XLSX.writeFile(wb, `Laporan_Cuti_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
 
 function downloadFullReport() {
-    const data = getData();
-    const workbook = XLSX.utils.book_new();
-
-    // 1. SHEET ROSTER
-    const year = currentViewDate.getFullYear();
-    const month = currentViewDate.getMonth();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const monthName = currentViewDate.toLocaleString('default', { month: 'long' });
-
-    const rosterRows = [];
-    const headerRow = ['Nama Karyawan', 'NID', 'Grup'];
-    for (let i = 1; i <= daysInMonth; i++) headerRow.push(i.toString());
-    rosterRows.push(headerRow);
-
-    data.users.forEach(user => {
-        const row = [user.name, user.nid || '-', user.group || '-'];
-        for (let day = 1; day <= daysInMonth; day++) {
-            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const rosterEntry = (data.roster || []).find(r => r.empId === user.id && r.date === dateStr);
-            row.push(rosterEntry ? rosterEntry.shift : '-');
-        }
-        rosterRows.push(row);
-    });
-    const wsRoster = XLSX.utils.aoa_to_sheet(rosterRows);
-    XLSX.utils.book_append_sheet(workbook, wsRoster, "Monthly Roster");
-
-    // 2. SHEET ATTENDANCE LOGS
-    const logs = data.attendance || [];
-    const logRows = [['Nama Karyawan', 'Tanggal', 'Jam Masuk', 'Jam Pulang', 'Status', 'Keterlambatan']];
-    logs.slice().reverse().forEach(log => {
-        const emp = data.users.find(u => u.id === log.empId) || { name: 'Unknown' };
-        logRows.push([emp.name, log.date, log.clockIn || '-', log.clockOut || '-', log.status, log.isLate ? 'Ya' : 'Tidak']);
-    });
-    const wsLogs = XLSX.utils.aoa_to_sheet(logRows);
-    XLSX.utils.book_append_sheet(workbook, wsLogs, "Attendance Logs");
-
-    // 3. SHEET LEAVE HISTORY
-    const history = (data.leaveRequests || []).filter(r => r.status !== 'Pending');
-    const leaveRows = [['Nama Karyawan', 'Tipe', 'Tanggal Mulai', 'Tanggal Selesai', 'Alasan', 'Status', 'Diproses Pada']];
-    history.slice().reverse().forEach(req => {
-        leaveRows.push([req.empName, req.type, req.startDate, req.endDate, req.reason, req.status, req.approvedAt ? new Date(req.approvedAt).toLocaleDateString() : '-']);
-    });
-    const wsLeave = XLSX.utils.aoa_to_sheet(leaveRows);
-    XLSX.utils.book_append_sheet(workbook, wsLeave, "Leave History");
-
-    // DOWNLOAD
-    XLSX.writeFile(workbook, `Laporan_Terpadu_SDM_${monthName}_${year}.xlsx`);
+    const wb = XLSX.utils.book_new();
+    const year = currentViewDate.getFullYear(), month = currentViewDate.getMonth();
+    const days = new Date(year, month + 1, 0).getDate();
+    const rMap = {}; _cache.roster.forEach(r => { rMap[`${r.user_id}_${r.date?.split('T')[0]}`] = r.shift_code; });
+    // Roster sheet
+    const rRows = [['Nama', 'NID', 'Grup']]; for (let i = 1; i <= days; i++) rRows[0].push(i);
+    _cache.employees.forEach(u => { const row = [u.name, u.nid || '-', u.group || '-']; for (let d = 1; d <= days; d++) { const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`; row.push(rMap[`${u.id}_${ds}`] || '-'); } rRows.push(row); });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rRows), 'Monthly Roster');
+    // Attendance sheet
+    const aRows = [['Nama', 'Tanggal', 'Masuk', 'Pulang', 'Status', 'Terlambat']];
+    _cache.attendance.slice().reverse().forEach(l => aRows.push([l.name || '-', l.date?.split('T')[0] || '-', l.clock_in || '-', l.clock_out || '-', l.status || '-', l.late_minutes > 0 ? 'Ya' : 'Tidak']));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aRows), 'Attendance Logs');
+    // Leave sheet
+    const lRows = [['Nama', 'Tipe', 'Mulai', 'Selesai', 'Alasan', 'Status']];
+    _cache.leave.filter(r => ['approved', 'rejected'].includes((r.status || '').toLowerCase())).slice().reverse().forEach(r => lRows.push([r.emp_name || '-', r.type || '-', r.start_date || '-', r.end_date || '-', r.reason || '-', r.status || '-']));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(lRows), 'Leave History');
+    XLSX.writeFile(wb, `Laporan_Terpadu_${currentViewDate.toLocaleString('default', { month: 'long' })}_${year}.xlsx`);
 }
+
+// ── Utilities ─────────────────────────────────────────────────
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
 window.onclick = function (event) {
-    if (event.target == document.getElementById('shiftModal')) closeShiftModal();
-    if (event.target == document.getElementById('bulkModal')) closeBulkModal();
-    if (event.target == document.getElementById('editLogModal')) closeModal('editLogModal');
+    ['shiftModal', 'bulkModal', 'editLogModal'].forEach(id => {
+        if (event.target == document.getElementById(id)) closeModal(id);
+    });
+};
+
+function formatDate(d) {
+    if (!d) return '-';
+    return new Date(d).toLocaleDateString('id-ID');
 }
-
-/**
- * MANAGEMENT ACTIONS: EDIT & DELETE
- */
-
-function closeModal(id) {
-    document.getElementById(id).style.display = 'none';
-}
-
-// ATTENDANCE LOGS
-function editLog(id) {
-    const data = getData();
-    const log = data.attendance.find(l => l.id === id);
-    if (!log) return;
-
-    document.getElementById('editLogId').value = log.id;
-    document.getElementById('editLogDate').value = log.date;
-    document.getElementById('editLogClockIn').value = log.clockIn || '';
-    document.getElementById('editLogClockOut').value = log.clockOut || '';
-    document.getElementById('editLogModal').style.display = 'block';
-}
-
-function deleteLog(id) {
-    if (!confirm('Are you sure you want to delete this attendance log?')) return;
-    const data = getData();
-    data.attendance = data.attendance.filter(l => l.id !== id);
-    saveData(data);
-    renderLogs();
-    renderStats();
-}
-
-document.getElementById('editLogForm')?.addEventListener('submit', function (e) {
-    e.preventDefault();
-    const data = getData();
-    const id = parseInt(document.getElementById('editLogId').value);
-    const logIndex = data.attendance.findIndex(l => l.id === id);
-    if (logIndex === -1) return;
-
-    const newDate = document.getElementById('editLogDate').value;
-    const newIn = document.getElementById('editLogClockIn').value;
-    const newOut = document.getElementById('editLogClockOut').value;
-
-    data.attendance[logIndex].date = newDate;
-    data.attendance[logIndex].clockIn = newIn;
-    data.attendance[logIndex].clockOut = newOut;
-
-    saveData(data);
-    closeModal('editLogModal');
-    renderLogs();
-    renderStats();
-    alert('Log updated successfully.');
-});
 
 function editRequest(id) {
-    const data = getData();
-    const req = data.leaveRequests.find(r => r.id === id);
-    if (!req) return;
-
+    const req = _cache.leave.find(r => r.id === id); if (!req) return;
     document.getElementById('editRequestId').value = req.id;
-    document.getElementById('editRequestType').value = req.type;
-    document.getElementById('editRequestStart').value = req.startDate || req.dateStart || '';
-    document.getElementById('editRequestEnd').value = req.endDate || req.dateEnd || '';
+    document.getElementById('editRequestType').value = req.type || '';
+    document.getElementById('editRequestStart').value = req.start_date || '';
+    document.getElementById('editRequestEnd').value = req.end_date || '';
     document.getElementById('editRequestReason').value = req.reason || '';
-
     document.getElementById('editRequestModal').style.display = 'block';
 }
 
-function deleteRequest(id) {
-    if (!confirm('Are you sure you want to delete this request record?')) return;
-    const data = getData();
-    data.leaveRequests = (data.leaveRequests || []).filter(r => r.id !== id);
-    saveData(data);
-    renderApprovalQueue();
-    renderStats();
-}
-
-document.getElementById('editRequestForm')?.addEventListener('submit', function (e) {
+document.getElementById('editRequestForm')?.addEventListener('submit', async function (e) {
     e.preventDefault();
-    const data = getData();
-    const id = parseInt(document.getElementById('editRequestId').value);
-    const reqIndex = data.leaveRequests.findIndex(r => r.id === id);
-    if (reqIndex === -1) return;
-
-    const newType = document.getElementById('editRequestType').value;
-    const newStart = document.getElementById('editRequestStart').value;
-    const newEnd = document.getElementById('editRequestEnd').value;
-    const newReason = document.getElementById('editRequestReason').value;
-
-    data.leaveRequests[reqIndex].type = newType;
-    data.leaveRequests[reqIndex].startDate = newStart;
-    data.leaveRequests[reqIndex].endDate = newEnd;
-    data.leaveRequests[reqIndex].reason = newReason;
-
-    saveData(data);
-    closeModal('editRequestModal');
-    renderApprovalQueue();
-    renderStats();
-    alert('Leave request updated successfully.');
+    const id = document.getElementById('editRequestId').value;
+    const body = { type: document.getElementById('editRequestType').value, start_date: document.getElementById('editRequestStart').value, end_date: document.getElementById('editRequestEnd').value, reason: document.getElementById('editRequestReason').value };
+    try {
+        await fetch(`${API}/api/leave/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const idx = _cache.leave.findIndex(r => r.id == id);
+        if (idx > -1) Object.assign(_cache.leave[idx], body);
+        closeModal('editRequestModal'); renderApprovalQueue(); renderStats();
+        alert('Leave request updated.');
+    } catch (e2) { alert('Gagal: ' + e2.message); }
 });

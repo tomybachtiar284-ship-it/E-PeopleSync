@@ -1,59 +1,62 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { Pool } = require('pg');
+const path = require('path');
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3001;
 
-// Middleware
+// ── Middleware ───────────────────────────────────────────────
+const authMiddleware = require('./middleware/authMiddleware');
+
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
 
-// Database Connection
-const pool = new Pool({
-    user: process.env.DB_USER || 'postgres',
-    host: process.env.DB_HOST || 'localhost',
-    database: process.env.DB_NAME || 'epeoplesync',
-    password: process.env.DB_PASSWORD || 'password',
-    port: process.env.DB_PORT || 5432,
+// Serve static frontend files
+app.use(express.static(path.join(__dirname)));
+
+// ── Routes ───────────────────────────────────────────────────
+const authRoute = require('./routes/auth');
+const usersRoute = require('./routes/users');
+const attendanceRoute = require('./routes/attendance');
+const leaveRoute = require('./routes/leave');
+const payrollRoute = require('./routes/payroll');
+const assetsRoute = require('./routes/assets');
+const learningRoute = require('./routes/learning');
+const evaluationRoute = require('./routes/evaluation');
+const recruitmentRoute = require('./routes/recruitment');
+const newsRoute = require('./routes/news');
+const settingsRoute = require('./routes/settings');
+const documentsRoute = require('./routes/documents');
+
+app.use('/api', authRoute);     // Covers /api/login (Public)
+app.use('/api/auth', authRoute); // Covers /api/auth/register-candidate (Public)
+
+// Protected Routes
+app.use('/api/employees', authMiddleware, usersRoute);
+app.use('/api/attendance', authMiddleware, attendanceRoute);
+app.use('/api/leave', authMiddleware, leaveRoute);
+app.use('/api/payroll', authMiddleware, payrollRoute);
+app.use('/api/assets', authMiddleware, assetsRoute);
+app.use('/api/learning', authMiddleware, learningRoute);
+app.use('/api/evaluations', authMiddleware, evaluationRoute);
+app.use('/api/recruitment', authMiddleware, recruitmentRoute);
+app.use('/api/news', authMiddleware, newsRoute);
+app.use('/api/settings', authMiddleware, settingsRoute);
+app.use('/api/documents', authMiddleware, documentsRoute);
+
+// ── Health Check ─────────────────────────────────────────────
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', message: 'E-PeopleSync API running', version: '2.0.0' });
 });
 
-pool.connect()
-    .then(() => console.log('✅ Connected to PostgreSQL Database'))
-    .catch(err => console.error('❌ Database connection error:', err.stack));
-
-// Routes
-app.get('/', (req, res) => {
-    res.send('E-PeopleSync API is running...');
+// ── Catch-all: Serve frontend index ─────────────────────────
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Example API: Get Users
-app.get('/api/users', async (req, res) => {
-    try {
-        const result = await pool.query('SELECT * FROM users');
-        res.json(result.rows);
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
-    }
-});
-
-// Login Endpoint
-app.post('/api/login', async (req, res) => {
-    const { username, password } = req.body;
-    try {
-        const result = await pool.query('SELECT * FROM users WHERE username = $1 AND password = $2', [username, password]);
-        if (result.rows.length > 0) {
-            res.json({ success: true, user: result.rows[0] });
-        } else {
-            res.status(401).json({ success: false, message: 'Invalid credentials' });
-        }
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
-    }
-});
-
+// ── Start Server ─────────────────────────────────────────────
 app.listen(port, () => {
-    console.log(`🚀 Server running on http://localhost:${port}`);
+    console.log(`🚀 E-PeopleSync API running at http://localhost:${port}`);
+    console.log(`📋 Endpoints: /api/employees, /api/attendance, /api/leave, /api/payroll, ...`);
 });

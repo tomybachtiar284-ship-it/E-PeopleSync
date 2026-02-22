@@ -1,6 +1,6 @@
 /**
  * Authentication Logic
- * Handles Google Login and Admin Login.
+ * Handles Google Login (Candidate) and Internal Login (Admin/Manager/Employee).
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -11,19 +11,11 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * Mock Google Login
- * Prompts user for email to simulate OAuth logic
- */
-/**
- * Mock Google Login
- * Prompts user for email/name to simulate OAuth logic and auto-registers employees.
- */
-/**
  * Candidate Login (Google Simulation)
- * Strictly for Candidates. 
+ * Strictly for Candidates. Menggunakan backend API (PostgreSQL).
  */
-function handleGoogleLogin() {
-    // 1. Simulate Google OAuth Popup
+async function handleGoogleLogin() {
+    // 1. Simulasi Google OAuth Popup — minta email
     const email = prompt("Google Accounts\n\nLogin/Register as Candidate with Email:");
 
     if (!email || !email.includes('@')) {
@@ -31,39 +23,49 @@ function handleGoogleLogin() {
         return;
     }
 
-    const data = getData();
-    let user = data.users.find(u => u.username === email);
+    try {
+        // 2. Cek & daftarkan ke backend (akan cek dulu apakah sudah ada)
+        const result = await fetch('http://localhost:3001/api/auth/register-candidate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, name: null })
+        });
+        const data = await result.json();
 
-    if (user) {
-        // User exists
-        if (user.role === 'candidate') {
-            alert(`Welcome back, candidate ${user.name}!`);
-            loginSuccess(user);
-        } else {
-            // If user is Admin/Employee trying to use Google Login on the Candidate button
-            alert(`Email ${email} is registered as an Internal ${user.role}.\nPlease use the Internal Login form below.`);
+        // 3. Jika email milik user internal → tolak
+        if (result.status === 403) {
+            alert(data.message);
+            return;
         }
-    } else {
-        // New User -> Register as CANDIDATE
+
+        // 4. Jika kandidat lama → login langsung
+        if (data.success && !data.isNew) {
+            alert(`Welcome back, ${data.user.name}!`);
+            loginSuccess(data.user, data.token);
+            return;
+        }
+
+        // 5. Jika kandidat baru → minta nama dulu, lalu daftarkan
         const name = prompt("Setup your Candidate Profile\n\nEnter your Full Name:");
-        if (!name) return;
+        if (!name || name.trim() === '') return;
 
-        const newUser = {
-            id: Date.now(),
-            username: email,
-            password: 'google_auth_token',
-            role: 'candidate',
-            name: name,
-            email: email,
-            avatar: `https://i.pravatar.cc/150?u=${email}`,
-            source: 'google_oauth'
-        };
+        const registerResult = await fetch('http://localhost:3001/api/auth/register-candidate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, name: name.trim() })
+        });
+        const registerData = await registerResult.json();
 
-        data.users.push(newUser);
-        saveData(data);
+        if (registerData.success) {
+            alert(`Candidate Account created!\nWelcome, ${registerData.user.name}. You can now browse jobs.`);
+            loginSuccess(registerData.user, registerData.token);
+        } else {
+            alert(registerData.message || 'Registration failed. Please try again.');
+        }
 
-        alert(`Candidate Account created!\nWelcome, ${name}. You can now browse jobs.`);
-        loginSuccess(newUser);
+    } catch (error) {
+        console.error('Google Login Error:', error);
+        alert('Server connection failed. Is the backend running?');
     }
 }
 
@@ -88,7 +90,7 @@ async function handleStandardLogin(e) {
         if (data.success) {
             const user = data.user;
             if (['admin', 'manager', 'employee'].includes(user.role)) {
-                loginSuccess(user);
+                loginSuccess(user, data.token);
             } else if (user.role === 'candidate') {
                 alert("Candidates should use the 'Continue with Google' button above.");
             } else {
@@ -103,7 +105,8 @@ async function handleStandardLogin(e) {
     }
 }
 
-function loginSuccess(user) {
+function loginSuccess(user, token) {
+    if (token) localStorage.setItem('jwtToken', token);
     localStorage.setItem('currentUser', JSON.stringify(user));
 
     const isMobile = window.innerWidth < 768;

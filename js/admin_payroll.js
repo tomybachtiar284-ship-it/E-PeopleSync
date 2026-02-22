@@ -1,156 +1,123 @@
 /**
- * Payroll Management Logic
+ * Payroll Management Logic — PostgreSQL API Version
  */
 
-document.addEventListener('DOMContentLoaded', () => {
-    checkAuth(['admin']);
+const API = 'http://localhost:3001';
 
-    // Set default date to now
+// ── In-memory state ───────────────────────────────────────────
+let _employees = [];   // [{id, name, nid, position, department, base_salary, ...}]
+let _payrollMap = {};   // { userId: recordObj }  (current period)
+let _settings = {};   // payroll settings from DB
+
+document.addEventListener('DOMContentLoaded', async () => {
+    checkAuth(['admin']);
     const now = new Date();
     document.getElementById('payrollMonth').value = now.getMonth();
     document.getElementById('payrollYear').value = now.getFullYear();
-
-    loadPayrollData();
+    await loadPayrollData();
     initUserProfile();
 });
 
-function refreshPayrollWithLoading() {
-    const btn = document.getElementById('refreshBtn');
-    const originalHTML = btn.innerHTML;
-
-    // Set loading state
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memuat Data...';
-    btn.style.opacity = '0.8';
-
-    // Simulate network/processing delay for professional feel
-    setTimeout(() => {
-        loadPayrollData();
-
-        // Restore button
-        btn.innerHTML = '<i class="fas fa-check"></i> Selesai Sinkron';
-        btn.classList.add('btn-success');
-        btn.classList.remove('btn-primary');
-
-        // Final restore after 1.5s
-        setTimeout(() => {
-            btn.disabled = false;
-            btn.innerHTML = originalHTML;
-            btn.classList.remove('btn-success');
-            btn.classList.add('btn-primary');
-            btn.style.opacity = '1';
-        }, 1500);
-    }, 800);
+// ── Helpers ───────────────────────────────────────────────────
+function getPeriod() {
+    return {
+        month: parseInt(document.getElementById('payrollMonth').value),
+        year: parseInt(document.getElementById('payrollYear').value),
+        label: document.getElementById('payrollMonth').options[
+            document.getElementById('payrollMonth').selectedIndex
+        ].text + ' ' + document.getElementById('payrollYear').value
+    };
 }
 
-function getPayrollKey() {
-    const m = document.getElementById('payrollMonth').value;
-    const y = document.getElementById('payrollYear').value;
-    return `payroll_${y}_${m}`;
+function formatRupiah(amount) {
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency', currency: 'IDR', minimumFractionDigits: 0
+    }).format(amount || 0);
 }
 
-function loadPayrollData() {
-    const data = getData();
-    const key = getPayrollKey();
-    const employees = data.users.filter(u => ['employee', 'manager'].includes(u.role) && u.activeStatus !== 'Resign' && u.activeStatus !== 'PHK' && u.activeStatus !== 'Pensiun');
+// ── Load / Sync ───────────────────────────────────────────────
+async function loadPayrollData() {
+    const { month, year } = getPeriod();
+    try {
+        const [empRes, recRes, settRes] = await Promise.all([
+            fetch(`${API}/api/employees`),
+            fetch(`${API}/api/payroll/records?month=${month}&year=${year}`),
+            fetch(`${API}/api/payroll/settings`)
+        ]);
+        const emps = await empRes.json();
+        const records = await recRes.json();
+        const settings = await settRes.json();
 
-    // Load existing payroll record or init empty
-    let payrollRecord = data.payrolls ? data.payrolls[key] : null;
+        _employees = emps.filter(u =>
+            ['employee', 'manager'].includes(u.role) &&
+            u.status !== 'Resign' && u.status !== 'PHK' && u.status !== 'Pensiun'
+        );
 
-    if (!payrollRecord) {
-        // Init temporary record structure for display
-        payrollRecord = {};
-        employees.forEach(e => {
-            payrollRecord[e.id] = {
+        _settings = {
+            bpjs_jht_emp: parseFloat(settings.bpjs_jht_emp) || 2,
+            bpjs_jp_emp: parseFloat(settings.bpjs_jp_emp) || 1,
+            bpjs_kes_emp: parseFloat(settings.bpjs_kes_emp) || 1,
+            ot_index: parseFloat(settings.ot_index) || 173,
+            tax_office_limit: parseFloat(settings.tax_office_limit) || 500000,
+            ptkp0: parseFloat(settings.ptkp0) || 54000000,
+        };
+
+        // Build payrollMap — merge DB records with employees
+        _payrollMap = {};
+        _employees.forEach(e => {
+            const rec = records.find(r => r.user_id == e.id || r.id == e.id);
+            _payrollMap[e.id] = {
                 id: e.id,
                 name: e.name,
                 nid: e.nid,
-                email: e.emailCompany || e.emailPersonal || '-',
-                position: e.position,
-                baseSalary: parseFloat(e.baseSalary) || 0,
-                fixedAllowance: parseFloat(e.fixedAllowance) || 0,
-                transportAllowance: parseFloat(e.transportAllowance) || 0,
-                otHours: 0,
-                otRate: Math.round((parseFloat(e.baseSalary) || 0) / 173),
-                bonus: 0,
-                deduction: 0,
-                status: 'Draft',
-                emailStatus: 'Not Sent'
+                email: e.email_company || e.email_personal || e.email || '-',
+                position: e.position || '-',
+                department: e.department || '-',
+                baseSalary: parseFloat(e.base_salary || e.baseSalary) || 0,
+                fixedAllowance: parseFloat(e.fixed_allowance || e.fixedAllowance) || 0,
+                transportAllowance: parseFloat(e.transport_allowance || e.transportAllowance) || 0,
+                otHours: rec ? parseFloat(rec.ot_hours || 0) : 0,
+                bonus: rec ? parseFloat(rec.bonus || 0) : 0,
+                deduction: rec ? parseFloat(rec.manual_deduction || 0) : 0,
+                emailStatus: rec ? (rec.email_status || 'Not Sent') : 'Not Sent',
+                // Calculated fields (from DB if processed)
+                otPay: rec ? parseFloat(rec.total_ot || 0) : 0,
+                gross: rec ? parseFloat(rec.gross_salary || 0) : 0,
+                bpjsJHT: rec ? parseFloat(rec.bpjs_jht || 0) : 0,
+                bpjsJP: rec ? parseFloat(rec.bpjs_jp || 0) : 0,
+                bpjsKes: rec ? parseFloat(rec.bpjs_kes || 0) : 0,
+                pph21: rec ? parseFloat(rec.pph21 || 0) : 0,
+                thp: rec ? parseFloat(rec.net_salary || 0) : null,
+                status: rec ? (rec.status === 'processed' ? 'Processed' : rec.status || 'Draft') : 'Draft',
+                dbId: rec ? rec.id : null
             };
         });
-    } else {
-        // 1. Remove orphaned records (IDs that are no longer in the current active employees list)
-        const activeIds = employees.map(e => e.id.toString());
-        Object.keys(payrollRecord).forEach(id => {
-            if (!activeIds.includes(id)) {
-                delete payrollRecord[id];
-            }
-        });
 
-        // 2. Merge with current employees
-        employees.forEach(e => {
-            if (!payrollRecord[e.id]) {
-                payrollRecord[e.id] = {
-                    id: e.id,
-                    name: e.name,
-                    nid: e.nid,
-                    email: e.emailCompany || e.emailPersonal || '-',
-                    position: e.position,
-                    baseSalary: parseFloat(e.baseSalary) || 0,
-                    fixedAllowance: parseFloat(e.fixedAllowance) || 0,
-                    transportAllowance: parseFloat(e.transportAllowance) || 0,
-                    otHours: 0,
-                    otRate: Math.round((parseFloat(e.baseSalary) || 0) / 173),
-                    bonus: 0,
-                    deduction: 0,
-                    status: 'Draft',
-                    emailStatus: 'Not Sent'
-                };
-            } else {
-                // ALWAYS Sync Master Data
-                const item = payrollRecord[e.id];
-                item.name = e.name;
-                item.nid = e.nid;
-                item.position = e.position;
-                item.email = e.emailCompany || e.emailPersonal || '-';
-
-                const oldBase = item.baseSalary;
-                item.baseSalary = parseFloat(e.baseSalary) || 0;
-                item.fixedAllowance = parseFloat(e.fixedAllowance) || 0;
-                item.transportAllowance = parseFloat(e.transportAllowance) || 0;
-                item.otRate = Math.round((item.baseSalary) / 173);
-
-                if (item.status === 'Processed' && oldBase !== item.baseSalary) {
-                    item.status = 'Modified';
-                }
-            }
-        });
+    } catch (e) {
+        console.error('loadPayrollData error:', e.message);
     }
 
-    // Persist the synced record (especially for Drafts/Modified that got updated salaries)
-    if (!data.payrolls) data.payrolls = {};
-    data.payrolls[key] = payrollRecord;
-    saveData(data);
-
-    renderPayrollTable(payrollRecord);
-    updateSummary(payrollRecord);
+    renderPayrollTable(_payrollMap);
+    updateSummary(_payrollMap);
 }
 
+// ── Render ─────────────────────────────────────────────────────
 function renderPayrollTable(record) {
     const tbody = document.getElementById('payrollTableBody');
     tbody.innerHTML = '';
 
     Object.values(record).forEach(item => {
         const salary = formatRupiah(item.baseSalary);
-        // Fix: Properly handle 0 or negative THP (don't show '-' if it's 0)
-        const thp = (item.thp !== undefined && item.thp !== null) ? formatRupiah(item.thp) : '-';
+        const thp = item.thp !== null ? formatRupiah(item.thp) : '-';
 
         let statusClass = 'text-muted';
         if (item.status === 'Processed') statusClass = 'text-success';
         if (item.status === 'Modified') statusClass = 'text-warning';
 
-        const emailStatusText = item.emailStatus === 'Sent' ? '<small class="text-success"><i class="fas fa-check-circle"></i> Sent</small>' : '';
-        const modifiedText = item.status === 'Modified' ? '<br><small class="text-warning"><i class="fas fa-exclamation-triangle"></i> Gaji Berubah - Mohon Hitung Ulang</small>' : '';
+        const emailBadge = item.emailStatus === 'Sent'
+            ? '<small class="text-success"><i class="fas fa-check-circle"></i> Sent</small>' : '';
+        const modifiedText = item.status === 'Modified'
+            ? '<br><small class="text-warning"><i class="fas fa-exclamation-triangle"></i> Gaji Berubah - Mohon Hitung Ulang</small>' : '';
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -162,238 +129,229 @@ function renderPayrollTable(record) {
             <td>${item.position || '-'}</td>
             <td>${salary}</td>
             <td>
-                <input type="number" class="payroll-input" value="${item.otHours}" 
-                    onchange="updateItem('${item.id}', 'otHours', this.value)">
+                <input type="number" class="payroll-input" value="${item.otHours}"
+                    onchange="updateItem(${item.id}, 'otHours', this.value)">
             </td>
             <td>
                 <small>Fix: ${formatRupiah(item.fixedAllowance)}</small><br>
                 <small>Trp: ${formatRupiah(item.transportAllowance)}</small>
             </td>
             <td>
-                <input type="number" class="payroll-input" placeholder="Potongan Lain" value="${item.deduction}" 
-                    onchange="updateItem('${item.id}', 'deduction', this.value)">
+                <input type="number" class="payroll-input" placeholder="Potongan Lain" value="${item.deduction}"
+                    onchange="updateItem(${item.id}, 'deduction', this.value)">
             </td>
             <td>
-                <strong style="color:var(--primary-color); font-size:14px;">${thp}</strong><br>
-                <small>${item.status}</small> ${emailStatusText}
+                <strong style="color:var(--primary-color);font-size:14px;">${thp}</strong><br>
+                <small class="${statusClass}">${item.status}</small> ${emailBadge}${modifiedText}
             </td>
             <td>
-                <button class="btn btn-sm btn-success" onclick="processItem('${item.id}')" title="Calculate"><i class="fas fa-calculator"></i></button>
+                <button class="btn btn-sm btn-success" onclick="processItem(${item.id})" title="Calculate">
+                    <i class="fas fa-calculator"></i>
+                </button>
                 ${item.status === 'Processed' ? `
-                    <button class="btn btn-sm btn-info" onclick="viewPayslip('${item.id}')" title="View/Print"><i class="fas fa-file-invoice"></i></button>
-                    <button class="btn btn-sm btn-primary" id="btnEmail_${item.id}" onclick="sendPayslipEmail('${item.id}')" title="Send via Email"><i class="fas fa-envelope"></i></button>
+                    <button class="btn btn-sm btn-info" onclick="viewPayslip(${item.id})" title="View/Print">
+                        <i class="fas fa-file-invoice"></i>
+                    </button>
+                    <button class="btn btn-sm btn-primary" id="btnEmail_${item.id}"
+                        onclick="sendPayslipEmail(${item.id})" title="Send via Email">
+                        <i class="fas fa-envelope"></i>
+                    </button>
                 ` : ''}
-            </td>
-        `;
+            </td>`;
         tbody.appendChild(tr);
     });
 }
 
+// ── Update item input ─────────────────────────────────────────
 function updateItem(id, field, value) {
-    // Temporary storage in DOM or memory? 
-    // Best to save to localStorage immediately to persist "Draft" state
-    const data = getData();
-    const key = getPayrollKey();
-    if (!data.payrolls) data.payrolls = {};
-    if (!data.payrolls[key]) {
-        // Create the record if it doesn't exist (first save)
-        // Re-construct logic from loadPayrollData needed here or simpler:
-        // We need to grab the full object.
-        // Let's rely on the fact that loadPayrollData constructed it.
-        // But we need to persist it now.
-        alert("Please click 'Process All' first to initialize the period properly, or I'll implement auto-save.");
-        return;
-        // Actually, let's auto-init in loadPayrollData and save it? 
-        // Better: Just update the in-memory object and save.
-    }
-
-    data.payrolls[key][id][field] = parseFloat(value) || 0;
-    saveData(data);
-    loadPayrollData(); // Re-render to update calculations if we want real-time (but calc happens on process)
+    if (!_payrollMap[id]) return;
+    _payrollMap[id][field] = parseFloat(value) || 0;
+    // Mark as Draft if changed after Processed
+    if (_payrollMap[id].status === 'Processed') _payrollMap[id].status = 'Modified';
+    renderPayrollTable(_payrollMap);
+    updateSummary(_payrollMap);
 }
 
-function processAllPayroll() {
-    const data = getData();
-    const key = getPayrollKey();
+// ── Calculate ─────────────────────────────────────────────────
+function calcOne(item) {
+    const base = item.baseSalary;
+    const fixed = item.fixedAllowance;
+    const transport = item.transportAllowance;
+    const otHours = item.otHours || 0;
+    const bonus = item.bonus || 0;
+    const manDed = item.deduction || 0;
 
-    // We need to re-fetch employees to ensure we have latest data
-    const employees = data.users.filter(u => ['employee', 'manager'].includes(u.role) && u.activeStatus !== 'Resign');
+    const otPay = Math.round((base / _settings.ot_index) * otHours);
+    const gross = base + fixed + transport + otPay + bonus;
 
-    if (!data.payrolls) data.payrolls = {};
-    const existingRecord = data.payrolls[key] || {};
-    let newRecord = {};
+    const bpjsJHT = Math.round(base * (_settings.bpjs_jht_emp / 100));
+    const bpjsJP = Math.round(base * (_settings.bpjs_jp_emp / 100));
+    const bpjsKes = Math.round(base * (_settings.bpjs_kes_emp / 100));
+    const totalBPJS = bpjsJHT + bpjsJP + bpjsKes;
 
-    // Get Dynamic Settings
-    const settings = data.payrollSettings || {
-        bpjs_jht_emp: 2,
-        bpjs_jp_emp: 1,
-        bpjs_kes_emp: 1,
-        ot_index: 173,
-        tax_office_limit: 500000,
-        ptkp0: 54000000
-    };
+    let biayaJabatan = gross * 0.05;
+    if (biayaJabatan > _settings.tax_office_limit) biayaJabatan = _settings.tax_office_limit;
 
-    employees.forEach(e => {
-        // Get existing inputs or defaults
-        const existing = existingRecord[e.id] || {};
+    const netMonth = gross - biayaJabatan - totalBPJS;
+    let pkp = (netMonth * 12) - _settings.ptkp0;
+    if (pkp < 0) pkp = 0;
 
-        // Base Data
-        const base = parseFloat(e.baseSalary) || 0;
-        const fixed = parseFloat(e.fixedAllowance) || 0;
-        const transport = parseFloat(e.transportAllowance) || 0;
-
-        // Inputs
-        const otHours = existing.otHours || 0;
-        const bonus = existing.bonus || 0;
-        const manualDeduction = existing.deduction || 0;
-
-        // CALCULATIONS
-        // 1. Overtime (Dynamic index rule)
-        const otPay = Math.round((base / settings.ot_index) * otHours);
-
-        // 2. Gross Salary
-        const gross = base + fixed + transport + otPay + bonus;
-
-        // 3. BPJS Calculations (Dynamic rates)
-        const bpjsJHT = Math.round(base * (settings.bpjs_jht_emp / 100));
-        const bpjsJP = Math.round(base * (settings.bpjs_jp_emp / 100));
-        const bpjsKes = Math.round(base * (settings.bpjs_kes_emp / 100));
-        const totalBPJS = bpjsJHT + bpjsJP + bpjsKes;
-
-        // 4. PPh 21 Calculation (Simplified Progressive)
-        // Biaya Jabatan (5% max [tax_office_limit])
-        let biayaJabatan = gross * 0.05;
-        if (biayaJabatan > settings.tax_office_limit) biayaJabatan = settings.tax_office_limit;
-
-        const netMonth = gross - biayaJabatan - totalBPJS;
-        const netYear = netMonth * 12;
-
-        // PTKP (Status Nikah)
-        const marital = e.maritalStatus || 'Belum Menikah';
-        let ptkp = settings.ptkp0; // Dynamic PTKP TK/0
-        if (marital === 'Menikah') ptkp += 4500000;
-
-        let pkp = netYear - ptkp;
-        if (pkp < 0) pkp = 0;
-
-        let pphYear = 0;
-        if (pkp > 0) {
-            // Layer 1: 0 - 60jt (5%)
-            if (pkp <= 60000000) {
-                pphYear = pkp * 0.05;
+    let pphYear = 0;
+    if (pkp > 0) {
+        if (pkp <= 60000000) {
+            pphYear = pkp * 0.05;
+        } else {
+            pphYear = 60000000 * 0.05;
+            const r1 = pkp - 60000000;
+            if (r1 <= 190000000) {
+                pphYear += r1 * 0.15;
             } else {
-                pphYear = 60000000 * 0.05;
-                const remain = pkp - 60000000;
-                // Layer 2: 60jt - 250jt (15%)
-                if (remain <= 190000000) {
-                    pphYear += remain * 0.15;
-                } else {
-                    pphYear += 190000000 * 0.15;
-                    const remain2 = remain - 190000000;
-                    // Layer 3: > 250jt (simplified stop here for now)
-                    pphYear += remain2 * 0.25;
-                }
+                pphYear += 190000000 * 0.15;
+                pphYear += (r1 - 190000000) * 0.25;
             }
         }
+    }
+    const pph21 = Math.round(pphYear / 12);
+    const thp = gross - totalBPJS - pph21 - manDed;
 
-        const pphMonth = Math.round(pphYear / 12);
+    return { otPay, gross, bpjsJHT, bpjsJP, bpjsKes, pph21, thp };
+}
 
-        // 5. Net Salary (THP)
-        // Formula: Gross - BPJS (Emp) - Tax - Manual Deduction
-        const thp = gross - totalBPJS - pphMonth - manualDeduction;
+async function processItem(id) {
+    const item = _payrollMap[id];
+    if (!item) return;
+    const { month, year } = getPeriod();
+    const calc = calcOne(item);
+    Object.assign(item, calc, { status: 'Processed' });
 
-        // Save Result to the NEW record (this effectively removes orphans)
-        newRecord[e.id] = {
-            ...existing,
-            id: e.id,
-            name: e.name,
-            nid: e.nid,
-            position: e.position,
-            department: e.department,
-            joinDate: e.joinDate,
-            baseSalary: base,
-            fixedAllowance: fixed,
-            transportAllowance: transport,
-            otHours: otHours,
-            otPay: otPay,
-            bonus: bonus,
-            gross: gross,
-            bpjsJHT: bpjsJHT,
-            bpjsJP: bpjsJP,
-            bpjsKes: bpjsKes,
-            pph21: pphMonth,
-            deduction: manualDeduction,
-            thp: thp,
-            status: 'Processed'
-        };
+    try {
+        await fetch(`${API}/api/payroll/records`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: id,
+                period_month: month,
+                period_year: year,
+                basic_salary: item.baseSalary,
+                fixed_allowance: item.fixedAllowance,
+                transport_allowance: item.transportAllowance,
+                ot_hours: item.otHours,
+                total_ot: calc.otPay,
+                bonus: item.bonus,
+                gross_salary: calc.gross,
+                bpjs_jht: calc.bpjsJHT,
+                bpjs_jp: calc.bpjsJP,
+                bpjs_kes: calc.bpjsKes,
+                pph21: calc.pph21,
+                manual_deduction: item.deduction,
+                total_deductions: calc.bpjsJHT + calc.bpjsJP + calc.bpjsKes + calc.pph21 + item.deduction,
+                net_salary: calc.thp,
+                status: 'processed'
+            })
+        });
+    } catch (e) { console.error('processItem save error:', e.message); }
+
+    renderPayrollTable(_payrollMap);
+    updateSummary(_payrollMap);
+}
+
+async function processAllPayroll() {
+    const { month, year } = getPeriod();
+    const saves = Object.values(_payrollMap).map(async item => {
+        const calc = calcOne(item);
+        Object.assign(item, calc, { status: 'Processed' });
+        await fetch(`${API}/api/payroll/records`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: item.id,
+                period_month: month,
+                period_year: year,
+                basic_salary: item.baseSalary,
+                fixed_allowance: item.fixedAllowance,
+                transport_allowance: item.transportAllowance,
+                ot_hours: item.otHours,
+                total_ot: calc.otPay,
+                bonus: item.bonus,
+                gross_salary: calc.gross,
+                bpjs_jht: calc.bpjsJHT,
+                bpjs_jp: calc.bpjsJP,
+                bpjs_kes: calc.bpjsKes,
+                pph21: calc.pph21,
+                manual_deduction: item.deduction,
+                total_deductions: calc.bpjsJHT + calc.bpjsJP + calc.bpjsKes + calc.pph21 + item.deduction,
+                net_salary: calc.thp,
+                status: 'processed'
+            })
+        });
     });
-
-    data.payrolls[key] = newRecord;
-    saveData(data);
-    loadPayrollData();
+    await Promise.all(saves);
+    renderPayrollTable(_payrollMap);
+    updateSummary(_payrollMap);
     alert('Payroll processed successfully!');
 }
 
-function processItem(id) {
-    // Process single item? For now just run all is safer to keep sync.
-    processAllPayroll();
-}
-
-function resetPayroll() {
+async function resetPayroll() {
     if (!confirm('Reset data payroll untuk periode ini? Data lembur dan input manual akan hilang.')) return;
-    const data = getData();
-    const key = getPayrollKey();
-    if (data.payrolls && data.payrolls[key]) {
-        delete data.payrolls[key];
-        saveData(data);
-    }
-    loadPayrollData();
-}
-
-function updateSummary(record) {
-    let total = 0;
-    let count = 0;
-    let pending = 0;
-
-    Object.values(record).forEach(item => {
-        if (item.status === 'Processed') {
-            total += item.thp;
-            count++;
-        } else {
-            pending++;
-        }
+    // Re-load fresh from DB (which will return empty records for this period)
+    Object.values(_payrollMap).forEach(item => {
+        item.otHours = 0; item.bonus = 0; item.deduction = 0;
+        item.otPay = 0; item.gross = 0; item.bpjsJHT = 0;
+        item.bpjsJP = 0; item.bpjsKes = 0; item.pph21 = 0;
+        item.thp = null; item.status = 'Draft'; item.emailStatus = 'Not Sent';
     });
-
-    document.getElementById('totalCost').textContent = formatRupiah(total);
-    document.getElementById('processedCount').textContent = count;
-    document.getElementById('pendingCount').textContent = pending;
-
-    const m = document.getElementById('payrollMonth').options[document.getElementById('payrollMonth').selectedIndex].text;
-    const y = document.getElementById('payrollYear').value;
-    document.getElementById('periodLabel').textContent = `Period: ${m} ${y}`;
+    renderPayrollTable(_payrollMap);
+    updateSummary(_payrollMap);
 }
 
+function refreshPayrollWithLoading() {
+    const btn = document.getElementById('refreshBtn');
+    const orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memuat Data...';
+    btn.style.opacity = '0.8';
+    setTimeout(async () => {
+        await loadPayrollData();
+        btn.innerHTML = '<i class="fas fa-check"></i> Selesai Sinkron';
+        btn.classList.replace('btn-primary', 'btn-success');
+        setTimeout(() => {
+            btn.disabled = false;
+            btn.innerHTML = orig;
+            btn.classList.replace('btn-success', 'btn-primary');
+            btn.style.opacity = '1';
+        }, 1500);
+    }, 800);
+}
+
+// ── Summary ───────────────────────────────────────────────────
+function updateSummary(record) {
+    let total = 0, processed = 0, pending = 0;
+    Object.values(record).forEach(item => {
+        if (item.status === 'Processed') { total += item.thp || 0; processed++; }
+        else pending++;
+    });
+    document.getElementById('totalCost').textContent = formatRupiah(total);
+    document.getElementById('processedCount').textContent = processed;
+    document.getElementById('pendingCount').textContent = pending;
+    document.getElementById('periodLabel').textContent = 'Period: ' + getPeriod().label;
+}
+
+// ── Payslip Modal ─────────────────────────────────────────────
 function viewPayslip(id) {
-    const data = getData();
-    const key = getPayrollKey();
-    const record = data.payrolls[key][id];
-
+    const record = _payrollMap[id];
     if (!record) return;
+    const { label } = getPeriod();
 
-    const m = document.getElementById('payrollMonth').options[document.getElementById('payrollMonth').selectedIndex].text;
-    const y = document.getElementById('payrollYear').value;
-
-    const html = `
+    document.getElementById('payslipContent').innerHTML = `
         <div class="payslip-header">
             <h2>E-PEOPLESYNC INDONESIA</h2>
             <p>SLIP GAJI KARYAWAN</p>
-            <p>Periode: ${m} ${y}</p>
+            <p>Periode: ${label}</p>
         </div>
-        
         <div class="payslip-row">
             <div>
                 <strong>Nama:</strong> ${record.name}<br>
-                <strong>NID:</strong> ${record.nid}<br>
+                <strong>NID:</strong> ${record.nid || '-'}<br>
                 <strong>Jabatan:</strong> ${record.position}
             </div>
             <div style="text-align:right;">
@@ -401,58 +359,42 @@ function viewPayslip(id) {
                 <strong>Status:</strong> Pegawai Tetap
             </div>
         </div>
-
         <div class="payslip-section">
             <h4 style="margin-bottom:10px;">PENERIMAAN (EARNINGS)</h4>
-            <div class="payslip-row"><span>Gaji Pokok</span> <span>${formatRupiah(record.baseSalary)}</span></div>
-            <div class="payslip-row"><span>Tunjangan Tetap</span> <span>${formatRupiah(record.fixedAllowance)}</span></div>
-            <div class="payslip-row"><span>Tunjangan Transport</span> <span>${formatRupiah(record.transportAllowance)}</span></div>
-            <div class="payslip-row"><span>Lembur (${record.otHours} jam)</span> <span>${formatRupiah(record.otPay)}</span></div>
-            <div class="payslip-row"><span>Bonus / Lainnya</span> <span>${formatRupiah(record.bonus)}</span></div>
-            <div class="payslip-row" style="border-top:1px solid #ddd; margin-top:5px; padding-top:5px;">
-                <strong>Total Bruto (Gross)</strong> <strong>${formatRupiah(record.gross)}</strong>
+            <div class="payslip-row"><span>Gaji Pokok</span><span>${formatRupiah(record.baseSalary)}</span></div>
+            <div class="payslip-row"><span>Tunjangan Tetap</span><span>${formatRupiah(record.fixedAllowance)}</span></div>
+            <div class="payslip-row"><span>Tunjangan Transport</span><span>${formatRupiah(record.transportAllowance)}</span></div>
+            <div class="payslip-row"><span>Lembur (${record.otHours} jam)</span><span>${formatRupiah(record.otPay)}</span></div>
+            <div class="payslip-row"><span>Bonus / Lainnya</span><span>${formatRupiah(record.bonus)}</span></div>
+            <div class="payslip-row" style="border-top:1px solid #ddd;margin-top:5px;padding-top:5px;">
+                <strong>Total Bruto (Gross)</strong><strong>${formatRupiah(record.gross)}</strong>
             </div>
         </div>
-
         <div class="payslip-section">
             <h4 style="margin-bottom:10px;">POTONGAN (DEDUCTIONS)</h4>
-            <div class="payslip-row"><span>BPJS Ketenagakerjaan (JHT 2%)</span> <span>(${formatRupiah(record.bpjsJHT)})</span></div>
-            <div class="payslip-row"><span>BPJS Ketenagakerjaan (JP 1%)</span> <span>(${formatRupiah(record.bpjsJP)})</span></div>
-            <div class="payslip-row"><span>BPJS Kesehatan (1%)</span> <span>(${formatRupiah(record.bpjsKes)})</span></div>
-            <div class="payslip-row"><span>PPh 21</span> <span>(${formatRupiah(record.pph21)})</span></div>
-            <div class="payslip-row"><span>Potongan Lain</span> <span>(${formatRupiah(record.deduction)})</span></div>
-            <div class="payslip-row" style="border-top:1px solid #ddd; margin-top:5px; padding-top:5px;">
-                <strong>Total Potongan</strong> <strong>(${formatRupiah(record.bpjsJHT + record.bpjsJP + record.bpjsKes + record.pph21 + record.deduction)})</strong>
+            <div class="payslip-row"><span>BPJS Ketenagakerjaan (JHT ${_settings.bpjs_jht_emp}%)</span><span>(${formatRupiah(record.bpjsJHT)})</span></div>
+            <div class="payslip-row"><span>BPJS Ketenagakerjaan (JP ${_settings.bpjs_jp_emp}%)</span><span>(${formatRupiah(record.bpjsJP)})</span></div>
+            <div class="payslip-row"><span>BPJS Kesehatan (${_settings.bpjs_kes_emp}%)</span><span>(${formatRupiah(record.bpjsKes)})</span></div>
+            <div class="payslip-row"><span>PPh 21</span><span>(${formatRupiah(record.pph21)})</span></div>
+            <div class="payslip-row"><span>Potongan Lain</span><span>(${formatRupiah(record.deduction)})</span></div>
+            <div class="payslip-row" style="border-top:1px solid #ddd;margin-top:5px;padding-top:5px;">
+                <strong>Total Potongan</strong>
+                <strong>(${formatRupiah(record.bpjsJHT + record.bpjsJP + record.bpjsKes + record.pph21 + record.deduction)})</strong>
             </div>
         </div>
-
         <div class="payslip-total">
             <div class="payslip-row">
                 <span>GAJI BERSIH (TAKE HOME PAY)</span>
                 <span style="font-size:18px;">${formatRupiah(record.thp)}</span>
             </div>
         </div>
-
-        <div style="margin-top:40px; display:flex; justify-content:space-between; text-align:center;">
-            <div>
-                <p>Diterima Oleh,</p>
-                <br><br><br>
-                <p>(${record.name})</p>
-            </div>
-            <div>
-                <p>Jakarta, ${new Date().toLocaleDateString('id-ID')}</p>
-                <p>Finance Dept,</p>
-                <br><br><br>
-                <p>( Manager HR & GA )</p>
-            </div>
+        <div style="margin-top:40px;display:flex;justify-content:space-between;text-align:center;">
+            <div><p>Diterima Oleh,</p><br><br><br><p>(${record.name})</p></div>
+            <div><p>Jakarta, ${new Date().toLocaleDateString('id-ID')}</p><p>Finance Dept,</p><br><br><br><p>( Manager HR & GA )</p></div>
         </div>
-        
-        <div style="margin-top:30px; font-size:11px; color:#888; text-align:center;">
+        <div style="margin-top:30px;font-size:11px;color:#888;text-align:center;">
             <i>Dokumen ini dihasilkan secara otomatis oleh sistem komputer.</i>
-        </div>
-    `;
-
-    document.getElementById('payslipContent').innerHTML = html;
+        </div>`;
     document.getElementById('payslipModal').style.display = 'block';
 }
 
@@ -460,91 +402,66 @@ function closePayslipModal() {
     document.getElementById('payslipModal').style.display = 'none';
 }
 
-function formatRupiah(amount) {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
-}
-
+// ── Email (Simulated) ─────────────────────────────────────────
 function sendPayslipEmail(id) {
-    const data = getData();
-    const key = getPayrollKey();
-    const record = data.payrolls[key][id];
-    const user = data.users.find(u => u.id == id);
-
+    const record = _payrollMap[id];
     if (!record || record.status !== 'Processed') {
         alert('Please process payroll first before sending email.');
         return;
     }
+    const email = record.email && record.email !== '-' ? record.email : null;
+    if (!email) { alert('Employee email not found. Please update employee profile.'); return; }
 
-    // Ensure we have the latest email from the user object
-    const email = user ? (user.emailCompany || user.emailPersonal) : record.email;
-
-    if (!email || email === '-') {
-        alert('Employee email not found. Please update employee profile.');
-        return;
-    }
-
-    // Period formatting
-    const m = document.getElementById('payrollMonth').options[document.getElementById('payrollMonth').selectedIndex].text;
-    const y = document.getElementById('payrollYear').value;
-    const period = `${m} ${y}`;
-
-    // Subject & Body Preview
-    const subject = `Slip Gaji E-PeopleSync - ${record.name} - ${period}`;
-    const body = `
-        Halo <b>${record.name}</b>,<br><br>
-        Terlampir adalah rincian slip gaji Anda untuk periode <b>${period}</b>.<br>
-        Total Gaji Bersih (THP): <b>${formatRupiah(record.thp)}</b>.<br><br>
-        Silakan cek rincian lengkapnya melalui sistem atau hubungi HR jika ada pertanyaan.<br><br>
-        Salam,<br>
-        <b>Finance Dept - E-PeopleSync Indonesia</b>
-    `;
-
-    // Populate Modal
+    const { label } = getPeriod();
     document.getElementById('emailTargetDisplay').textContent = email;
-    document.getElementById('emailSubjectInput').value = subject;
-    document.getElementById('emailBodyDisplay').innerHTML = body;
+    document.getElementById('emailSubjectInput').value = `Slip Gaji E-PeopleSync - ${record.name} - ${label}`;
+    document.getElementById('emailBodyDisplay').innerHTML = `
+        Halo <b>${record.name}</b>,<br><br>
+        Terlampir rincian slip gaji Anda periode <b>${label}</b>.<br>
+        Total Gaji Bersih (THP): <b>${formatRupiah(record.thp)}</b>.<br><br>
+        Salam,<br><b>Finance Dept - E-PeopleSync Indonesia</b>`;
     document.getElementById('emailConfirmModal').style.display = 'block';
-
-    // Set click handler for confirmation button
-    document.getElementById('confirmSendBtn').onclick = () => {
-        closeEmailConfirm();
-        performEmailSend(id, email);
-    };
+    document.getElementById('confirmSendBtn').onclick = () => { closeEmailConfirm(); performEmailSend(id, email); };
 }
 
 function closeEmailConfirm() {
     document.getElementById('emailConfirmModal').style.display = 'none';
 }
 
-function performEmailSend(id, email) {
-    const key = getPayrollKey();
+async function performEmailSend(id, email) {
     const btn = document.getElementById(`btnEmail_${id}`);
-    const originalContent = btn.innerHTML;
+    const orig = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-    // Simulate sending delay
-    setTimeout(() => {
-        btn.innerHTML = originalContent;
-        btn.disabled = false;
-
-        // Update status in data
-        const freshData = getData();
-        if (freshData.payrolls && freshData.payrolls[key] && freshData.payrolls[key][id]) {
-            freshData.payrolls[key][id].emailStatus = 'Sent';
-            freshData.payrolls[key][id].email = email; // Finalize email in record
-            saveData(freshData);
+    setTimeout(async () => {
+        btn.innerHTML = orig; btn.disabled = false;
+        if (_payrollMap[id]) {
+            _payrollMap[id].emailStatus = 'Sent';
+            // Persist email status via payroll record update
+            const { month, year } = getPeriod();
+            await fetch(`${API}/api/payroll/records`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: id,
+                    period_month: month,
+                    period_year: year,
+                    email_status: 'Sent',
+                    status: 'processed',
+                    // Pass existing fields to avoid overwriting
+                    net_salary: _payrollMap[id].thp,
+                    basic_salary: _payrollMap[id].baseSalary,
+                    total_deductions: _payrollMap[id].bpjsJHT + _payrollMap[id].bpjsJP +
+                        _payrollMap[id].bpjsKes + _payrollMap[id].pph21 + _payrollMap[id].deduction
+                })
+            }).catch(console.error);
         }
-
-        loadPayrollData();
-        alert(`Sukses! Slip gaji periode ini telah dikirim ke: ${email}`);
+        renderPayrollTable(_payrollMap);
+        alert(`Sukses! Slip gaji dikirim ke: ${email}`);
     }, 1500);
 }
 
-function openGuideModal() {
-    document.getElementById('payrollGuideModal').style.display = 'block';
-}
-
-function closeGuideModal() {
-    document.getElementById('payrollGuideModal').style.display = 'none';
-}
+// ── Guide Modal ───────────────────────────────────────────────
+function openGuideModal() { document.getElementById('payrollGuideModal').style.display = 'block'; }
+function closeGuideModal() { document.getElementById('payrollGuideModal').style.display = 'none'; }

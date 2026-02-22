@@ -3,15 +3,19 @@
  * Handles Job, Employee, and LMS Management.
  */
 
+const API = 'http://localhost:3001';
+
 document.addEventListener('DOMContentLoaded', () => {
     checkAuth(['admin']);
-    loadAdminData();
     initDashboardCharts();
+    initUserProfile();
+
+    // Call data loading functions asynchronously
+    loadAdminData();
     loadJobs();
     loadEmployees();
     loadCoursesAdmin();
     updateNotifications();
-    initUserProfile();
 
     // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
@@ -42,47 +46,53 @@ window.showTab = function (tabId) {
 /**
  * Notifications Logic
  */
-function updateNotifications() {
-    const data = getData();
-    const badge = document.getElementById('notifBadge');
-    const body = document.getElementById('notifBody');
-    const countText = document.getElementById('notifCountText');
+async function updateNotifications() {
+    try {
+        const res = await fetch(`${API}/api/recruitment/applications`);
+        const applications = await res.json();
 
-    if (!badge || !body) return;
+        const badge = document.getElementById('notifBadge');
+        const body = document.getElementById('notifBody');
+        const countText = document.getElementById('notifCountText');
 
-    // Filter New Applications
-    const newApps = data.applications.filter(a => a.status === 'Applied');
-    const count = newApps.length;
+        if (!badge || !body) return;
 
-    // Update Badge
-    if (count > 0) {
-        badge.textContent = count;
-        badge.style.display = 'flex';
-        countText.textContent = `${count} New`;
-    } else {
-        badge.style.display = 'none';
-        countText.textContent = `No New`;
-    }
+        // Filter New Applications
+        const newApps = applications.filter(a => a.status === 'Applied');
+        const count = newApps.length;
 
-    // Populate Body
-    if (count > 0) {
-        body.innerHTML = '';
-        // Show last 5
-        newApps.slice(-5).reverse().forEach(app => {
-            const item = document.createElement('div');
-            item.className = 'notif-item';
-            item.onclick = () => window.location.href = '../recruitment/index.html';
-            item.innerHTML = `
-                <i class="fas fa-user-plus"></i>
-                <div class="notif-content">
-                    <div class="notif-title">New Application: <b>${app.name}</b></div>
-                    <div class="notif-time">Position: ${app.jobTitle}</div>
-                </div>
-            `;
-            body.appendChild(item);
-        });
-    } else {
-        body.innerHTML = '<div class="notif-empty">No new notifications</div>';
+        // Update Badge
+        if (count > 0) {
+            badge.textContent = count;
+            badge.style.display = 'flex';
+            if (countText) countText.textContent = `${count} New`;
+        } else {
+            badge.style.display = 'none';
+            if (countText) countText.textContent = `No New`;
+        }
+
+        // Populate Body
+        if (count > 0) {
+            body.innerHTML = '';
+            // Show last 5
+            newApps.slice(-5).reverse().forEach(app => {
+                const item = document.createElement('div');
+                item.className = 'notif-item';
+                item.onclick = () => window.location.href = '../recruitment/index.html';
+                item.innerHTML = `
+                    <i class="fas fa-user-plus"></i>
+                    <div class="notif-content">
+                        <div class="notif-title">New Application: <b>${app.name}</b></div>
+                        <div class="notif-time">Position: ${app.job_title}</div>
+                    </div>
+                `;
+                body.appendChild(item);
+            });
+        } else {
+            body.innerHTML = '<div class="notif-empty">No new notifications</div>';
+        }
+    } catch (err) {
+        console.error('Failed to load notifications:', err);
     }
 }
 
@@ -100,44 +110,66 @@ window.toggleNotifDropdown = function (e) {
 let skillChart = null;
 let funnelChart = null;
 
-function loadAdminData() {
-    const data = getData();
+async function loadAdminData() {
+    try {
+        const [empRes, appRes, enrRes, evalRes] = await Promise.all([
+            fetch(`${API}/api/employees`),
+            fetch(`${API}/api/recruitment/applications`),
+            fetch(`${API}/api/learning/enrollments`),
+            fetch(`${API}/api/evaluations`)
+        ]);
 
-    // 1. Total Employees
-    const employees = data.users.filter(u => u.role === 'employee').length;
-    if (document.getElementById('statEmployees')) document.getElementById('statEmployees').textContent = employees;
+        const employeesList = await empRes.json();
+        const applications = await appRes.json();
+        const enrollments = await enrRes.json();
+        const evaluations = await evalRes.json();
 
-    // 2. New Applications (Status 'Applied')
-    const apps = data.applications.filter(a => a.status === 'Applied').length;
-    if (document.getElementById('statApplications')) document.getElementById('statApplications').textContent = apps;
+        // 1. Total Employees
+        const employees = employeesList.filter(u => u.role === 'employee').length;
+        if (document.getElementById('statEmployees')) document.getElementById('statEmployees').textContent = employees;
 
-    // 3. Training Completion
-    // Logic: (Completed Enrollments / Total Enrollments) * 100
-    // Assuming enrollment.progress === 100 means completed.
-    const totalEnrollments = data.enrollments ? data.enrollments.length : 0;
-    const completedEnrollments = data.enrollments ? data.enrollments.filter(e => e.progress === 100).length : 0;
-    const completionRate = totalEnrollments > 0 ? ((completedEnrollments / totalEnrollments) * 100).toFixed(1) : 0;
+        // 2. New Applications (Status 'Applied')
+        const apps = applications.filter(a => a.status === 'Applied').length;
+        if (document.getElementById('statApplications')) document.getElementById('statApplications').textContent = apps;
 
-    if (document.getElementById('statTrainingCompletion')) {
-        document.getElementById('statTrainingCompletion').textContent = `${completionRate}%`;
+        // 3. Training Completion
+        // Logic: (Completed Enrollments / Total Enrollments) * 100
+        const totalEnrollments = enrollments.length;
+        const completedEnrollments = enrollments.filter(e => e.progress === 100 || e.status === 'completed').length;
+        const completionRate = totalEnrollments > 0 ? ((completedEnrollments / totalEnrollments) * 100).toFixed(1) : 0;
+
+        if (document.getElementById('statTrainingCompletion')) {
+            document.getElementById('statTrainingCompletion').textContent = `${completionRate}%`;
+        }
+        if (document.getElementById('statTrainingProgressBar')) {
+            document.getElementById('statTrainingProgressBar').style.width = `${completionRate}%`;
+        }
+
+        // 4. Avg KPI Score
+        // Logic: Average of all evaluations scores. Since evaluations in API don't have a direct 'score', we calculate from radar_data if possible.
+        // Assuming evaluations contain a history_data array where recent score is stored, or radar_data sum.
+        let avgKPI = 0;
+        if (evaluations.length > 0) {
+            let totalSum = 0;
+            let count = 0;
+            evaluations.forEach(ev => {
+                if (ev.radar_data) {
+                    const data = typeof ev.radar_data === 'string' ? JSON.parse(ev.radar_data) : ev.radar_data;
+                    const sum = data.reduce((a, b) => parseFloat(a) + parseFloat(b), 0);
+                    totalSum += (sum / data.length);
+                    count++;
+                }
+            });
+            avgKPI = count > 0 ? (totalSum / count).toFixed(1) : 'N/A';
+        }
+
+        if (document.getElementById('statAvgKPI')) document.getElementById('statAvgKPI').textContent = `${avgKPI}/5.0`;
+
+        // 5. Update Charts
+        updateDashboardCharts({ applications, evaluations, avgKPI });
+    } catch (err) {
+        console.error('Failed to load admin dashboard data:', err);
     }
-    if (document.getElementById('statTrainingProgressBar')) {
-        document.getElementById('statTrainingProgressBar').style.width = `${completionRate}%`;
-    }
-
-    // 4. Avg KPI Score
-    // Logic: Average of all evaluations.score
-    const evaluations = data.evaluations || [];
-    let avgKPI = 0;
-    if (evaluations.length > 0) {
-        const totalScore = evaluations.reduce((sum, ev) => sum + (ev.score || 0), 0);
-        avgKPI = (totalScore / evaluations.length).toFixed(1);
-    }
-
-    if (document.getElementById('statAvgKPI')) document.getElementById('statAvgKPI').textContent = `${avgKPI}/5.0`;
-
-    // 5. Update Charts
-    updateDashboardCharts(data);
 }
 
 function initDashboardCharts() {
@@ -181,7 +213,6 @@ function initDashboardCharts() {
 
 function updateDashboardCharts(data) {
     // A. Update Recruitment Funnel
-    // Count based on groupings
     const apps = data.applications || [];
     const applied = apps.filter(a => ['Applied', 'Review'].includes(a.status)).length;
     const interview = apps.filter(a => ['Interview', 'Recommended'].includes(a.status)).length;
@@ -193,160 +224,206 @@ function updateDashboardCharts(data) {
         funnelChart.update();
     }
 
-    // B. Update Skill Trend (Mock Logic for now as we don't have historical data)
-    // In a real app, we would query historical evaluation data. 
-    // For now, we'll plot the current Avg KPI as the latest point.
+    // B. Update Skill Trend
     if (skillChart) {
-        const evaluations = data.evaluations || [];
-        // If we have data, let's try to simulate a trend or just show the current average
-        // For simplicity in this local version: 
-        // We will just show the current Avg KPI across all months to indicate "Current Level" 
-        // OR leave it flat 0 if empty.
-
-        // Better approach for Demo:
-        // Use the actual average for the last month, and random variations for previous? 
-        // No, let's stick to honest data. If no history, we can't invent it.
-        // We will just map the current average to the last month.
-
-        let avgScore = 0;
-        if (evaluations.length > 0) {
-            avgScore = evaluations.reduce((sum, ev) => sum + (ev.score || 0), 0) / evaluations.length;
-        }
-
-        // Update last data point
+        const avgScore = isNaN(data.avgKPI) ? 0 : data.avgKPI;
         const dataPoints = [0, 0, 0, 0, 0, avgScore];
         skillChart.data.datasets[0].data = dataPoints;
         skillChart.update();
     }
 }
 
-window.downloadReport = function () {
-    const data = getData();
-    const headers = ["ID", "Name", "Role", "Status", "Department"];
-    const rows = data.users.map(u => [u.id, u.name, u.role, u.status || '-', u.department || '-']);
+window.downloadReport = async function () {
+    try {
+        const res = await fetch(`${API}/api/employees`);
+        const users = await res.json();
 
-    let csvContent = "data:text/csv;charset=utf-8,"
-        + headers.join(",") + "\n"
-        + rows.map(e => e.join(",")).join("\n");
+        const headers = ["ID", "Name", "Role", "Status", "Department"];
+        const rows = users.map(u => [u.id, u.name, u.role, u.status || '-', u.department || '-']);
 
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "epeoplesync_hr_data.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+        let csvContent = "data:text/csv;charset=utf-8,"
+            + headers.join(",") + "\n"
+            + rows.map(e => e.join(",")).join("\n");
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "epeoplesync_hr_data.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } catch (err) {
+        console.error('Failed to download report', err);
+        alert('Failed to generate report.');
+    }
 };
 
 // ... (Rest of existing logic for Jobs, Employees, Courses)
 
-function loadJobs() {
+async function loadJobs() {
     const tbody = document.getElementById('jobsTable');
     if (!tbody) return;
-    const data = getData();
     tbody.innerHTML = '';
 
-    data.jobs.forEach(job => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${job.title}</td>
-            <td>${job.department}</td>
-            <td>
-                <button class="btn btn-sm btn-danger" onclick="deleteJob(${job.id})">Delete</button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
+    try {
+        const res = await fetch(`${API}/api/recruitment/jobs`);
+        const jobs = await res.json();
+
+        jobs.forEach(job => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${job.title}</td>
+                <td>${job.department}</td>
+                <td>
+                    <button class="btn btn-sm btn-danger" onclick="deleteJob(${job.id})">Delete</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch (err) {
+        console.error('Failed to load jobs', err);
+    }
 }
 
-function addJob(e) {
+async function addJob(e) {
     e.preventDefault();
     const title = document.getElementById('jobTitle').value;
     const dept = document.getElementById('jobDept').value;
     const loc = document.getElementById('jobLoc').value;
     const type = document.getElementById('jobType').value;
 
-    const data = getData();
-    data.jobs.push({
-        id: Date.now(),
+    const newJob = {
         title,
         department: dept,
         location: loc,
-        type
-    });
-    saveData(data);
-    alert('Job Added Successfully!');
-    loadJobs();
-    document.getElementById('addJobForm').reset();
+        type,
+        status: 'open',
+        posted_by: currentUser.id
+    };
+
+    try {
+        const res = await fetch(`${API}/api/recruitment/jobs`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newJob)
+        });
+
+        if (res.ok) {
+            alert('Job Added Successfully!');
+            loadJobs();
+            document.getElementById('addJobForm').reset();
+        } else {
+            alert('Failed to add job.');
+        }
+    } catch (err) {
+        console.error('Failed to add job:', err);
+    }
 }
 
-window.deleteJob = function (id) {
+window.deleteJob = async function (id) {
     if (!confirm('Delete this job?')) return;
-    const data = getData();
-    data.jobs = data.jobs.filter(j => j.id !== id);
-    saveData(data);
-    loadJobs();
+    try {
+        const res = await fetch(`${API}/api/recruitment/jobs/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            loadJobs();
+        } else {
+            alert('Failed to delete job.');
+        }
+    } catch (err) {
+        console.error('Failed to delete job', err);
+    }
 };
 
-function loadEmployees() {
+async function loadEmployees() {
     const tbody = document.getElementById('employeesTable');
     if (!tbody) return;
-    const data = getData();
     tbody.innerHTML = '';
 
-    const employees = data.users.filter(u => u.role === 'employee' || u.role === 'manager');
-    employees.forEach(emp => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${emp.name}</td>
-            <td><span class="badge badge-info">${emp.role}</span></td>
-            <td>
-                <button class="btn btn-sm btn-warning" onclick="alert('Edit feature coming soon')">Edit</button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
+    try {
+        const res = await fetch(`${API}/api/employees`);
+        const users = await res.json();
+        const employees = users.filter(u => u.role === 'employee' || u.role === 'manager');
+
+        employees.forEach(emp => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${emp.name}</td>
+                <td><span class="badge badge-info">${emp.role}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-warning" onclick="alert('Edit feature coming soon')">Edit</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch (err) {
+        console.error('Failed to load employees', err);
+    }
 }
 
-function loadCoursesAdmin() {
+async function loadCoursesAdmin() {
     const list = document.getElementById('courseListAdmin');
     if (!list) return;
-    const data = getData();
     list.innerHTML = '';
 
-    data.courses.forEach(c => {
-        const li = document.createElement('li');
-        li.className = 'card mb-2 p-2';
-        li.innerHTML = `
-            <strong>${c.title}</strong> (${c.category})
-            <button class="btn btn-sm btn-danger float-right" onclick="deleteCourse(${c.id})">Delete</button>
-        `;
-        list.appendChild(li);
-    });
+    try {
+        const res = await fetch(`${API}/api/learning/courses`);
+        const courses = await res.json();
+
+        courses.forEach(c => {
+            const li = document.createElement('li');
+            li.className = 'card mb-2 p-2';
+            li.innerHTML = `
+                <strong>${c.title}</strong> (${c.category})
+                <button class="btn btn-sm btn-danger float-right" onclick="deleteCourse(${c.id})">Delete</button>
+            `;
+            list.appendChild(li);
+        });
+    } catch (err) {
+        console.error('Failed to load courses admin', err);
+    }
 }
 
-function addCourse(e) {
+async function addCourse(e) {
     e.preventDefault();
     const title = document.getElementById('courseTitle').value;
     const category = document.getElementById('courseCategory').value;
 
-    const data = getData();
-    data.courses.push({
-        id: Date.now(),
+    const newCourse = {
         title,
         category,
-        department: 'All',
-        materials: []
-    });
-    saveData(data);
-    loadCoursesAdmin();
-    e.target.reset();
+        department: 'All', // Default or UI could evolve
+        created_by: currentUser.id
+    };
+
+    try {
+        const res = await fetch(`${API}/api/learning/courses`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newCourse)
+        });
+
+        if (res.ok) {
+            loadCoursesAdmin();
+            e.target.reset();
+            alert('Course Added Successfully!');
+        } else {
+            alert('Failed to add course.');
+        }
+    } catch (err) {
+        console.error('Failed to add course:', err);
+    }
 }
 
-window.deleteCourse = function (id) {
+window.deleteCourse = async function (id) {
     if (!confirm('Delete this course?')) return;
-    const data = getData();
-    data.courses = data.courses.filter(c => c.id !== id);
-    saveData(data);
-    loadCoursesAdmin();
+    try {
+        const res = await fetch(`${API}/api/learning/courses/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            loadCoursesAdmin();
+        } else {
+            alert('Failed to delete course.');
+        }
+    } catch (err) {
+        console.error('Failed to delete course', err);
+    }
 };

@@ -2,7 +2,12 @@
  * Admin Org Chart Logic
  */
 
-document.addEventListener('DOMContentLoaded', () => {
+const API = 'http://localhost:3001';
+let allEmployees = [];
+let allDepartments = [];
+
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadData();
     initDeptFilter();
     renderOrgChart();
 
@@ -13,10 +18,26 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+async function loadData() {
+    try {
+        const [empRes, setRes] = await Promise.all([
+            fetch(`${API}/api/employees`),
+            fetch(`${API}/api/settings`)
+        ]);
+        allEmployees = await empRes.json();
+        const settings = await setRes.json();
+        allDepartments = settings.departments || [];
+    } catch (err) {
+        console.error('Failed to load data:', err);
+    }
+}
+
 function initDeptFilter() {
-    const data = getData();
     const select = document.getElementById('deptFilter');
-    data.departments.forEach(dept => {
+    if (!select) return;
+
+    select.innerHTML = '<option value="all">All Departments</option>';
+    allDepartments.forEach(dept => {
         const option = document.createElement('option');
         option.value = dept;
         option.textContent = dept;
@@ -25,22 +46,26 @@ function initDeptFilter() {
 }
 
 function renderOrgChart(filteredDept = 'all') {
-    const data = getData();
-    // Filter only employees and managers for the chart
-    const employees = data.users.filter(u => ['employee', 'manager', 'admin'].includes(u.role));
+    const employees = allEmployees.filter(u => ['employee', 'manager', 'admin'].includes(u.role));
     const treeContainer = document.getElementById('orgTree');
+    if (!treeContainer) return;
 
-    // Build tree structure
-    // Find all roots (those with no supervisor or reporting to themselves)
-    const roots = employees.filter(e => !e.supervisor || e.supervisor === '' || e.supervisor === e.id || e.supervisor === e.name);
+    // Root = those with no manager_id AND no supervisor_name (or is admin)
+    const roots = employees.filter(e =>
+        (!e.manager_id && (!e.supervisor_name || e.supervisor_name === '')) ||
+        e.role === 'admin'
+    );
 
-    if (roots.length === 0 && employees.length > 0) {
-        // Fallback: Use the first admin if no roots found
+    // Deduplicate roots
+    const seen = new Set();
+    const uniqueRoots = roots.filter(e => { if (seen.has(e.id)) return false; seen.add(e.id); return true; });
+
+    if (uniqueRoots.length === 0 && employees.length > 0) {
         const adminRoot = employees.find(e => e.role === 'admin');
-        if (adminRoot) roots.push(adminRoot);
+        if (adminRoot) uniqueRoots.push(adminRoot);
     }
 
-    if (roots.length === 0) {
+    if (uniqueRoots.length === 0) {
         treeContainer.innerHTML = '<div class="alert alert-warning">No root employees found.</div>';
         return;
     }
@@ -48,37 +73,39 @@ function renderOrgChart(filteredDept = 'all') {
     treeContainer.innerHTML = '';
     const rootUl = document.createElement('ul');
 
-    roots.forEach(root => {
+    uniqueRoots.forEach(root => {
         const node = buildNode(root, employees, filteredDept);
         if (node) rootUl.appendChild(node);
     });
 
     if (rootUl.childNodes.length === 0) {
-        treeContainer.innerHTML = `<div style="text-align: center; color: #888; padding: 40px;">No employees found matching the "${filteredDept}" filter.</div>`;
+        treeContainer.innerHTML = `<div style="text-align:center;color:#888;padding:40px;">No employees for "${filteredDept}".</div>`;
     } else {
         treeContainer.appendChild(rootUl);
     }
 }
 
-function buildNode(emp, allEmployees, filterDept) {
+function buildNode(emp, employees, filterDept) {
     const li = document.createElement('li');
 
-    // Check if this node or any of its descendants match the filter
-    const descendants = getDescendants(emp, allEmployees);
+    const descendants = getDescendants(emp, employees);
     const matchesFilter = filterDept === 'all' || emp.department === filterDept || descendants.some(d => d.department === filterDept);
-
     if (!matchesFilter) return null;
 
     const nodeDiv = document.createElement('div');
     nodeDiv.className = 'node' + (emp.status === 'Vacancy' ? ' vacancy' : '');
     nodeDiv.id = `node-${emp.id}`;
 
-    const directReports = allEmployees.filter(e => e.supervisor == emp.id || e.supervisor == emp.name);
+    // Use manager_id (primary) OR supervisor_name (fallback) to find direct reports
+    const directReports = employees.filter(e =>
+        (e.manager_id && e.manager_id == emp.id) ||
+        (!e.manager_id && e.supervisor_name && (e.supervisor_name == emp.id || e.supervisor_name == emp.name))
+    );
 
     nodeDiv.innerHTML = `
-        <img src="${emp.photoData || emp.avatar || 'https://i.pravatar.cc/150?u=' + emp.id}" class="node-img">
+        <img src="${emp.avatar || 'https://i.pravatar.cc/150?u=' + emp.id}" class="node-img">
         <span class="node-name">${emp.name}</span>
-        <span class="node-role">${emp.position || emp.jobTitle || 'Staff'}</span>
+        <span class="node-role">${emp.position || 'Staff'}</span>
         <span class="node-dept">${emp.department || 'General'}</span>
         <div class="node-reports">${directReports.length} Direct Reports</div>
     `;
@@ -90,11 +117,10 @@ function buildNode(emp, allEmployees, filterDept) {
 
     li.appendChild(nodeDiv);
 
-    // Build children
     if (directReports.length > 0) {
         const ul = document.createElement('ul');
         directReports.forEach(child => {
-            const childNode = buildNode(child, allEmployees, filterDept);
+            const childNode = buildNode(child, employees, filterDept);
             if (childNode) ul.appendChild(childNode);
         });
         if (ul.childNodes.length > 0) li.appendChild(ul);
@@ -103,12 +129,12 @@ function buildNode(emp, allEmployees, filterDept) {
     return li;
 }
 
-function getDescendants(emp, allEmployees) {
+function getDescendants(emp, employees) {
     let list = [];
-    const children = allEmployees.filter(e => e.supervisor == emp.id || e.supervisor == emp.name);
+    const children = employees.filter(e => e.supervisor_name == emp.id || e.supervisor_name == emp.name);
     list = list.concat(children);
     children.forEach(child => {
-        list = list.concat(getDescendants(child, allEmployees));
+        list = list.concat(getDescendants(child, employees));
     });
     return list;
 }
@@ -137,10 +163,10 @@ function searchChart(query) {
 
 // Modal Logic
 function showProfileModal(emp, reportCount) {
-    document.getElementById('modalImg').src = emp.photoData || emp.avatar || 'https://i.pravatar.cc/150?u=' + emp.id;
+    document.getElementById('modalImg').src = emp.avatar || 'https://i.pravatar.cc/150?u=' + emp.id;
     document.getElementById('modalName').textContent = emp.name;
-    document.getElementById('modalRole').textContent = emp.position || emp.jobTitle || 'Staff';
-    document.getElementById('modalEmail').textContent = emp.emailCompany || emp.emailPersonal || emp.username || 'n/a';
+    document.getElementById('modalRole').textContent = emp.position || 'Staff';
+    document.getElementById('modalEmail').textContent = emp.email || emp.username || 'n/a';
     document.getElementById('modalDept').textContent = emp.department || 'General';
     document.getElementById('modalReports').textContent = reportCount;
     document.getElementById('modalEmpId').value = emp.id;
@@ -221,13 +247,12 @@ function recenterChart() {
 
 // Add Position Logic
 function addNewNode() {
-    const data = getData();
     const deptSelect = document.getElementById('newNodeDept');
     const supervisorSelect = document.getElementById('newNodeSupervisor');
 
     // Populate Departments
     deptSelect.innerHTML = '';
-    data.departments.forEach(dept => {
+    allDepartments.forEach(dept => {
         const option = document.createElement('option');
         option.value = dept;
         option.textContent = dept;
@@ -236,10 +261,10 @@ function addNewNode() {
 
     // Populate Supervisors (Filter for potential managers/supervisors)
     supervisorSelect.innerHTML = '<option value="">-- No Supervisor (Root) --</option>';
-    const supervisors = data.users.filter(u => ['admin', 'manager', 'employee'].includes(u.role));
+    const supervisors = allEmployees.filter(u => ['admin', 'manager', 'employee'].includes(u.role) && u.status !== 'Vacancy');
     supervisors.forEach(s => {
         const option = document.createElement('option');
-        option.value = s.id;
+        option.value = s.name; // Keep name to link back using supervisor_name
         option.textContent = `${s.name} (${s.position || s.role})`;
         supervisorSelect.appendChild(option);
     });
@@ -253,9 +278,8 @@ function closeAddNodeModal() {
 }
 
 // Handle Add Node Form
-document.getElementById('addNodeForm').addEventListener('submit', (e) => {
+document.getElementById('addNodeForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const data = getData();
 
     const name = document.getElementById('newNodeName').value;
     const role = document.getElementById('newNodeRole').value;
@@ -263,22 +287,37 @@ document.getElementById('addNodeForm').addEventListener('submit', (e) => {
     const supervisor = document.getElementById('newNodeSupervisor').value;
 
     const newNode = {
-        id: Date.now(),
         name: name || 'Vacant Position',
         position: role,
         department: dept,
-        supervisor: supervisor || null,
-        status: name ? 'Aktif' : 'Vacancy',
+        supervisor_name: supervisor || null,
+        status: name ? 'Active' : 'Vacancy',
         role: 'employee',
-        avatar: 'https://i.pravatar.cc/150?u=' + Date.now()
+        // default password if creating an actual user
+        password: 'password123',
+        username: name ? name.toLowerCase().replace(/\\s+/g, '') + Date.now().toString().slice(-4) : 'vacant' + Date.now().toString().slice(-4)
     };
 
-    data.users.push(newNode);
-    saveData(data);
+    try {
+        const res = await fetch(`${API}/api/employees`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newNode)
+        });
 
-    closeAddNodeModal();
-    renderOrgChart(); // Refresh chart
-    alert('New position successfully added to the hierarchy!');
+        if (res.ok) {
+            closeAddNodeModal();
+            await loadData(); // refresh
+            renderOrgChart(); // render
+            alert('New position successfully added to the hierarchy!');
+        } else {
+            const errorData = await res.json();
+            alert('Failed to add position: ' + (errorData.error || 'Server error'));
+        }
+    } catch (err) {
+        console.error('Failed to add position:', err);
+        alert('Failed to add position.');
+    }
 });
 
 window.onclick = function (event) {

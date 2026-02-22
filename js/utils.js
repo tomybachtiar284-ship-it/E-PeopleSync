@@ -5,6 +5,47 @@
 
 const STORAGE_KEY = 'hr_platform_v5';
 
+/**
+ * Global API Config
+ */
+const API_BASE_URL = 'http://localhost:3001/api';
+
+function getAuthHeaders() {
+    const token = localStorage.getItem('jwtToken');
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
+
+// Monkey-patch fetch to automatically add JWT headers for our API
+const originalFetch = window.fetch;
+window.fetch = async (...args) => {
+    let [resource, config] = args;
+
+    // Only add headers if it's our API and it's not the login/register endpoint
+    const url = typeof resource === 'string' ? resource : resource.url;
+    if (url.includes('localhost:3001/api') && !url.includes('/login') && !url.includes('/auth/register')) {
+        config = config || {};
+        config.headers = {
+            ...config.headers,
+            ...getAuthHeaders()
+        };
+    }
+
+    const response = await originalFetch(resource, config);
+
+    // Auto-logout if token is expired (401)
+    if (response.status === 401 && !url.includes('/login')) {
+        console.warn('Session expired or invalid token. Redirecting to login.');
+        localStorage.removeItem('jwtToken');
+        localStorage.removeItem('currentUser');
+        // Avoid redirect loop if already on login page
+        if (!window.location.pathname.includes('login')) {
+            window.location.href = '/login/index.html';
+        }
+    }
+
+    return response;
+};
+
 const defaultData = {
     users: [
         { id: 1, username: 'admin', password: 'password', role: 'admin', name: 'Admin HR' },
@@ -286,23 +327,16 @@ function formatDate(dateString) {
  * @param {string} message - Notification Message
  * @param {string} type - 'leave', 'attendance', 'learning', 'performance'
  */
-function createNotification(userId, title, message, type) {
-    const data = getData();
-    if (!data.notifications) data.notifications = [];
-
-    const newNotif = {
-        id: Date.now() + Math.floor(Math.random() * 1000),
-        userId: userId,
-        title: title,
-        message: message,
-        type: type,
-        time: "Baru saja",
-        isRead: false,
-        createdAt: new Date().toISOString()
-    };
-
-    data.notifications.push(newNotif);
-    saveData(data);
+async function createNotification(userId, title, message, type) {
+    try {
+        await fetch('http://localhost:3001/api/settings/notifications', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId, title, message, type })
+        });
+    } catch (err) {
+        console.error('Failed to create notification', err);
+    }
 }
 
 // Helper: Check Auth
@@ -482,17 +516,22 @@ function applySidebarPersistence() {
 }
 
 // Helper: Initialize Dynamic Global Profile (Header)
-function initUserProfile() {
+async function initUserProfile() {
     let currentUser = JSON.parse(localStorage.getItem('currentUser'));
     if (!currentUser) return;
 
     // Sync with Master Data
-    const allData = getData();
-    // Sync by Username to avoid ID conflicts between Postgres and LocalStorage
-    const updatedUser = allData.users.find(u => u.username === currentUser.username);
-    if (updatedUser) {
-        localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-        currentUser = updatedUser;
+    try {
+        const res = await fetch(`http://localhost:3001/api/employees/${currentUser.id}`);
+        if (res.ok) {
+            const updatedUser = await res.json();
+            // Preserve non-DB fields
+            updatedUser.token = currentUser.token;
+            localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+            currentUser = updatedUser;
+        }
+    } catch (err) {
+        console.error('Failed to sync user profile:', err);
     }
 
     // Update Name (Supports both old and new IDs for compatibility)
@@ -614,40 +653,47 @@ function populateDropdown(elementId, items, typeName) {
     addNew.style.color = 'blue';
     select.appendChild(addNew);
 
-    // Event Listener for "Add New" - Remove existing (to avoid duplicates if called multiple times)
-    // Note: This needs to be handled carefully. Ideally assign onchange once.
-    // simpler approach: overwrite onchange
-    select.onchange = function () {
+    // Event Listener for "Add New"
+    select.onchange = async function () {
         if (this.value === 'ADD_NEW') {
             const newValue = prompt(`Enter new ${typeName}:`);
             if (newValue && newValue.trim() !== '') {
-                // Save to Data
-                const currentData = getData();
-                let key;
+                try {
+                    let key;
+                    if (typeName === 'Department') key = 'departments';
+                    else if (typeName === 'Location') key = 'location';
+                    else if (typeName === 'Job Type') key = 'job_types';
+                    else if (typeName === 'Category') key = 'course_categories';
+                    else if (typeName === 'Group') key = 'group';
+                    else return;
 
-                // Map typeName to data key
-                if (typeName === 'Department') key = 'departments';
-                else if (typeName === 'Location') key = 'locations';
-                else if (typeName === 'Job Type') key = 'jobTypes';
-                else if (typeName === 'Category') key = 'courseCategories';
-                else if (typeName === 'Group') key = 'employeeGroups';
-                else return; // Unknown type
+                    const res = await fetch('http://localhost:3001/api/settings');
+                    const settings = await res.json();
 
-                // Initialize if undefined (safety)
-                if (!currentData[key]) currentData[key] = [];
+                    let list = [];
+                    if (settings[key]) {
+                        list = typeof settings[key] === 'string' ? JSON.parse(settings[key]) : settings[key];
+                    }
 
-                // Add if not exists
-                if (!currentData[key].includes(newValue)) {
-                    currentData[key].push(newValue);
-                    saveData(currentData);
+                    if (!list.includes(newValue)) {
+                        list.push(newValue);
 
-                    // Re-populate (recursive call, passing updated list)
-                    populateDropdown(elementId, currentData[key], typeName);
-                    // Select the new item
-                    select.value = newValue;
-                } else {
-                    alert(`${typeName} already exists!`);
-                    select.value = newValue; // Select existing
+                        await fetch(`http://localhost:3001/api/settings/${key}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ value: list })
+                        });
+
+                        populateDropdown(elementId, list, typeName);
+                        select.value = newValue;
+                    } else {
+                        alert(`${typeName} already exists!`);
+                        select.value = newValue;
+                    }
+                } catch (err) {
+                    console.error('Failed to add master data:', err);
+                    alert('Error adding new item.');
+                    select.selectedIndex = 0;
                 }
             } else {
                 // Revert to first option if cancelled

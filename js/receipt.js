@@ -3,24 +3,9 @@
  * Uses html2pdf.js to create a formal document
  */
 
-function generateReceiptPDF(requestId) {
-    const data = getData();
-    const req = (data.leaveRequests || []).find(r => r.id === requestId);
+const API = 'http://localhost:3001';
 
-    if (!req) {
-        alert("Data pengajuan tidak ditemukan.");
-        return;
-    }
-
-    if (req.status !== 'Approved') {
-        alert("Resi hanya tersedia untuk pengajuan yang sudah disetujui (Approved).");
-        return;
-    }
-
-    // Prepare Terminology
-    const tlNode = (req.approvalHistory || []).find(h => h.role === 'supervisor') || { action: 'Approved', time: req.submittedAt };
-    const asmanNode = (req.approvalHistory || []).find(h => h.role === 'asman' || h.role === 'manager') || { action: 'Approved', time: req.approvedAt };
-
+async function generateReceiptPDF(requestId) {
     // Switch to DIRECT jsPDF rendering (Atomic stability, no blank canvas issues)
     const jsPDFLib = window.jspdf ? window.jspdf.jsPDF : (window.jsPDF ? window.jsPDF : null);
 
@@ -35,7 +20,22 @@ function generateReceiptPDF(requestId) {
     loader.innerHTML = "Membuat Laporan PDF...";
     document.body.appendChild(loader);
 
+    let req = null;
     try {
+        const res = await fetch(`${API}/api/leave/${requestId}`);
+        if (!res.ok) {
+            document.body.removeChild(loader);
+            alert("Data pengajuan tidak ditemukan.");
+            return;
+        }
+        req = await res.json();
+
+        if (req.status !== 'Approved') {
+            document.body.removeChild(loader);
+            alert("Resi hanya tersedia untuk pengajuan yang sudah disetujui (Approved).");
+            return;
+        }
+
         const doc = new jsPDFLib({
             orientation: 'p',
             unit: 'mm',
@@ -59,11 +59,11 @@ function generateReceiptPDF(requestId) {
 
         const fields = [
             ["ID Pengajuan", `REQ-${req.id}`],
-            ["Nama Karyawan", req.empName || req.name || "-"],
-            ["NID Karyawan", req.empId || "-"],
+            ["Nama Karyawan", req.emp_name || req.name || "-"],
+            ["NID Karyawan", req.user_id || "-"],
             ["Jenis Pengajuan", (req.type || "CUTI").toUpperCase()],
-            ["Mulai Tanggal", req.startDate || req.dateStart || "-"],
-            ["Sampai Tanggal", req.endDate || req.dateEnd || "-"],
+            ["Mulai Tanggal", req.start_date || "-"],
+            ["Sampai Tanggal", req.end_date || "-"],
             ["Status", "DISESTUJUI (APPROVED)"]
         ];
 
@@ -96,13 +96,15 @@ function generateReceiptPDF(requestId) {
         doc.text(`Dicetak melalui E-PEOPLESYNC pada: ${new Date().toLocaleString('id-ID')}`, 15, 285);
 
         // Save
-        const fileName = `Laporan_Cuti_${(req.empName || 'User').replace(/\s+/g, '_')}.pdf`;
+        const fileName = `Laporan_Cuti_${(req.emp_name || req.name || 'User').replace(/\\s+/g, '_')}.pdf`;
         doc.save(fileName);
 
     } catch (err) {
         console.error("PDF Fatal Error:", err);
         alert("Gagal membuat PDF: " + err.message);
     } finally {
-        document.body.removeChild(loader);
+        if (document.body.contains(loader)) {
+            document.body.removeChild(loader);
+        }
     }
 }

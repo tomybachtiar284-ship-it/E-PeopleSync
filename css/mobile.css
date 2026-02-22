@@ -1,16 +1,13 @@
 :root {
-    --mobile-bg: #F7F9FC;
-    --mobile-primary: #00796b;
-    /* Changed from Pink to Teal */
-    --mobile-secondary: #0d2137;
-    /* Changed from Orange to Navy */
-    --mobile-accent: #344fa1;
-    --mobile-text: #2D3436;
-    --mobile-gray: #636E72;
+    --mobile-bg: #F8FAFC;
+    --mobile-primary: #6366f1;
+    --mobile-secondary: #0f172a;
+    --mobile-accent: #a855f7;
+    --mobile-text: #0f172a;
+    --mobile-gray: #64748b;
     --mobile-card-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
-    --premium-gradient: linear-gradient(135deg, #0d2137 0%, #00796b 100%);
-    /* Navy to Teal */
-    --purple-gradient: linear-gradient(135deg, #344fa1 0%, #6C5CE7 100%);
+    --premium-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+    --purple-gradient: linear-gradient(135deg, #818cf8 0%, #c084fc 100%);
 }
 
 * {
@@ -1373,6 +1370,7 @@ select.mobile-input {
     color: var(--mobile-gray);
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     line-height: 1.4;
