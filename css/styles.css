@@ -20,6 +20,7 @@
 
     --premium-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
     --premium-navy: #0f172a;
+    --premium-emerald: #10b981;
     --glass-bg: rgba(255, 255, 255, 0.8);
     --glass-border: rgba(255, 255, 255, 0.5);
     --sidebar-bg: #0f172a;
@@ -98,7 +99,11 @@ ul {
 
 .btn-primary {
     background: var(--primary-color);
-    color: white;
+    color: white !important;
+}
+
+.btn-primary i {
+    color: white !important;
 }
 
 .btn-primary:hover {
@@ -107,7 +112,7 @@ ul {
 
 .btn-secondary {
     background: #e0e0e0;
-    color: #333;
+    color: #333 !important;
 }
 
 .btn-danger {
@@ -120,8 +125,16 @@ ul {
     color: white !important;
 }
 
+.btn-info {
+    color: white !important;
+}
+
 .btn-info:hover {
     background: var(--primary-hover);
+}
+
+.btn i {
+    color: inherit;
 }
 
 .btn-outline-info {

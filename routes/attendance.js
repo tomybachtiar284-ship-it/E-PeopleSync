@@ -15,8 +15,16 @@ router.get('/', async (req, res) => {
         let idx = 1;
         if (userId) { query += ` AND a.user_id = $${idx++}`; params.push(userId); }
         if (date) { query += ` AND a.date = $${idx++}`; params.push(date); }
-        if (month) { query += ` AND EXTRACT(MONTH FROM a.date) = $${idx++}`; params.push(month); }
-        if (year) { query += ` AND EXTRACT(YEAR FROM a.date) = $${idx++}`; params.push(year); }
+        if (month) {
+            if (month.includes('-')) {
+                const [y, m] = month.split('-');
+                query += ` AND EXTRACT(YEAR FROM a.date) = $${idx++}`; params.push(y);
+                query += ` AND EXTRACT(MONTH FROM a.date) = $${idx++}`; params.push(m);
+            } else {
+                query += ` AND EXTRACT(MONTH FROM a.date) = $${idx++}`; params.push(month);
+            }
+        }
+        if (year && (!month || !month.includes('-'))) { query += ` AND EXTRACT(YEAR FROM a.date) = $${idx++}`; params.push(year); }
         query += ' ORDER BY a.date DESC';
         const result = await pool.query(query, params);
         res.json(result.rows);
@@ -28,7 +36,9 @@ router.get('/', async (req, res) => {
 
 // POST /api/attendance (clock-in / upsert)
 router.post('/', async (req, res) => {
-    const { user_id, date, clock_in, clock_out, shift_code, status, late_minutes, ot_hours, location, notes } = req.body;
+    let { user_id, date, clock_in, clock_out, shift_code, status, late_minutes, ot_hours, location, notes } = req.body;
+    clock_in = clock_in === '' ? null : clock_in;
+    clock_out = clock_out === '' ? null : clock_out;
     try {
         const result = await pool.query(
             `INSERT INTO attendance (user_id, date, clock_in, clock_out, shift_code, status, late_minutes, ot_hours, location, notes)
@@ -54,7 +64,9 @@ router.post('/', async (req, res) => {
 
 // PUT /api/attendance/:id
 router.put('/:id', async (req, res) => {
-    const { clock_in, clock_out, shift_code, status, late_minutes, ot_hours, location, notes } = req.body;
+    let { clock_in, clock_out, shift_code, status, late_minutes, ot_hours, location, notes } = req.body;
+    clock_in = clock_in === '' ? null : clock_in;
+    clock_out = clock_out === '' ? null : clock_out;
     try {
         const result = await pool.query(
             `UPDATE attendance SET clock_in=$1,clock_out=$2,shift_code=$3,status=$4,

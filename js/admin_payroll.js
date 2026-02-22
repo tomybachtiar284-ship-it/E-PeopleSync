@@ -73,7 +73,7 @@ async function loadPayrollData() {
                 email: e.email_company || e.email_personal || e.email || '-',
                 position: e.position || '-',
                 department: e.department || '-',
-                baseSalary: parseFloat(e.base_salary || e.baseSalary) || 0,
+                baseSalary: parseFloat(e.basic_salary || e.base_salary || e.baseSalary) || 0,
                 fixedAllowance: parseFloat(e.fixed_allowance || e.fixedAllowance) || 0,
                 transportAllowance: parseFloat(e.transport_allowance || e.transportAllowance) || 0,
                 otHours: rec ? parseFloat(rec.ot_hours || 0) : 0,
@@ -145,16 +145,16 @@ function renderPayrollTable(record) {
                 <small class="${statusClass}">${item.status}</small> ${emailBadge}${modifiedText}
             </td>
             <td>
-                <button class="btn btn-sm btn-success" onclick="processItem(${item.id})" title="Calculate">
-                    <i class="fas fa-calculator"></i>
+                <button class="btn btn-sm btn-info" style="display:inline-block !important; color:#ffffff !important;" onclick="processItem(${item.id})" title="Calculate">
+                    <i class="fas fa-calculator" style="color:#ffffff !important;"></i>
                 </button>
                 ${item.status === 'Processed' ? `
-                    <button class="btn btn-sm btn-info" onclick="viewPayslip(${item.id})" title="View/Print">
-                        <i class="fas fa-file-invoice"></i>
+                    <button class="btn btn-sm btn-info" style="color:#ffffff !important;" onclick="viewPayslip(${item.id})" title="View/Print">
+                        <i class="fas fa-file-invoice" style="color:#ffffff !important;"></i>
                     </button>
-                    <button class="btn btn-sm btn-primary" id="btnEmail_${item.id}"
+                    <button class="btn btn-sm btn-primary" id="btnEmail_${item.id}" style="color:#ffffff !important;"
                         onclick="sendPayslipEmail(${item.id})" title="Send via Email">
-                        <i class="fas fa-envelope"></i>
+                        <i class="fas fa-envelope" style="color:#ffffff !important;"></i>
                     </button>
                 ` : ''}
             </td>`;

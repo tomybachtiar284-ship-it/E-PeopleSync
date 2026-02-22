@@ -443,7 +443,7 @@ async function checkClockStatus() {
     const user = JSON.parse(localStorage.getItem('currentUser'));
     const today = new Date().toISOString().split('T')[0];
     try {
-        const res = await fetch(`${API}/api/attendance?userId=${user.id}&date=${today}`);
+        const res = await fetch(`${API}/api/attendance?userId=${user.id}&date=${today}`, { headers: getAuthHeaders() });
         const logs = await res.json();
         const logToday = logs[0];
         const statusEl = document.getElementById('attendanceStatus');
@@ -465,60 +465,89 @@ async function checkClockStatus() {
 }
 
 async function processClock(type) {
-    const user = JSON.parse(localStorage.getItem('currentUser'));
-    const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    const time = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
-
-    // Get effective shift
-    const shiftCode = getEffectiveShiftCodeMobile(user, today);
-    const shiftDef = _mShifts.find(s => s.code === shiftCode);
-
-    // Determine late status
-    let isLate = false;
-    if (type === 'In' && shiftDef && shiftDef.clockIn) {
-        const [defH, defM] = shiftDef.clockIn.split(':').map(Number);
-        if (now.getHours() > defH || (now.getHours() === defH && now.getMinutes() > defM)) isLate = true;
-    }
-
-    // Find existing log
     try {
-        const res = await fetch(`${API}/api/attendance?userId=${user.id}&date=${today}`);
-        const logs = await res.json();
-        const existing = logs[0];
+        const user = JSON.parse(localStorage.getItem('currentUser'));
+        const now = new Date();
+        const today = now.toISOString().split('T')[0];
+        const time = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
 
-        const payload = {
-            user_id: user.id,
-            name: user.name,
-            date: today,
-            status: shiftCode,
-            is_late: isLate,
-            clock_in: type === 'In' ? time : (existing ? existing.clock_in : ''),
-            clock_out: type === 'Out' ? time : (existing ? existing.clock_out : ''),
-            location_in: type === 'In' ? 'Mobile App' : (existing ? existing.location_in : ''),
-            location_out: type === 'Out' ? 'Mobile App' : ''
-        };
+        // Get effective shift
+        const shiftCode = getEffectiveShiftCodeMobile(user, today);
+        const shiftDef = _mShifts.find(s => s.code === shiftCode);
 
-        await fetch(`${API}/api/attendance`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+        // Determine late status
+        let isLate = false;
+        if (type === 'In' && shiftDef && shiftDef.clockIn) {
+            const [defH, defM] = shiftDef.clockIn.split(':').map(Number);
+            if (now.getHours() > defH || (now.getHours() === defH && now.getMinutes() > defM)) isLate = true;
+        }
 
-        // Sync roster
-        await fetch(`${API}/api/attendance/roster`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ emp_id: user.id, date: today, shift: shiftCode })
-        });
+        // Find existing log
+        try {
+            const res = await fetch(`${API}/api/attendance?userId=${user.id}&date=${today}`, { headers: { ...getAuthHeaders() } });
+            const logs = await res.json();
+            const existing = logs[0];
 
-        // Notification
-        await fetch(`${API}/api/notifications`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: user.id, title: `Absensi ${type} Berhasil`, message: `Anda telah melakukan Clock ${type} pada pukul ${time} via Mobile.`, type: 'attendance' })
-        });
+            const payload = {
+                user_id: user.id,
+                name: user.name,
+                date: today,
+                status: shiftCode,
+                is_late: isLate,
+                clock_in: type === 'In' ? time : (existing ? existing.clock_in : ''),
+                clock_out: type === 'Out' ? time : (existing ? existing.clock_out : ''),
+                location_in: type === 'In' ? 'Mobile App' : (existing ? existing.location_in : ''),
+                location_out: type === 'Out' ? 'Mobile App' : ''
+            };
 
-        alert(`Berhasil Absen ${type} pada ${time}\nStatus: ${shiftCode}`);
-        checkClockStatus();
-    } catch (e) { console.error('processClock:', e.message); alert('Gagal absen. Server error.'); }
+            await fetch(`${API}/api/attendance`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                body: JSON.stringify(payload)
+            });
+
+            // Sync roster
+            await fetch(`${API}/api/attendance/roster`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                body: JSON.stringify({ user_id: user.id, date: today, shift_code: shiftCode, notes: 'Auto-sync from Mobile Attendance' })
+            });
+
+            // Notification
+            await fetch(`${API}/api/notifications`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                body: JSON.stringify({ user_id: user.id, title: `Absensi ${type} Berhasil`, message: `Anda telah melakukan Clock ${type} pada pukul ${time} via Mobile.`, type: 'attendance' })
+            });
+
+            alert(`Berhasil Absen ${type} pada ${time}\nStatus: ${shiftCode}`);
+
+            // Force immediate UI update for better UX before network refresh
+            const statusEl = document.getElementById('attendanceStatus');
+            const btnIn = document.getElementById('btnClockIn');
+            const btnOut = document.getElementById('btnClockOut');
+
+            if (type === 'In') {
+                statusEl.textContent = 'Status: Sudah Clock In (Sedang Bekerja)';
+                statusEl.style.color = '#FF9B6A';
+                btnIn.disabled = true;
+                btnOut.disabled = false;
+                btnOut.classList.add('active');
+            } else if (type === 'Out') {
+                statusEl.textContent = 'Status: Sudah Kerja & Pulang (Selesai)';
+                statusEl.style.color = '#0984E3';
+                btnIn.disabled = true;
+                btnOut.disabled = true;
+                btnOut.classList.remove('active');
+            }
+
+            checkClockStatus();
+            renderMobileHistory('attendance');
+        } catch (innerError) {
+            console.error('Inner fetch error:', innerError);
+            alert('Gagal mengambil/menyimpan data. Pastikan koneksi internet stabil.');
+        }
+    } catch (e) {
+        console.error('processClock inner error:', e);
+        alert('Gagal absen. Front-end error: ' + e.message);
+    }
 }
 
 function getEffectiveShiftCodeMobile(user, date) {
@@ -647,7 +676,7 @@ async function renderMobileHistory(type, el) {
         try {
             let url = `${API}/api/attendance?userId=${user.id}`;
             if (selectedMonth) url += `&month=${selectedMonth}`;
-            const res = await fetch(url);
+            const res = await fetch(url, { headers: { ...getAuthHeaders() } });
             let myLogs = await res.json();
             myLogs.sort((a, b) => new Date(b.date) - new Date(a.date));
             if (myLogs.length === 0) {
@@ -668,10 +697,13 @@ async function renderMobileHistory(type, el) {
                         <span class="hist-badge ${(l.is_late || l.isLate) ? 'late' : 'ontime'}">${(l.is_late || l.isLate) ? 'Terlambat' : 'Tepat Waktu'}</span>
                     </div>
                 </div>`).join('');
-        } catch { list.innerHTML = '<p class="text-center p-5">Gagal memuat data absensi.</p>'; }
+        } catch (e) {
+            console.error('renderMobileHistory attendance error:', e);
+            list.innerHTML = '<p class="text-center p-5">Gagal memuat data absensi.</p>';
+        }
     } else {
         try {
-            const res = await fetch(`${API}/api/leave?userId=${user.id}`);
+            const res = await fetch(`${API}/api/leave?userId=${user.id}`, { headers: { ...getAuthHeaders() } });
             const reqs = await res.json();
             if (reqs.length === 0) {
                 list.innerHTML = '<div class="text-center p-5"><i class="fas fa-plane-slash mb-3" style="font-size:40px;color:#cbd5e0;"></i><p>Belum ada riwayat pengajuan cuti.</p></div>';
@@ -701,7 +733,10 @@ async function renderMobileHistory(type, el) {
                         </div>
                     </div>`;
             }).join('');
-        } catch { list.innerHTML = '<p class="text-center p-5">Gagal memuat riwayat cuti.</p>'; }
+        } catch (e) {
+            console.error('renderMobileHistory leave error:', e);
+            list.innerHTML = '<p class="text-center p-5">Gagal memuat data cuti.</p>';
+        }
     }
 }
 

@@ -1,0 +1,3 @@
+🚀 E-PeopleSync API running at http://localhost:3001
+📋 Endpoints: /api/employees, /api/attendance, /api/leave, /api/payroll, ...
+✅ Connected to PostgreSQL

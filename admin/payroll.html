@@ -31,6 +31,8 @@
             display: flex;
             gap: 15px;
             align-items: flex-end;
+            flex-wrap: wrap;
+            /* Allow wrapping on smaller screens */
             margin-bottom: 20px;
             background: #fff;
             padding: 15px;
@@ -237,7 +239,9 @@
                     <button id="refreshBtn" class="btn btn-primary" onclick="refreshPayrollWithLoading()">
                         <i class="fas fa-sync-alt"></i> Load / Refresh Data
                     </button>
-                    <button class="btn btn-success" onclick="processAllPayroll()"><i class="fas fa-cogs"></i> Process
+                    <button class="btn btn-success" style="min-width:120px; color:#ffffff !important;"
+                        onclick="processAllPayroll()"><i class="fas fa-cogs" style="color:#ffffff !important;"></i>
+                        Process
                         All</button>
                     <button class="btn btn-danger" onclick="resetPayroll()"><i class="fas fa-trash"></i> Reset
                         Period</button>
@@ -443,8 +447,8 @@
         </div>
     </div>
 
-    <script src="../js/utils.js"></script>
-    <script src="../js/admin_payroll.js"></script>
+    <script src="../js/utils.js?v=2"></script>
+    <script src="../js/admin_payroll.js?v=2"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             renderModernHeader();
