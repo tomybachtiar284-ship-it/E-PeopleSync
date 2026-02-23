@@ -980,7 +980,116 @@ function closeNewsDetail() {
 }
 
 // ── Performance ─────────────────────────────────────────────────
-function renderMobilePerformance() { /* Placeholder - handled by evaluation.js */ }
+// ── Performance ─────────────────────────────────────────────────
+let _mRadarChart = null;
+let _mHistoryChart = null;
+
+async function renderMobilePerformance() {
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+    if (!user) return;
+
+    try {
+        const evaluations = await API.getEvaluations({ userId: user.id });
+        const latestEval = evaluations.length > 0 ? evaluations.sort((a, b) => b.id - a.id)[0] : null;
+
+        // 1. Radar Chart (Competency)
+        const radarCtx = document.getElementById('mobileRadarChart');
+        if (radarCtx) {
+            if (_mRadarChart) _mRadarChart.destroy();
+            const labels = ['Communication', 'Teamwork', 'Technical', 'Punctuality', 'Initiative', 'Leadership'];
+            const data = (latestEval && latestEval.radar_data) ? latestEval.radar_data : [70, 70, 70, 70, 70, 70];
+
+            _mRadarChart = new Chart(radarCtx, {
+                type: 'radar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Skor Anda',
+                        data: data,
+                        fill: true,
+                        backgroundColor: 'rgba(52, 211, 153, 0.2)',
+                        borderColor: '#10b981',
+                        pointBackgroundColor: '#10b981',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#10b981'
+                    }]
+                },
+                options: {
+                    elements: { line: { borderWidth: 3 } },
+                    scales: { r: { angleLines: { display: false }, suggestMin: 0, suggestMax: 100 } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // 2. History Chart (KPI Trend)
+        const historyCtx = document.getElementById('mobileHistoryChart');
+        if (historyCtx) {
+            if (_mHistoryChart) _mHistoryChart.destroy();
+            const historyData = (latestEval && latestEval.history_data) ? latestEval.history_data : [3.5, 3.6, 3.7, 3.8, 3.9, 4.0];
+            const months = ['Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb'];
+
+            _mHistoryChart = new Chart(historyCtx, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: 'KPI Score',
+                        data: historyData,
+                        borderColor: '#2D3436',
+                        backgroundColor: 'rgba(45, 52, 54, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#2D3436'
+                    }]
+                },
+                options: {
+                    scales: { y: { beginAtZero: false, min: 1, max: 5 } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // 3. Objectives
+        const objList = document.getElementById('mobileObjectivesList');
+        if (objList) {
+            const objectives = (latestEval && latestEval.objectives) ? latestEval.objectives : [
+                { title: 'Project Delivery', status: 'On Track', progress: 85, color: '#10b981' },
+                { title: 'Team Mentoring', status: 'At Risk', progress: 45, color: '#f59e0b' }
+            ];
+
+            objList.innerHTML = objectives.map(obj => `
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1" style="font-size: 13px;">
+                        <span class="font-weight-600">${obj.title}</span>
+                        <span style="color: ${obj.color}">${obj.status}</span>
+                    </div>
+                    <div style="height: 6px; background: #edf2f7; border-radius: 3px; overflow: hidden;">
+                        <div style="width: ${obj.progress}%; height: 100%; background: ${obj.color};"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 4. Feedback
+        const feedbackArea = document.getElementById('mobileFeedbackArea');
+        if (feedbackArea) {
+            feedbackArea.innerHTML = `
+                <p style="font-size: 13px; color: #5d4037; line-height: 1.6; font-style: italic; margin: 0;">
+                    "${latestEval ? latestEval.feedback_message : 'Teruslah berkarya dan berikan yang terbaik bagi tim. Fokus pada pengembangan teknis di periode mendatang.'}"
+                </p>
+                <div style="margin-top:10px; font-size:11px; color:#ef6c00; font-weight:700;">
+                    — ${latestEval ? latestEval.feedback_by : 'Management'} (${latestEval ? formatDate(latestEval.feedback_date) : 'Feb 2026'})
+                </div>
+            `;
+        }
+
+    } catch (err) {
+        console.error('Mobile Performance View Error:', err);
+    }
+}
 
 // ── Helpers ───────────────────────────────────────────────────
 function formatDate(dateStr) {
