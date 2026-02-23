@@ -2,7 +2,7 @@
  * Mobile Interface Logic for E-PeopleSync — PostgreSQL API Version
  */
 
-const API = 'http://localhost:3001';
+// Centralized API object and API_BASE are loaded from api.js
 
 // ── In-memory state ──────────────────────────────────────────
 let _mCourses = [];
@@ -59,7 +59,7 @@ async function initMobileUI(user) {
 // ── Helpers ───────────────────────────────────────────────────
 async function loadMobileShifts() {
     try {
-        const res = await fetch(`${API}/api/settings`);
+        const res = await fetch(`${API_BASE}/api/settings`);
         const data = await res.json();
         _mShifts = data['shiftDefinitions'] ? JSON.parse(data['shiftDefinitions']) : [];
     } catch { _mShifts = []; }
@@ -67,21 +67,21 @@ async function loadMobileShifts() {
 
 async function loadMobileRoster(user) {
     try {
-        const res = await fetch(`${API}/api/attendance/roster?userId=${user.id}`);
+        const res = await fetch(`${API_BASE}/api/attendance/roster?userId=${user.id}`);
         _mRoster = await res.json();
     } catch { _mRoster = []; }
 }
 
 async function loadMobileNotifications(user) {
     try {
-        const res = await fetch(`${API}/api/notifications?userId=${user.id}`);
+        const res = await fetch(`${API_BASE}/api/notifications?userId=${user.id}`);
         _mNotifs = await res.json();
     } catch { _mNotifs = []; }
 }
 
 async function loadMobileNews() {
     try {
-        const res = await fetch(`${API}/api/news`);
+        const res = await fetch(`${API_BASE}/api/news`);
         const newsData = await res.json();
         renderMobileNewsData(newsData);
     } catch { }
@@ -104,7 +104,7 @@ async function handleAvatarUpload(input) {
     reader.readAsDataURL(file);
 
     try {
-        const response = await fetch(`${API}/api/upload-avatar`, { method: 'POST', body: formData });
+        const response = await fetch(`${API_BASE}/api/upload-avatar`, { method: 'POST', body: formData });
         const result = await response.json();
         if (result.success) {
             user.avatar = result.avatar;
@@ -183,8 +183,8 @@ async function renderMobileLearning(filter) {
     try {
         const user = JSON.parse(localStorage.getItem('currentUser'));
         const [cRes, eRes] = await Promise.all([
-            fetch(`${API}/api/learning/courses`),
-            fetch(`${API}/api/learning/enrollments?userId=${user.id}`)
+            fetch(`${API_BASE}/api/learning/courses`),
+            fetch(`${API_BASE}/api/learning/enrollments?userId=${user.id}`)
         ]);
         _mCourses = await cRes.json();
         _mEnrollments = await eRes.json();
@@ -212,18 +212,31 @@ async function renderMobileLearning(filter) {
         const enrollment = _mEnrollments.find(e => e.course_id === course.id || e.courseId === course.id);
         const progress = enrollment ? enrollment.progress : 0;
         const isCompleted = enrollment && enrollment.status === 'completed';
+        const isSubmitted = enrollment && enrollment.status === 'submitted';
+
+        let btnText = 'Lanjutkan Belajar';
+        let btnClass = '';
+        if (isCompleted) {
+            btnText = '<i class="fas fa-check-circle"></i> Selesai';
+            btnClass = 'completed';
+        } else if (isSubmitted) {
+            btnText = '<i class="fas fa-clock"></i> Pending Review';
+            btnClass = 'submitted';
+        }
+
         return `
             <div class="m-course-card">
                 <div class="m-course-img" style="background-image:url('${course.thumbnail}')">
                     <span class="m-course-tag">${course.category || 'Skill'}</span>
+                    ${isSubmitted ? '<span class="m-status-badge">In Review</span>' : ''}
                 </div>
                 <div class="m-course-body">
                     <h4 class="m-course-title">${course.title}</h4>
                     <p class="m-course-desc">${course.description || ''}</p>
                     <div class="m-course-progress-label"><span>PROGRESS</span><span>${progress}%</span></div>
                     <div class="m-course-progress-bar"><div class="m-progress-fill" style="width:${progress}%"></div></div>
-                    <button class="m-btn-learn ${isCompleted ? 'completed' : ''}" onclick="openCourseDetail(${course.id})">
-                        ${isCompleted ? '<i class="fas fa-check-circle"></i> Selesai' : 'Lanjutkan Belajar'}
+                    <button class="m-btn-learn ${btnClass}" onclick="openCourseDetail(${course.id})">
+                        ${btnText}
                     </button>
                 </div>
             </div>`;
@@ -241,14 +254,21 @@ async function openCourseDetail(id) {
     try {
         const user = JSON.parse(localStorage.getItem('currentUser'));
         const [mRes, qRes, eRes] = await Promise.all([
-            fetch(`${API}/api/learning/modules?courseId=${id}`),
-            fetch(`${API}/api/learning/quizzes?courseId=${id}`),
-            fetch(`${API}/api/learning/enrollments?userId=${user.id}`)
+            fetch(`${API_BASE}/api/learning/courses/${id}/modules`),
+            fetch(`${API_BASE}/api/learning/quizzes?courseId=${id}`),
+            fetch(`${API_BASE}/api/learning/enrollments?userId=${user.id}`)
         ]);
+
+        if (!mRes.ok || !qRes.ok || !eRes.ok) throw new Error('Failed to fetch course data');
+
         _mModules = await mRes.json();
         _mQuizzes = await qRes.json();
         _mEnrollments = await eRes.json();
-    } catch { return; }
+    } catch (err) {
+        console.error('Error opening course detail:', err);
+        alert('Gagal memuat detail kursus. Pastikan koneksi internet stabil.');
+        return;
+    }
 
     const course = _mCourses.find(c => c.id === id);
     const enrollment = _mEnrollments.find(e => e.course_id === id || e.courseId === id);
@@ -263,6 +283,17 @@ async function openCourseDetail(id) {
     if (enrollment && enrollment.status === 'completed') {
         document.getElementById('mobileMaterialContainer').style.display = 'none';
         document.getElementById('mobileCertificateArea').style.display = 'block';
+    } else if (enrollment && enrollment.status === 'submitted') {
+        document.getElementById('mobileMaterialContainer').style.display = 'none';
+        const container = document.getElementById('mobileQuizArea');
+        container.style.display = 'block';
+        container.innerHTML = `
+            <div style="text-align: center; padding: 40px 20px;">
+                <i class="fas fa-history text-warning" style="font-size: 60px; margin-bottom: 20px;"></i>
+                <h4>Kuis Sedang Ditinjau</h4>
+                <p style="color: #666; font-size: 14px;">Jawaban kuis Anda telah kami terima dan sedang dalam proses peninjauan oleh instruktur. Silakan cek kembali nanti.</p>
+                <button class="btn-clock btn-in" onclick="closeModal('courseDetailModal')" style="margin-top: 20px;">Kembali</button>
+            </div>`;
     } else {
         const container = document.getElementById('mobileMaterialContainer');
         const courseModules = _mModules.filter(m => (m.course_id === id || m.courseId === id));
@@ -307,27 +338,95 @@ function startQuizMobile() {
 
 async function submitMobileQuiz(quiz) {
     const formData = new FormData(document.getElementById('mobileQuizForm'));
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+
     let correct = 0;
+    let earnedScore = 0;
+    let totalMaxScore = 0;
+    let hasEssay = false;
+    let attemptAnswers = {};
+
     (quiz.questions || []).forEach(q => {
-        if (q.type === 'essay') correct++;
-        else if (parseInt(formData.get(`mq${q.id}`)) === q.answer) correct++;
+        totalMaxScore++;
+        const answer = formData.get(`mq${q.id}`);
+        attemptAnswers[q.id] = answer;
+
+        if (q.type === 'essay') {
+            hasEssay = true;
+            // Essays are not auto-graded, but we count them for total questions
+        } else {
+            if (parseInt(answer) === q.answer) {
+                correct++;
+                earnedScore++;
+            }
+        }
     });
-    const score = ((correct / (quiz.questions || []).length) * 100) || 0;
-    if (score >= (quiz.passingScore || 70)) {
-        const user = JSON.parse(localStorage.getItem('currentUser'));
-        try {
-            await fetch(`${API}/api/learning/enrollments`, {
-                method: 'POST',
+
+    const finalScore = totalMaxScore > 0 ? (earnedScore / totalMaxScore) * 100 : 0;
+    const status = hasEssay ? 'pending_review' : 'graded';
+    const passed = finalScore >= (quiz.passing_score || quiz.passingScore || 70);
+
+    try {
+        // 1. Save Quiz Attempt
+        const attemptAnswers = (quiz.questions || []).map(q => {
+            const val = formData.get(`mq${q.id}`);
+            let qScore = 0;
+            if (q.type === 'essay') qScore = 0;
+            else if (parseInt(val) === q.answer) qScore = 10;
+
+            return {
+                questionId: q.id,
+                answer: val,
+                score: qScore,
+                maxScore: 10,
+                type: q.type
+            };
+        });
+
+        const payload = {
+            user_id: user.id,
+            quiz_id: quiz.id,
+            score: finalScore,
+            passed: passed,
+            answers: attemptAnswers,
+            status: status
+        };
+
+        console.log('MOBILE SUBMITTING:', payload);
+        await API.submitQuizAttempt(payload);
+
+        // 2. Update Enrollment
+        const enrollment = _mEnrollments.find(e => e.course_id === currentCourseIdMobile || e.courseId === currentCourseIdMobile);
+        if (enrollment) {
+            const enrollmentStatus = (hasEssay) ? 'submitted' : (passed ? 'completed' : 'in-progress');
+            const progress = passed ? 100 : (hasEssay ? 99 : enrollment.progress);
+
+            await fetch(`${API_BASE}/api/learning/enrollments/${enrollment.id}`, {
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: user.id, courseId: currentCourseIdMobile, progress: 100, status: 'completed' })
+                body: JSON.stringify({
+                    progress: progress,
+                    status: enrollmentStatus,
+                    completed_at: passed ? new Date().toISOString() : null
+                })
             });
-        } catch { }
-        alert(`Selamat! Anda lulus dengan skor ${score.toFixed(0)}`);
-        document.getElementById('mobileQuizArea').style.display = 'none';
-        document.getElementById('mobileCertificateArea').style.display = 'block';
+        }
+
+        if (hasEssay) {
+            alert(`Kuis Terkirim! Skor sementara Anda adalah ${finalScore.toFixed(0)}. Admin akan meninjau jawaban esai Anda untuk penilaian akhir.`);
+            closeModal('courseDetailModal');
+        } else if (passed) {
+            alert(`Selamat! Anda lulus dengan skor ${finalScore.toFixed(0)}`);
+            document.getElementById('mobileQuizArea').style.display = 'none';
+            document.getElementById('mobileCertificateArea').style.display = 'block';
+        } else {
+            alert(`Skor Anda ${finalScore.toFixed(0)}. Skor kelulusan adalah ${quiz.passing_score || quiz.passingScore || 70}. Silakan coba lagi.`);
+        }
+
         renderMobileLearning('all');
-    } else {
-        alert(`Skor Anda ${score.toFixed(0)}. Skor kelulusan adalah ${quiz.passingScore || 70}. Silakan coba lagi.`);
+    } catch (err) {
+        console.error('Submit Quiz Error:', err);
+        alert('Gagal mengirim kuis. Silakan coba lagi.');
     }
 }
 
@@ -342,8 +441,8 @@ async function showLeaveModal() {
 
     // Load approvers from API
     try {
-        const res = await fetch(`${API}/api/employees?role=manager`);
-        const admR = await fetch(`${API}/api/employees?role=admin`);
+        const res = await fetch(`${API_BASE}/api/employees?role=manager`);
+        const admR = await fetch(`${API_BASE}/api/employees?role=admin`);
         const mgrs = await res.json();
         const adms = await admR.json();
         _mApprovers = [...mgrs, ...adms];
@@ -403,7 +502,7 @@ async function submitLeaveRequest(event) {
     };
 
     try {
-        const res = await fetch(`${API}/api/leave`, {
+        const res = await fetch(`${API_BASE}/api/leave`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
@@ -504,7 +603,7 @@ async function checkClockStatus() {
     const user = JSON.parse(localStorage.getItem('currentUser'));
     const today = new Date().toLocaleDateString('en-CA');
     try {
-        const res = await fetch(`${API}/api/attendance?userId=${user.id}&date=${today}`, { headers: getAuthHeaders() });
+        const res = await fetch(`${API_BASE}/api/attendance?userId=${user.id}&date=${today}`, { headers: getAuthHeaders() });
         const logs = await res.json();
         const logToday = logs[0];
         const statusEl = document.getElementById('attendanceStatus');
@@ -565,7 +664,7 @@ async function processClock(type) {
 
         // Find existing log
         try {
-            const res = await fetch(`${API}/api/attendance?userId=${user.id}&date=${today}`, { headers: { ...getAuthHeaders() } });
+            const res = await fetch(`${API_BASE}/api/attendance?userId=${user.id}&date=${today}`, { headers: { ...getAuthHeaders() } });
             const logs = await res.json();
             const existing = logs[0];
 
@@ -585,19 +684,19 @@ async function processClock(type) {
                 photoBase64: photoBase64
             };
 
-            await fetch(`${API}/api/attendance`, {
+            await fetch(`${API_BASE}/api/attendance`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                 body: JSON.stringify(payload)
             });
 
             // Sync roster
-            await fetch(`${API}/api/attendance/roster`, {
+            await fetch(`${API_BASE}/api/attendance/roster`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                 body: JSON.stringify({ user_id: user.id, date: today, shift_code: shiftCode, notes: 'Auto-sync from Mobile Attendance' })
             });
 
             // Notification
-            await fetch(`${API}/api/notifications`, {
+            await fetch(`${API_BASE}/api/notifications`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                 body: JSON.stringify({ user_id: user.id, title: `Absensi ${type} Berhasil`, message: `Anda telah melakukan Clock ${type} pada pukul ${time} via Mobile.`, type: 'attendance' })
             });
@@ -647,7 +746,7 @@ async function renderWinners(currentUser) {
     const listContainer = document.getElementById('rankingListContainer');
     if (!listContainer) return;
     try {
-        const res = await fetch(`${API}/api/employees`);
+        const res = await fetch(`${API_BASE}/api/employees`);
         const emps = await res.json();
         const employees = emps.filter(u => ['employee', 'manager'].includes(u.role));
         const rankings = employees.map(emp => ({
@@ -713,7 +812,7 @@ function getNotifIcon(type) {
 
 async function markNotificationRead(id) {
     try {
-        await fetch(`${API}/api/notifications/${id}/read`, { method: 'PUT' });
+        await fetch(`${API_BASE}/api/notifications/${id}/read`, { method: 'PUT' });
         const n = _mNotifs.find(n => n.id === id);
         if (n) n.is_read = true;
         renderNotifications();
@@ -724,7 +823,7 @@ async function markAllNotificationsRead() {
     const user = JSON.parse(localStorage.getItem('currentUser'));
     try {
         await Promise.all(_mNotifs.filter(n => !(n.is_read || n.isRead)).map(n =>
-            fetch(`${API}/api/notifications/${n.id}/read`, { method: 'PUT' })
+            fetch(`${API_BASE}/api/notifications/${n.id}/read`, { method: 'PUT' })
         ));
         _mNotifs.forEach(n => n.is_read = true);
         renderNotifications();
@@ -760,7 +859,7 @@ async function renderMobileHistory(type, el) {
 
     if (type === 'attendance') {
         try {
-            let url = `${API}/api/attendance?userId=${user.id}`;
+            let url = `${API_BASE}/api/attendance?userId=${user.id}`;
             if (selectedMonth) url += `&month=${selectedMonth}`;
             const res = await fetch(url, { headers: { ...getAuthHeaders() } });
             let myLogs = await res.json();
@@ -789,7 +888,7 @@ async function renderMobileHistory(type, el) {
         }
     } else {
         try {
-            const res = await fetch(`${API}/api/leave?userId=${user.id}`, { headers: { ...getAuthHeaders() } });
+            const res = await fetch(`${API_BASE}/api/leave?userId=${user.id}`, { headers: { ...getAuthHeaders() } });
             const reqs = await res.json();
             if (reqs.length === 0) {
                 list.innerHTML = '<div class="text-center p-5"><i class="fas fa-plane-slash mb-3" style="font-size:40px;color:#cbd5e0;"></i><p>Belum ada riwayat pengajuan cuti.</p></div>';
@@ -850,7 +949,7 @@ async function renderMobileNews() { await loadMobileNews(); }
 
 async function openNewsDetail(id) {
     try {
-        const res = await fetch(`${API}/api/news/${id}`);
+        const res = await fetch(`${API_BASE}/api/news/${id}`);
         const item = await res.json();
         let modal = document.getElementById('newsDetailModal');
         if (!modal) { modal = document.createElement('div'); modal.id = 'newsDetailModal'; modal.className = 'bottom-modal'; document.body.appendChild(modal); }

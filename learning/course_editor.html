@@ -211,190 +211,253 @@
             </form>
         </div>
     </div>
-    <!-- Question Editor Modal -->
-    <div id="questionModal" class="modal"
-        style="display:none; position:fixed; z-index:100; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.5);">
-        <div class="modal-content modal-lg"
-            style="background-color:#fff; padding:20px; border-radius:8px; width: 80%; max-width: 900px;">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h3>Manage Questions</h3>
-                <span class="close" onclick="closeQuestionModal()"
-                    style="font-size:24px; cursor:pointer;">&times;</span>
-            </div>
 
-            <div class="row">
-                <div class="col-md-4" style="border-right: 1px solid #eee;">
-                    <h5>Questions</h5>
-                    <div id="existingQuestions" style="max-height: 400px; overflow-y: auto;">
-                        <!-- JS Populated -->
-                    </div>
-                    <button class="btn btn-sm btn-success btn-block mt-3" onclick="showAddQuestionForm()">+ Add New
-                        Question</button>
-                </div>
-                <div class="col-md-8">
-                    <div id="emptyState" class="text-center p-5 text-muted">
-                        <i class="fas fa-arrow-left"></i> Select a question to edit or click "Add New"
-                    </div>
-
-                    <div id="questionFormContainer" style="display: none;">
-                        <h4 id="formTitle" class="mb-3">Edit Question</h4>
-                        <form id="questionForm">
-                            <input type="hidden" id="editQuestionId">
-
-                            <div class="form-group">
-                                <label>Question Type</label>
-                                <select id="questionType" class="form-control" onchange="toggleQuestionType()">
-                                    <option value="multiple-choice">Multiple Choice</option>
-                                    <option value="essay">Essay / Long Answer</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Question Text</label>
-                                <textarea id="questionText" class="form-control" rows="3" required></textarea>
-                            </div>
-
-                            <!-- Multiple Choice Options -->
-                            <div id="multipleChoiceOptions">
-                                <label>Options (Select correct answer)</label>
-                                <div id="optionsContainer">
-                                    <!-- JS Populated -->
-                                </div>
-                                <button type="button" class="btn btn-sm btn-secondary mt-2" onclick="addOption()">+ Add
-                                    Option</button>
-                            </div>
-
-                            <!-- Essay Options -->
-                            <div id="essayOptions" style="display: none;">
-                                <div class="form-group">
-                                    <label>Keywords for Auto-Grading (Optional)</label>
-                                    <input type="text" id="questionKeywords" class="form-control"
-                                        placeholder="comma, separated, keywords">
-                                    <small class="text-muted">If student answer contains these words, they get points
-                                        (hybrid grading).</small>
-                                </div>
-                            </div>
-
-                            <div class="text-right mt-4">
-                                <button type="button" class="btn btn-secondary"
-                                    onclick="hideQuestionForm()">Cancel</button>
-                                <button type="submit" class="btn btn-primary">Save Question</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Grading Modal -->
-    <div id="gradingModal" class="modal"
-        style="display:none; position:fixed; z-index:100; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.5);">
-        <div class="modal-content modal-lg" style="background-color:#fff; padding:20px; border-radius:8px;">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h3>Grade Submission</h3>
-                <span class="close" onclick="closeGradingModal()" style="font-size:24px; cursor:pointer;">&times;</span>
-            </div>
-            <div id="gradingContent"></div>
-        </div>
-    </div>
-
-    <!-- Course Settings Modal -->
-    <div id="courseSettingsModal" class="modal"
+    <!-- Quiz Creation Modal -->
+    <div id="quizModal" class="modal"
         style="display:none; position:fixed; z-index:100; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.5);">
         <div class="modal-content"
-            style="background-color:#fff; margin:10% auto; padding:20px; border-radius:8px; width: 50%;">
+            style="background-color:#fff; margin:10% auto; padding:20px; border-radius:8px; width: 40%;">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h3>Edit Course Settings</h3>
-                <span class="close" onclick="closeCourseSettings()"
-                    style="font-size:24px; cursor:pointer;">&times;</span>
+                <h3 id="quizModalTitle">Create New Quiz</h3>
+                <span class="close" onclick="closeQuizModal()" style="font-size:24px; cursor:pointer;">&times;</span>
             </div>
-            <form id="courseSettingsForm">
+            <form id="quizForm">
                 <div class="form-group">
-                    <label>Course Title</label>
-                    <input type="text" id="editCourseTitle" class="form-control" required>
+                    <label>Quiz Title</label>
+                    <input type="text" id="newQuizTitle" class="form-control" required
+                        placeholder="e.g., Final Assessment">
                 </div>
                 <div class="form-group">
-                    <label>Description</label>
-                    <textarea id="editCourseDesc" class="form-control" rows="3"></textarea>
+                    <label>Passing Score (%)</label>
+                    <input type="number" id="newQuizPassScore" class="form-control" required value="70">
                 </div>
-                <div class="form-group">
-                    <label>Category</label>
-                    <select id="editCourseCategory" class="form-control">
-                        <!-- JS populated -->
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Difficulty Level</label>
-                    <select id="editCourseLevel" class="form-control">
-                        <!-- JS populated -->
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Thumbnail URL</label>
-                    <input type="text" id="editCourseThumbnail" class="form-control">
-                    <small class="text-muted">Or upload new image (future feature)</small>
-                </div>
-                <div class="text-right mt-4 d-flex justify-content-between">
-                    <button type="button" class="btn btn-danger" onclick="deleteCourse()">Delete Course</button>
-                    <div>
-                        <button type="button" class="btn btn-secondary" onclick="closeCourseSettings()">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Save Changes</button>
-                    </div>
+                <div class="text-right mt-4">
+                    <button type="button" class="btn btn-secondary" onclick="closeQuizModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Quiz</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <script src="../js/utils.js"></script>
-    <script>
-        let currentCourseId = null;
-        let currentQuizId = null;
-        let editingQuiz = null;
-        let editingModuleId = null;
-        let currentAttemptId = null;
+    <!-- Quiz Settings Modal (Existing) -->
+    <div id="quizSettingsModal" class="modal" ...>
+        <!-- Note: This was placeholder in previous view_file, checking if it exists -->
+        <!-- Question Editor Modal -->
+        <div id="questionModal" class="modal"
+            style="display:none; position:fixed; z-index:100; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.5);">
+            <div class="modal-content modal-lg"
+                style="background-color:#fff; padding:20px; border-radius:8px; width: 80%; max-width: 900px;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3>Manage Questions</h3>
+                    <span class="close" onclick="closeQuestionModal()"
+                        style="font-size:24px; cursor:pointer;">&times;</span>
+                </div>
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const user = checkAuth(['admin', 'manager']);
-            if (user) document.getElementById('userName').textContent = user.name;
+                <div class="row mb-4 p-3 bg-light rounded shadow-sm border" style="margin: 0 0 20px 0;">
+                    <div class="col-md-6">
+                        <label class="font-weight-bold">Quiz Title</label>
+                        <input type="text" id="quizTitleInput" class="form-control">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="font-weight-bold">Passing Score (%)</label>
+                        <input type="number" id="quizPassScoreInput" class="form-control">
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button class="btn btn-secondary btn-block" onclick="saveQuizSettings()">
+                            <i class="fas fa-save"></i> Save Settings
+                        </button>
+                    </div>
+                </div>
 
-            const urlParams = new URLSearchParams(window.location.search);
-            currentCourseId = parseInt(urlParams.get('id'));
+                <div class="row">
+                    <div class="col-md-4" style="border-right: 1px solid #eee;">
+                        <h5>Questions</h5>
+                        <div id="existingQuestions" style="max-height: 400px; overflow-y: auto;">
+                            <!-- JS Populated -->
+                        </div>
+                        <button class="btn btn-sm btn-success btn-block mt-3" onclick="showAddQuestionForm()">+ Add New
+                            Question</button>
+                    </div>
+                    <div class="col-md-8">
+                        <div id="emptyState" class="text-center p-5 text-muted">
+                            <i class="fas fa-arrow-left"></i> Select a question to edit or click "Add New"
+                        </div>
 
-            if (!currentCourseId) {
-                alert('Invalid Course ID');
-                window.location.href = 'index.html';
-                return;
+                        <div id="questionFormContainer" style="display: none;">
+                            <h4 id="formTitle" class="mb-3">Edit Question</h4>
+                            <form id="questionForm">
+                                <input type="hidden" id="editQuestionId">
+
+                                <div class="form-group">
+                                    <label>Question Type</label>
+                                    <select id="questionType" class="form-control" onchange="toggleQuestionType()">
+                                        <option value="multiple-choice">Multiple Choice</option>
+                                        <option value="essay">Essay / Long Answer</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Question Text</label>
+                                    <textarea id="questionText" class="form-control" rows="3" required></textarea>
+                                </div>
+
+                                <!-- Multiple Choice Options -->
+                                <div id="multipleChoiceOptions">
+                                    <label>Options (Select correct answer)</label>
+                                    <div id="optionsContainer">
+                                        <!-- JS Populated -->
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-secondary mt-2" onclick="addOption()">+
+                                        Add
+                                        Option</button>
+                                </div>
+
+                                <!-- Essay Options -->
+                                <div id="essayOptions" style="display: none;">
+                                    <div class="form-group">
+                                        <label>Keywords for Auto-Grading (Optional)</label>
+                                        <input type="text" id="questionKeywords" class="form-control"
+                                            placeholder="comma, separated, keywords">
+                                        <small class="text-muted">If student answer contains these words, they get
+                                            points
+                                            (hybrid grading).</small>
+                                    </div>
+                                </div>
+
+                                <div class="text-right mt-4">
+                                    <button type="button" class="btn btn-secondary"
+                                        onclick="hideQuestionForm()">Cancel</button>
+                                    <button type="submit" class="btn btn-primary">Save Question</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grading Modal -->
+        <div id="gradingModal" class="modal"
+            style="display:none; position:fixed; z-index:100; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.5);">
+            <div class="modal-content modal-lg" style="background-color:#fff; padding:20px; border-radius:8px;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3>Grade Submission</h3>
+                    <span class="close" onclick="closeGradingModal()"
+                        style="font-size:24px; cursor:pointer;">&times;</span>
+                </div>
+                <div id="gradingContent"></div>
+            </div>
+        </div>
+
+        <!-- Course Settings Modal -->
+        <div id="courseSettingsModal" class="modal"
+            style="display:none; position:fixed; z-index:100; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.5);">
+            <div class="modal-content"
+                style="background-color:#fff; margin:10% auto; padding:20px; border-radius:8px; width: 50%;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3>Edit Course Settings</h3>
+                    <span class="close" onclick="closeCourseSettings()"
+                        style="font-size:24px; cursor:pointer;">&times;</span>
+                </div>
+                <form id="courseSettingsForm">
+                    <div class="form-group">
+                        <label>Course Title</label>
+                        <input type="text" id="editCourseTitle" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="editCourseDesc" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="editCourseCategory" class="form-control">
+                            <!-- JS populated -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Difficulty Level</label>
+                        <select id="editCourseLevel" class="form-control">
+                            <!-- JS populated -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Thumbnail URL</label>
+                        <input type="text" id="editCourseThumbnail" class="form-control">
+                        <small class="text-muted">Or upload new image (future feature)</small>
+                    </div>
+                    <div class="text-right mt-4 d-flex justify-content-between">
+                        <button type="button" class="btn btn-danger" onclick="deleteCourse()">Delete Course</button>
+                        <div>
+                            <button type="button" class="btn btn-secondary"
+                                onclick="closeCourseSettings()">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script src="../js/utils.js"></script>
+        <script src="../js/api.js"></script>
+        <script>
+            let currentCourseId = null;
+            let currentQuizId = null;
+            let editingQuiz = null;
+            let editingModuleId = null;
+            let currentAttemptId = null;
+
+            document.addEventListener('DOMContentLoaded', () => {
+                const user = checkAuth(['admin', 'manager']);
+                if (user) document.getElementById('userName').textContent = user.name;
+
+                const urlParams = new URLSearchParams(window.location.search);
+                currentCourseId = parseInt(urlParams.get('id'));
+
+                if (!currentCourseId) {
+                    alert('Invalid Course ID');
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                loadCourseData();
+            });
+
+            async function loadCourseData() {
+                try {
+                    const courses = await API.getCourses();
+                    const course = courses.find(c => c.id === currentCourseId);
+
+                    if (!course) {
+                        alert('Course not found');
+                        window.location.href = 'index.html';
+                        return;
+                    }
+
+                    document.getElementById('courseTitle').textContent = `Editing: ${course.title}`;
+
+                    const [modules, quizzes] = await Promise.all([
+                        API.getCourseModules(currentCourseId),
+                        API.getQuizzes({ courseId: currentCourseId })
+                    ]);
+
+                    renderModules(modules, quizzes);
+                } catch (err) {
+                    console.error('Error loading course data:', err);
+                    alert('Failed to load course data');
+                }
             }
 
-            loadCourseData();
-        });
+            function renderModules(modules, quizzes) {
+                const list = document.getElementById('moduleList');
+                list.innerHTML = '';
 
-        function loadCourseData() {
-            const data = getData();
-            const course = data.courses.find(c => c.id === currentCourseId);
+                // Modules
+                modules.forEach(mod => {
+                    let icon = 'fa-file-alt';
+                    if (mod.type === 'video') icon = 'fa-file-video';
+                    else if (mod.type === 'pdf') icon = 'fa-file-pdf';
 
-            if (!course) {
-                alert('Course not found');
-                return;
-            }
-
-            document.getElementById('courseTitle').textContent = `Editing: ${course.title}`;
-            renderModules(data);
-        }
-
-        function renderModules(data) {
-            const list = document.getElementById('moduleList');
-            list.innerHTML = '';
-
-            // Modules
-            const modules = data.modules.filter(m => m.courseId === currentCourseId);
-            modules.forEach(mod => {
-                let icon = 'fa-file-alt';
-                if (mod.type === 'video') icon = 'fa-file-video';
-                else if (mod.type === 'pdf') icon = 'fa-file-pdf';
-
-                list.innerHTML += `
+                    list.innerHTML += `
                     <div class="module-item">
                         <div>
                             <strong><i class="fas ${icon} text-primary"></i> ${mod.title}</strong>
@@ -403,185 +466,191 @@
                         <button class="btn btn-sm btn-outline-primary" onclick="openModuleEditor(${mod.id})">Edit</button>
                     </div>
                 `;
-            });
+                });
 
-            // Quizzes
-            const quizzes = data.quizzes.filter(q => q.courseId === currentCourseId);
-            quizzes.forEach(quiz => {
-                list.innerHTML += `
+                // Quizzes
+                quizzes.forEach(quiz => {
+                    const questionCount = quiz.questions ? quiz.questions.length : 0;
+                    list.innerHTML += `
                     <div class="module-item" style="border-left: 4px solid #fbc02d;">
                         <div>
                             <strong><i class="fas fa-question-circle text-warning"></i> ${quiz.title}</strong>
-                            <div class="text-muted small">${quiz.questions.length} Questions - Pass Score: ${quiz.passingScore}</div>
+                            <div class="text-muted small">${questionCount} Questions - Pass Score: ${quiz.passing_score || quiz.passingScore}</div>
                         </div>
                         <button class="btn btn-sm btn-primary" onclick="openQuizEditor(${quiz.id})">Manage Questions</button>
                     </div>
                 `;
-            });
-        }
+                });
+            }
 
-        // --- Module Editor Logic ---
-        function addModule() {
-            openModuleEditor(null);
-        }
+            // --- Module Editor Logic ---
+            function addModule() {
+                openModuleEditor(null);
+            }
 
-        function openModuleEditor(moduleId) {
-            editingModuleId = moduleId;
-            const modal = document.getElementById('moduleModal');
-            const title = document.getElementById('moduleModalTitle');
-            const data = getData();
-            const form = document.getElementById('moduleForm');
-            const btnDelete = document.getElementById('btnDeleteModule');
+            async function openModuleEditor(moduleId) {
+                editingModuleId = moduleId;
+                const modal = document.getElementById('moduleModal');
+                const title = document.getElementById('moduleModalTitle');
+                const form = document.getElementById('moduleForm');
+                const btnDelete = document.getElementById('btnDeleteModule');
 
-            modal.style.display = 'block';
-            form.reset();
+                modal.style.display = 'block';
+                form.reset();
 
-            if (moduleId) {
-                // Edit Mode
-                const module = data.modules.find(m => m.id === moduleId);
-                title.textContent = "Edit Module";
-                document.getElementById('editModuleId').value = module.id;
-                document.getElementById('modTitle').value = module.title;
-                document.getElementById('modType').value = module.type;
-                document.getElementById('modDuration').value = module.duration;
+                if (moduleId) {
+                    try {
+                        const modules = await API.getCourseModules(currentCourseId);
+                        const module = modules.find(m => m.id === moduleId);
+                        title.textContent = "Edit Module";
+                        document.getElementById('editModuleId').value = module.id;
+                        document.getElementById('modTitle').value = module.title;
+                        document.getElementById('modType').value = module.type;
+                        document.getElementById('modDuration').value = module.duration;
 
-                if (module.type === 'video' || module.type === 'pdf') {
-                    document.getElementById('modUrl').value = module.url || '';
+                        if (module.type === 'video' || module.type === 'pdf') {
+                            document.getElementById('modUrl').value = module.url || '';
+                        } else {
+                            document.getElementById('modContent').value = module.content || '';
+                        }
+
+                        toggleModuleType();
+                        btnDelete.style.display = 'inline-block';
+                    } catch (err) {
+                        console.error('Error fetching module:', err);
+                    }
                 } else {
-                    document.getElementById('modContent').value = module.content || '';
+                    // Add Mode
+                    title.textContent = "Add New Module";
+                    document.getElementById('editModuleId').value = '';
+                    toggleModuleType();
+                    btnDelete.style.display = 'none';
                 }
-
-                toggleModuleType();
-                btnDelete.style.display = 'inline-block';
-            } else {
-                // Add Mode
-                title.textContent = "Add New Module";
-                document.getElementById('editModuleId').value = '';
-                toggleModuleType();
-                btnDelete.style.display = 'none';
             }
-        }
 
-        function closeModuleModal() {
-            document.getElementById('moduleModal').style.display = 'none';
-        }
-
-        function toggleModuleType() {
-            const type = document.getElementById('modType').value;
-            if (type === 'text') {
-                document.getElementById('modUrlGroup').style.display = 'none';
-                document.getElementById('modContentGroup').style.display = 'block';
-            } else {
-                document.getElementById('modUrlGroup').style.display = 'block';
-                document.getElementById('modContentGroup').style.display = 'none';
+            function closeModuleModal() {
+                document.getElementById('moduleModal').style.display = 'none';
             }
-        }
 
-        document.getElementById('moduleForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const id = document.getElementById('editModuleId').value;
-            const title = document.getElementById('modTitle').value;
-            const type = document.getElementById('modType').value;
-            const duration = document.getElementById('modDuration').value;
-            const url = document.getElementById('modUrl').value;
-            const content = document.getElementById('modContent').value;
+            function toggleModuleType() {
+                const type = document.getElementById('modType').value;
+                if (type === 'text') {
+                    document.getElementById('modUrlGroup').style.display = 'none';
+                    document.getElementById('modContentGroup').style.display = 'block';
+                } else {
+                    document.getElementById('modUrlGroup').style.display = 'block';
+                    document.getElementById('modContentGroup').style.display = 'none';
+                }
+            }
 
-            const data = getData();
+            document.getElementById('moduleForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const id = document.getElementById('editModuleId').value;
+                const title = document.getElementById('modTitle').value;
+                const type = document.getElementById('modType').value;
+                const duration = document.getElementById('modDuration').value;
+                const url = document.getElementById('modUrl').value;
+                const content = document.getElementById('modContent').value;
 
-            if (id) {
-                // Update
-                const modIndex = data.modules.findIndex(m => m.id == id);
-                if (modIndex > -1) {
-                    data.modules[modIndex].title = title;
-                    data.modules[modIndex].type = type;
-                    data.modules[modIndex].duration = duration;
-                    if (type === 'text') {
-                        data.modules[modIndex].content = content;
-                        delete data.modules[modIndex].url;
+                try {
+                    if (id) {
+                        await API.updateCourseModule(id, {
+                            title, type, duration,
+                            url: type !== 'text' ? url : null,
+                            content: type === 'text' ? content : null,
+                            sort_order: 0 // Default
+                        });
                     } else {
-                        data.modules[modIndex].url = url;
-                        delete data.modules[modIndex].content;
+                        await API.addCourseModule(currentCourseId, {
+                            title, type, duration,
+                            url: type !== 'text' ? url : null,
+                            content: type === 'text' ? content : null,
+                            sort_order: 0
+                        });
+                    }
+
+                    alert('Module Saved!');
+                    closeModuleModal();
+                    loadCourseData();
+                } catch (err) {
+                    console.error('Error saving module:', err);
+                    alert('Failed to save module');
+                }
+            });
+
+            async function deleteModule() {
+                if (editingModuleId && confirm('Delete this module?')) {
+                    try {
+                        await API.deleteCourseModule(editingModuleId);
+                        closeModuleModal();
+                        loadCourseData();
+                        alert('Module deleted successfully');
+                    } catch (err) {
+                        console.error('Error deleting module:', err);
+                        alert('Failed to delete module');
                     }
                 }
-            } else {
-                // Create
-                const newMod = {
-                    id: Date.now(),
-                    courseId: currentCourseId,
-                    title: title,
-                    type: type,
-                    duration: duration
-                };
-                if (type === 'text') newMod.content = content;
-                else newMod.url = url;
-
-                data.modules.push(newMod);
             }
 
-            saveData(data);
-            alert('Module Saved!');
-            closeModuleModal();
-            renderModules(data);
-        });
+            // --- Quiz Editor Logic ---
 
-        function deleteModule() {
-            if (editingModuleId && confirm('Delete this module?')) {
-                const data = getData();
-                data.modules = data.modules.filter(m => m.id !== editingModuleId);
-                saveData(data);
-                closeModuleModal();
-                renderModules(data);
-            }
-        }
+            async function openQuizEditor(quizId) {
+                try {
+                    currentQuizId = quizId;
+                    const quizzes = await API.getQuizzes({ courseId: currentCourseId });
+                    editingQuiz = quizzes.find(q => q.id === quizId);
 
-        // --- Quiz Editor Logic ---
+                    document.getElementById('questionModal').style.display = 'block';
 
-        function openQuizEditor(quizId) {
-            currentQuizId = quizId;
-            const data = getData();
-            editingQuiz = data.quizzes.find(q => q.id === quizId);
+                    // Populate Settings
+                    document.getElementById('quizTitleInput').value = editingQuiz.title;
+                    document.getElementById('quizPassScoreInput').value = editingQuiz.passing_score || editingQuiz.passingScore;
 
-            document.getElementById('questionModal').style.display = 'block';
-
-            // Populate Settings
-            document.getElementById('quizTitleInput').value = editingQuiz.title;
-            document.getElementById('quizPassScoreInput').value = editingQuiz.passingScore;
-
-            renderQuestionList();
-            hideQuestionForm();
-        }
-
-        function saveQuizSettings() {
-            const title = document.getElementById('quizTitleInput').value;
-            const score = parseInt(document.getElementById('quizPassScoreInput').value);
-
-            if (!title || isNaN(score)) {
-                alert('Please enter valid Title and Pass Score');
-                return;
+                    renderQuestionList();
+                    hideQuestionForm();
+                } catch (err) {
+                    console.error('Error opening quiz editor:', err);
+                }
             }
 
-            editingQuiz.title = title;
-            editingQuiz.passingScore = score;
+            async function saveQuizSettings() {
+                const title = document.getElementById('quizTitleInput').value;
+                const score = parseInt(document.getElementById('quizPassScoreInput').value);
 
-            const data = getData();
-            const qIndex = data.quizzes.findIndex(q => q.id === editingQuiz.id);
-            data.quizzes[qIndex] = editingQuiz;
-            saveData(data);
-            alert('Quiz Settings Updated!');
-        }
+                if (!title || isNaN(score)) {
+                    alert('Please enter valid Title and Pass Score');
+                    return;
+                }
 
-        function closeQuestionModal() {
-            document.getElementById('questionModal').style.display = 'none';
-            loadCourseData(); // Refresh main view to show updated question count
-        }
+                try {
+                    editingQuiz.title = title;
+                    editingQuiz.passing_score = score;
+                    delete editingQuiz.passingScore; // Clean up old key if exists
 
-        function renderQuestionList() {
-            const container = document.getElementById('existingQuestions');
-            container.innerHTML = '';
+                    await API.updateQuiz(editingQuiz.id, {
+                        title: title,
+                        questions: editingQuiz.questions,
+                        passing_score: score
+                    });
+                    alert('Quiz Settings Updated!');
+                } catch (err) {
+                    console.error('Error saving quiz settings:', err);
+                    alert('Failed to update quiz settings');
+                }
+            }
 
-            editingQuiz.questions.forEach((q, index) => {
-                const typeLabel = q.type === 'essay' ? '<span class="badge badge-info">Essay</span>' : '<span class="badge badge-success">MC</span>';
-                container.innerHTML += `
+            function closeQuestionModal() {
+                document.getElementById('questionModal').style.display = 'none';
+                loadCourseData(); // Refresh main view to show updated question count
+            }
+
+            function renderQuestionList() {
+                const container = document.getElementById('existingQuestions');
+                container.innerHTML = '';
+
+                editingQuiz.questions.forEach((q, index) => {
+                    const typeLabel = q.type === 'essay' ? '<span class="badge badge-info">Essay</span>' : '<span class="badge badge-success">MC</span>';
+                    container.innerHTML += `
                     <div class="question-item" style="cursor:pointer;" onclick="editQuestion(${index})">
                         <div class="d-flex justify-content-between">
                             <small>Question ${index + 1}</small>
@@ -590,327 +659,386 @@
                         <div style="font-weight:500; margin-top:5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${q.text}</div>
                     </div>
                 `;
-            });
-        }
-
-        function showAddQuestionForm() {
-            document.getElementById('emptyState').style.display = 'none';
-            document.getElementById('questionFormContainer').style.display = 'block';
-            document.getElementById('formTitle').textContent = 'Add New Question';
-            document.getElementById('questionForm').reset();
-            document.getElementById('editQuestionId').value = -1; // New
-
-            // Reset options
-            document.getElementById('optionsContainer').innerHTML = '';
-            addOption('Option 1');
-            addOption('Option 2');
-            toggleQuestionType();
-        }
-
-        function hideQuestionForm() {
-            document.getElementById('questionFormContainer').style.display = 'none';
-            document.getElementById('emptyState').style.display = 'block';
-        }
-
-        function toggleQuestionType() {
-            const type = document.getElementById('questionType').value;
-            const mcContainer = document.getElementById('multipleChoiceOptions');
-            const essayContainer = document.getElementById('essayOptions');
-
-            if (type === 'multiple-choice') {
-                mcContainer.style.display = 'block';
-                essayContainer.style.display = 'none';
-            } else {
-                mcContainer.style.display = 'none';
-                essayContainer.style.display = 'block';
+                });
             }
-        }
 
-        function addOption(value = '', isCorrect = false) {
-            const container = document.getElementById('optionsContainer');
-            const index = container.children.length;
+            function showAddQuestionForm() {
+                document.getElementById('emptyState').style.display = 'none';
+                document.getElementById('questionFormContainer').style.display = 'block';
+                document.getElementById('formTitle').textContent = 'Add New Question';
+                document.getElementById('questionForm').reset();
+                document.getElementById('editQuestionId').value = -1; // New
 
-            const div = document.createElement('div');
-            div.className = 'input-group mb-2 d-flex align-items-center';
-            div.innerHTML = `
+                // Reset options
+                document.getElementById('optionsContainer').innerHTML = '';
+                addOption('Option 1');
+                addOption('Option 2');
+                toggleQuestionType();
+            }
+
+            function hideQuestionForm() {
+                document.getElementById('questionFormContainer').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'block';
+            }
+
+            function toggleQuestionType() {
+                const type = document.getElementById('questionType').value;
+                const mcContainer = document.getElementById('multipleChoiceOptions');
+                const essayContainer = document.getElementById('essayOptions');
+
+                if (type === 'multiple-choice') {
+                    mcContainer.style.display = 'block';
+                    essayContainer.style.display = 'none';
+                } else {
+                    mcContainer.style.display = 'none';
+                    essayContainer.style.display = 'block';
+                }
+            }
+
+            function addOption(value = '', isCorrect = false) {
+                const container = document.getElementById('optionsContainer');
+                const index = container.children.length;
+
+                const div = document.createElement('div');
+                div.className = 'input-group mb-2 d-flex align-items-center';
+                div.innerHTML = `
                 <input type="radio" name="correctAnswer" value="${index}" ${isCorrect ? 'checked' : ''} style="margin-right:10px;">
                 <input type="text" class="form-control option-input" value="${value}" placeholder="Option ${index + 1}" required>
                 <button type="button" class="btn btn-sm btn-danger ml-2" onclick="removeOption(this)">&times;</button>
             `;
-            container.appendChild(div);
+                container.appendChild(div);
 
-            // Update radio values
-            updateRadioValues();
-        }
+                // Update radio values
+                updateRadioValues();
+            }
 
-        function removeOption(btn) {
-            btn.parentElement.remove();
-            updateRadioValues();
-        }
+            function removeOption(btn) {
+                btn.parentElement.remove();
+                updateRadioValues();
+            }
 
-        function updateRadioValues() {
-            const radios = document.querySelectorAll('input[name="correctAnswer"]');
-            radios.forEach((radio, index) => {
-                radio.value = index;
-            });
-        }
-
-        function editQuestion(index) {
-            const q = editingQuiz.questions[index];
-            document.getElementById('emptyState').style.display = 'none';
-            document.getElementById('questionFormContainer').style.display = 'block';
-            document.getElementById('formTitle').textContent = 'Edit Question ' + (index + 1);
-            document.getElementById('editQuestionId').value = index;
-
-            document.getElementById('questionType').value = q.type || 'multiple-choice';
-            document.getElementById('questionText').value = q.text;
-
-            if (q.type === 'essay') {
-                document.getElementById('questionKeywords').value = q.keywords ? q.keywords.join(', ') : '';
-            } else {
-                const container = document.getElementById('optionsContainer');
-                container.innerHTML = '';
-                q.options.forEach((opt, i) => {
-                    addOption(opt, i === q.answer);
+            function updateRadioValues() {
+                const radios = document.querySelectorAll('input[name="correctAnswer"]');
+                radios.forEach((radio, index) => {
+                    radio.value = index;
                 });
             }
 
-            toggleQuestionType();
-        }
+            function editQuestion(index) {
+                const q = editingQuiz.questions[index];
+                document.getElementById('emptyState').style.display = 'none';
+                document.getElementById('questionFormContainer').style.display = 'block';
+                document.getElementById('formTitle').textContent = 'Edit Question ' + (index + 1);
+                document.getElementById('editQuestionId').value = index;
 
-        document.getElementById('questionForm').addEventListener('submit', (e) => {
-            e.preventDefault();
+                document.getElementById('questionType').value = q.type || 'multiple-choice';
+                document.getElementById('questionText').value = q.text;
 
-            const index = parseInt(document.getElementById('editQuestionId').value);
-            const type = document.getElementById('questionType').value;
-            const text = document.getElementById('questionText').value;
-
-            let newQuestion = {
-                id: Date.now(),
-                type: type,
-                text: text
-            };
-
-            if (type === 'multiple-choice') {
-                const optionInputs = document.querySelectorAll('.option-input');
-                const options = Array.from(optionInputs).map(input => input.value);
-                const correctRadio = document.querySelector('input[name="correctAnswer"]:checked');
-
-                if (!correctRadio) {
-                    alert('Please select a correct answer for multiple choice questions.');
-                    return;
+                if (q.type === 'essay') {
+                    document.getElementById('questionKeywords').value = q.keywords ? q.keywords.join(', ') : '';
+                } else {
+                    const container = document.getElementById('optionsContainer');
+                    container.innerHTML = '';
+                    q.options.forEach((opt, i) => {
+                        addOption(opt, i === q.answer);
+                    });
                 }
 
-                newQuestion.options = options;
-                newQuestion.answer = parseInt(correctRadio.value);
-            } else if (type === 'essay') {
-                const keywords = document.getElementById('questionKeywords').value;
-                newQuestion.keywords = keywords ? keywords.split(',').map(k => k.trim()) : [];
+                toggleQuestionType();
             }
 
-            const data = getData();
-            const quizIndex = data.quizzes.findIndex(q => q.id === currentQuizId);
+            document.getElementById('questionForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
 
-            if (index === -1) {
-                // Add new
-                data.quizzes[quizIndex].questions.push(newQuestion);
-            } else {
-                // Update existing
-                // Preserve ID if editing
-                newQuestion.id = editingQuiz.questions[index].id;
-                data.quizzes[quizIndex].questions[index] = newQuestion;
-            }
+                const index = parseInt(document.getElementById('editQuestionId').value);
+                const type = document.getElementById('questionType').value;
+                const text = document.getElementById('questionText').value;
 
-            saveData(data);
-            editingQuiz = data.quizzes[quizIndex]; // Update local ref
+                let newQuestion = {
+                    id: Date.now(),
+                    type: type,
+                    text: text
+                };
 
-            renderQuestionList();
-            hideQuestionForm();
-            alert('Question saved!');
-        });
+                if (type === 'multiple-choice') {
+                    const optionInputs = document.querySelectorAll('.option-input');
+                    const options = Array.from(optionInputs).map(input => input.value);
+                    const correctRadio = document.querySelector('input[name="correctAnswer"]:checked');
 
-        // Add Module dummy
-        function addQuiz() {
-            alert('Add Quiz feature coming soon!');
-        }
+                    if (!correctRadio) {
+                        alert('Please select a correct answer for multiple choice questions.');
+                        return;
+                    }
 
-        // Tab Switching
-        function switchTab(tabName) {
-            document.getElementById('modulesTab').style.display = tabName === 'modules' ? 'block' : 'none';
-            document.getElementById('submissionsTab').style.display = tabName === 'submissions' ? 'block' : 'none';
+                    newQuestion.options = options;
+                    newQuestion.answer = parseInt(correctRadio.value);
+                } else if (type === 'essay') {
+                    const keywords = document.getElementById('questionKeywords').value;
+                    newQuestion.keywords = keywords ? keywords.split(',').map(k => k.trim()) : [];
+                }
 
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            if (tabName === 'modules') document.querySelector('.tab-btn:first-child').classList.add('active');
-            else {
-                document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
-                loadSubmissions();
-            }
-        }
+                try {
+                    if (index === -1) {
+                        // Add new
+                        editingQuiz.questions.push(newQuestion);
+                    } else {
+                        // Update existing
+                        newQuestion.id = editingQuiz.questions[index].id;
+                        editingQuiz.questions[index] = newQuestion;
+                    }
 
-        // --- Course Settings Logic ---
-        function openCourseSettings() {
-            const data = getData();
-            const course = data.courses.find(c => c.id === currentCourseId);
+                    await API.updateQuiz(editingQuiz.id, {
+                        title: editingQuiz.title,
+                        questions: editingQuiz.questions,
+                        passing_score: editingQuiz.passing_score || editingQuiz.passingScore
+                    });
 
-            if (!course) return;
-
-            // Populate Dropdowns
-            populateDropdown('editCourseCategory', data.courseCategories || ['Onboarding', 'Skill'], 'Category');
-            populateDropdown('editCourseLevel', data.courseLevels || ['Foundation', 'Practitioner', 'Specialist', 'Mastery'], 'Level');
-
-            // Populate Fields
-            document.getElementById('editCourseTitle').value = course.title;
-            document.getElementById('editCourseDesc').value = course.description || '';
-            document.getElementById('editCourseCategory').value = course.category || '';
-            document.getElementById('editCourseLevel').value = course.level || 'Foundation';
-            document.getElementById('editCourseThumbnail').value = course.thumbnail || '';
-
-            document.getElementById('courseSettingsModal').style.display = 'block';
-        }
-
-        function closeCourseSettings() {
-            document.getElementById('courseSettingsModal').style.display = 'none';
-        }
-
-        document.getElementById('courseSettingsForm').addEventListener('submit', function (e) {
-            e.preventDefault();
-
-            const title = document.getElementById('editCourseTitle').value;
-            const desc = document.getElementById('editCourseDesc').value;
-            const cat = document.getElementById('editCourseCategory').value;
-            const level = document.getElementById('editCourseLevel').value;
-            const thumb = document.getElementById('editCourseThumbnail').value;
-
-            const data = getData();
-            const index = data.courses.findIndex(c => c.id === currentCourseId);
-
-            if (index > -1) {
-                data.courses[index].title = title;
-                data.courses[index].description = desc;
-                data.courses[index].category = cat;
-                data.courses[index].level = level;
-                data.courses[index].thumbnail = thumb;
-
-                saveData(data);
-                alert('Course Settings Updated!');
-                closeCourseSettings();
-
-                // Refresh View
-                document.getElementById('courseTitle').textContent = `Editing: ${title}`;
-            }
-        });
-
-        function deleteCourse() {
-            if (!confirm('Are you sure you want to delete this course? This action cannot be undone and will remove all modules, quizzes, and student enrollments associated with it.')) {
-                return;
-            }
-
-            const data = getData();
-
-            // 1. Remove Course
-            data.courses = data.courses.filter(c => c.id !== currentCourseId);
-
-            // 2. Remove Modules
-            data.modules = data.modules.filter(m => m.courseId !== currentCourseId);
-
-            // 3. Remove Quizzes & Attempts
-            const courseQuizIds = data.quizzes.filter(q => q.courseId === currentCourseId).map(q => q.id);
-            data.quizzes = data.quizzes.filter(q => q.courseId !== currentCourseId);
-            if (data.quizAttempts) {
-                data.quizAttempts = data.quizAttempts.filter(a => !courseQuizIds.includes(a.quizId));
-            }
-
-            // 4. Remove Enrollments
-            data.enrollments = data.enrollments.filter(e => e.courseId !== currentCourseId);
-
-            saveData(data);
-            alert('Course deleted successfully.');
-            window.location.href = 'index.html';
-        }
-
-        // --- Grading Logic ---
-        function loadSubmissions() {
-            const data = getData();
-            // Get quizzes for this course
-            const courseQuizIds = data.quizzes.filter(q => q.courseId === currentCourseId).map(q => q.id);
-
-            // Get attempts
-            const attempts = data.quizAttempts ? data.quizAttempts.filter(a => courseQuizIds.includes(a.quizId)) : [];
-
-            const list = document.getElementById('submissionList');
-            list.innerHTML = '';
-
-            if (attempts.length === 0) {
-                list.innerHTML = '<p class="text-muted">No submissions yet.</p>';
-                return;
-            }
-
-            attempts.forEach(attempt => {
-                const user = data.users.find(u => u.id === attempt.userId);
-                const quiz = data.quizzes.find(q => q.id === attempt.quizId);
-                const badge = attempt.status === 'graded' ? '<span class="badge badge-success">Graded</span>' : '<span class="badge badge-warning">Pending Review</span>';
-
-                list.innerHTML += `
-                    <div class="module-item">
-                        <div>
-                            <strong>${user ? user.name : 'Unknown User'}</strong> - ${quiz.title}
-                            <br>
-                            <small class="text-muted">Date: ${attempt.date}</small>
-                        </div>
-                        <div class="d-flex align-items-center">
-                            ${badge}
-                            <span class="ml-3 font-weight-bold" style="margin-right:15px; font-size:16px;">${attempt.score.toFixed(0)}</span>
-                            <button class="btn btn-sm btn-primary" onclick="openGradingModal(${attempt.id})">Grade</button>
-                        </div>
-                    </div>
-                `;
+                    renderQuestionList();
+                    hideQuestionForm();
+                    alert('Question saved!');
+                } catch (err) {
+                    console.error('Error saving question:', err);
+                    alert('Failed to save question');
+                }
             });
-        }
 
+            // Add Quiz Logic
+            function addQuiz() {
+                document.getElementById('quizModal').style.display = 'block';
+                document.getElementById('quizForm').reset();
+            }
 
+            function closeQuizModal() {
+                document.getElementById('quizModal').style.display = 'none';
+            }
 
-        function openGradingModal(attemptId) {
-            try {
-                // Ensure ID types match
-                currentAttemptId = typeof attemptId === 'string' ? parseInt(attemptId) : attemptId;
+            document.getElementById('quizForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const title = document.getElementById('newQuizTitle').value;
+                const passing_score = parseInt(document.getElementById('newQuizPassScore').value);
 
-                const data = getData();
-                const attempt = data.quizAttempts.find(a => a.id === currentAttemptId);
+                try {
+                    await API.createQuiz({
+                        course_id: currentCourseId,
+                        title,
+                        passing_score,
+                        questions: []
+                    });
+                    alert('Quiz created successfully!');
+                    closeQuizModal();
+                    loadCourseData();
+                } catch (err) {
+                    console.error('Error creating quiz:', err);
+                    alert('Failed to create quiz');
+                }
+            });
 
-                if (!attempt) throw new Error(`Submission #${currentAttemptId} not found in database.`);
+            // Tab Switching
+            function switchTab(tabName) {
+                document.getElementById('modulesTab').style.display = tabName === 'modules' ? 'block' : 'none';
+                document.getElementById('submissionsTab').style.display = tabName === 'submissions' ? 'block' : 'none';
 
-                const quiz = data.quizzes.find(q => q.id === attempt.quizId);
-                if (!quiz) throw new Error(`Quiz (ID: ${attempt.quizId}) associated with this submission is missing.`);
+                document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                if (tabName === 'modules') document.querySelector('.tab-btn:first-child').classList.add('active');
+                else {
+                    document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
+                    loadSubmissions();
+                }
+            }
 
-                const user = data.users.find(u => u.id === attempt.userId);
+            // --- Course Settings Logic ---
+            async function openCourseSettings() {
+                try {
+                    const [courses, settings] = await Promise.all([
+                        API.getCourses(),
+                        API.getSettings()
+                    ]);
+                    const course = courses.find(c => c.id === currentCourseId);
 
-                const content = document.getElementById('gradingContent');
-                const userName = user ? user.name : 'Unknown User (Deleted)';
-                let html = `<h5>Student: ${userName}</h5><hr>`;
+                    if (!course) return;
 
-                if (!attempt.answers || attempt.answers.length === 0) {
-                    html += '<p>No answers recorded for this attempt.</p>';
-                    content.innerHTML = html;
-                    document.getElementById('gradingModal').style.display = 'block';
+                    // Populate Dropdowns
+                    populateDropdown('editCourseCategory', settings.courseCategories || ['Onboarding', 'Skill'], 'Category');
+                    populateDropdown('editCourseLevel', settings.courseLevels || ['Foundation', 'Practitioner', 'Specialist', 'Mastery'], 'Level');
+
+                    // Populate Fields
+                    document.getElementById('editCourseTitle').value = course.title;
+                    document.getElementById('editCourseDesc').value = course.description || '';
+                    document.getElementById('editCourseCategory').value = course.category || '';
+                    document.getElementById('editCourseLevel').value = course.level || 'Foundation';
+                    document.getElementById('editCourseThumbnail').value = course.thumbnail || '';
+
+                    document.getElementById('courseSettingsModal').style.display = 'block';
+                } catch (err) {
+                    console.error('Error opening course settings:', err);
+                }
+            }
+
+            function closeCourseSettings() {
+                document.getElementById('courseSettingsModal').style.display = 'none';
+            }
+
+            document.getElementById('courseSettingsForm').addEventListener('submit', async function (e) {
+                e.preventDefault();
+
+                const title = document.getElementById('editCourseTitle').value;
+                const desc = document.getElementById('editCourseDesc').value;
+                const cat = document.getElementById('editCourseCategory').value;
+                const level = document.getElementById('editCourseLevel').value;
+                const thumb = document.getElementById('editCourseThumbnail').value;
+
+                try {
+                    await API.updateCourse(currentCourseId, {
+                        title: title,
+                        description: desc,
+                        category: cat,
+                        level: level,
+                        thumbnail: thumb
+                    });
+
+                    alert('Course Settings Updated!');
+                    closeCourseSettings();
+                    loadCourseData();
+                } catch (err) {
+                    console.error('Error updating course settings:', err);
+                    alert('Failed to update course settings');
+                }
+            });
+
+            async function deleteCourse() {
+                if (!confirm('Are you sure you want to delete this course? This action cannot be undone and will remove all modules, quizzes, and student enrollments associated with it.')) {
                     return;
                 }
 
-                attempt.answers.forEach((ans, index) => {
-                    const q = quiz.questions ? quiz.questions.find(quest => quest.id === ans.questionId) : null;
+                try {
+                    await API.deleteCourse(currentCourseId);
+                    alert('Course deleted successfully.');
+                    window.location.href = 'index.html';
+                } catch (err) {
+                    console.error('Error deleting course:', err);
+                    alert('Failed to delete course');
+                }
+            }
 
-                    if (!q) {
-                        html += `
+            // --- Grading Logic ---
+            async function loadSubmissions() {
+                try {
+                    // Get quizzes for this course
+                    const quizzes = await API.getQuizzes({ courseId: currentCourseId });
+                    const courseQuizIds = quizzes.map(q => q.id);
+
+                    if (courseQuizIds.length === 0) {
+                        document.getElementById('submissionList').innerHTML = '<p class="text-muted">No quizzes created for this course yet.</p>';
+                        return;
+                    }
+
+                    // Get all attempts for these quizzes
+                    const attemptsPromises = courseQuizIds.map(qid => API.getQuizAttempts({ quizId: qid }));
+                    const attemptsResults = await Promise.all(attemptsPromises);
+                    const attempts = attemptsResults.flat();
+
+                    const list = document.getElementById('submissionList');
+                    list.innerHTML = '';
+
+                    if (attempts.length === 0) {
+                        list.innerHTML = '<p class="text-muted">No submissions yet.</p>';
+                        return;
+                    }
+
+                    // Get all users and quizzes for mapping
+                    const [users, allQuizzes] = await Promise.all([
+                        API.getEmployees(),
+                        API.getQuizzes()
+                    ]);
+
+                    attempts.forEach(attempt => {
+                        const user = users.find(u => u.id === attempt.user_id || u.id === attempt.userId);
+                        const quiz = allQuizzes.find(q => q.id === attempt.quiz_id || q.id === attempt.quizId);
+                        const status = attempt.status || 'graded';
+                        const badge = status === 'graded' ? '<span class="badge badge-success">Graded</span>' : '<span class="badge badge-warning">Pending Review</span>';
+                        const score = attempt.score !== null ? parseFloat(attempt.score).toFixed(0) : '0';
+
+                        list.innerHTML += `
+                        <div class="module-item">
+                            <div>
+                                <strong>${user ? user.name : 'Unknown User'}</strong> - ${quiz ? quiz.title : 'Unknown Quiz'}
+                                <br>
+                                <small class="text-muted">Date: ${new Date(attempt.attempted_at || attempt.date).toLocaleDateString()}</small>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                ${badge}
+                                <span class="ml-3 font-weight-bold" style="margin-right:15px; font-size:16px;">${score}</span>
+                                <button class="btn btn-sm btn-primary" onclick="openGradingModal(${attempt.id})">Grade</button>
+                            </div>
+                        </div>
+                    `;
+                    });
+                } catch (err) {
+                    console.error('Error loading submissions:', err);
+                    document.getElementById('submissionList').innerHTML = '<p class="text-danger">Failed to load submissions from database.</p>';
+                }
+            }
+
+
+
+            async function openGradingModal(attemptId) {
+                try {
+                    currentAttemptId = attemptId;
+                    const attempts = await API.getQuizAttempts({ id: attemptId }); // Filter by ID if supported, or fetch and find
+                    const attempt = attempts.find(a => a.id === attemptId);
+
+                    if (!attempt) throw new Error(`Submission #${attemptId} not found in database.`);
+
+                    const quizRes = await API.getQuizzes({ id: attempt.quiz_id || attempt.quizId });
+                    const quiz = quizRes[0];
+                    if (!quiz) throw new Error(`Quiz associated with this submission is missing.`);
+
+                    const users = await API.getEmployees();
+                    const user = users.find(u => u.id === attempt.user_id || u.id === attempt.userId);
+
+                    const content = document.getElementById('gradingContent');
+                    const userName = user ? user.name : 'Unknown User (Deleted)';
+                    let html = `<h5>Student: ${userName}</h5><hr>`;
+
+                    let answers = typeof attempt.answers === 'string' ? JSON.parse(attempt.answers) : attempt.answers;
+
+                    // Robustness: Handle legacy object format { "qid": "ans" }
+                    if (answers && !Array.isArray(answers) && typeof answers === 'object') {
+                        console.warn('Legacy answer format detected for attempt', attemptId);
+                        answers = Object.keys(answers).map(qid => ({
+                            questionId: parseInt(qid),
+                            answer: answers[qid],
+                            score: 0,
+                            maxScore: 10, // Default for legacy
+                            type: 'essay' // Default to essay for manual review if unknown
+                        }));
+                    }
+
+                    if (!Array.isArray(answers)) answers = [];
+
+                    if (answers.length === 0) {
+                        html += '<p>No answers recorded for this attempt.</p>';
+                        content.innerHTML = html;
+                        document.getElementById('gradingModal').style.display = 'block';
+                        return;
+                    }
+
+                    answers.forEach((ans, index) => {
+                        const q = quiz.questions ? quiz.questions.find(quest => quest.id === ans.questionId) : null;
+
+                        if (!q) {
+                            html += `
                             <div class="mb-4 p-3 bg-light border rounded">
                                 <p class="text-danger">Question deleted or not found.</p>
                                 <p class="text-muted">Recorded Answer: ${ans.answer}</p>
                             </div>
                         `;
-                        return;
-                    }
+                            return;
+                        }
 
-                    const isEssay = q.type === 'essay';
+                        const isEssay = q.type === 'essay' || ans.type === 'essay';
 
-                    html += `
+                        html += `
                         <div class="mb-4 p-3" style="background:${isEssay ? '#fff3e0' : '#f9f9f9'}; border-radius:5px;">
                             <p><strong>Q${index + 1}: ${q.text}</strong></p>
                             <p class="text-muted">Student Answer:</p>
@@ -919,12 +1047,12 @@
                             </div>
                     `;
 
-                    if (isEssay) {
-                        const keywordsHtml = q.keywords && q.keywords.length > 0
-                            ? q.keywords.map(k => `<span class="badge badge-secondary mr-1">${k}</span>`).join('')
-                            : '<span class="text-muted font-italic">No keywords defined</span>';
+                        if (isEssay) {
+                            const keywordsHtml = q.keywords && q.keywords.length > 0
+                                ? q.keywords.map(k => `<span class="badge badge-secondary mr-1">${k}</span>`).join('')
+                                : '<span class="text-muted font-italic">No keywords defined</span>';
 
-                        html += `
+                            html += `
                             <div class="d-flex align-items-center mb-2">
                                  <small class="mr-2">Keywords:</small> 
                                  ${keywordsHtml}
@@ -936,112 +1064,127 @@
                                 </div>
                             </div>
                         `;
-                    } else {
-                        html += `<p class="small ${ans.score > 0 ? 'text-success' : 'text-danger'}">Auto-Score: ${ans.score}/${ans.maxScore}</p>`;
-                    }
+                        } else {
+                            html += `<p class="small ${ans.score > 0 ? 'text-success' : 'text-danger'}">Auto-Score: ${ans.score}/${ans.maxScore}</p>`;
+                        }
 
-                    html += `</div>`;
-                });
-
-                html += `<button class="btn btn-success btn-block mt-3" onclick="saveGrade()">Finalize & Save Grade</button>`;
-                content.innerHTML = html;
-
-                document.getElementById('gradingModal').style.display = 'block';
-            } catch (error) {
-                console.error('Grading Error:', error);
-                alert('Sistem mengalami masalah: ' + error.message);
-            }
-        }
-
-        function closeGradingModal() {
-            document.getElementById('gradingModal').style.display = 'none';
-        }
-
-        function saveGrade() {
-            const data = getData();
-            const attemptIndex = data.quizAttempts.findIndex(a => a.id === currentAttemptId);
-            const attempt = data.quizAttempts[attemptIndex];
-
-            const inputs = document.querySelectorAll('.score-input');
-            let totalEarned = 0;
-            let totalMax = 0;
-
-            // Update scores from inputs
-            inputs.forEach(input => {
-                const qId = parseInt(input.dataset.qid);
-                const newScore = parseFloat(input.value);
-                const ansIndex = attempt.answers.findIndex(a => a.questionId === qId);
-                if (ansIndex > -1) {
-                    attempt.answers[ansIndex].score = newScore;
-                }
-            });
-
-            // Recalculate Total
-            attempt.answers.forEach(a => {
-                totalEarned += a.score;
-                totalMax += a.maxScore;
-            });
-
-            attempt.score = (totalEarned / totalMax) * 100;
-            attempt.status = 'graded';
-
-            saveData(data);
-
-            // If passed, maybe update enrollment?
-            checkCourseCompletion(attempt);
-
-            closeGradingModal();
-            loadSubmissions();
-            alert('Grade updated successfully!');
-        }
-
-        function checkCourseCompletion(attempt) {
-            const data = getData();
-            const quiz = data.quizzes.find(q => q.id === attempt.quizId);
-
-            if (attempt.score >= quiz.passingScore) {
-                // Find enrollment
-                let enrollment = data.enrollments.find(e => e.courseId === quiz.courseId && e.userId === attempt.userId);
-
-                if (!enrollment) {
-                    // Create if not exists (e.g. user took quiz directly)
-                    enrollment = {
-                        id: Date.now(),
-                        userId: attempt.userId,
-                        courseId: quiz.courseId,
-                        progress: 100,
-                        status: 'completed',
-                        completionDate: new Date().toISOString().split('T')[0]
-                    };
-                    data.enrollments.push(enrollment);
-                } else {
-                    enrollment.status = 'completed';
-                    enrollment.progress = 100;
-                    enrollment.completionDate = new Date().toISOString().split('T')[0];
-                }
-
-                // ALSO Generate Certificate HERE if missing
-                // Check if cert already exists
-                const existingCert = data.certificates.find(c => c.enrollmentId === enrollment.id || (c.userId === attempt.userId && c.courseName === data.courses.find(co => co.id === quiz.courseId).title));
-
-                if (!existingCert) {
-                    const course = data.courses.find(co => co.id === quiz.courseId);
-                    const certCode = `CERT-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`;
-                    data.certificates.push({
-                        id: Date.now(),
-                        enrollmentId: enrollment.id,
-                        userId: attempt.userId, // Use attempt.userId not 'user.id' (admin is logged in)
-                        courseName: course.title,
-                        date: enrollment.completionDate,
-                        code: certCode
+                        html += `</div>`;
                     });
-                }
 
-                saveData(data);
-                console.log('Course marked as completed and certificate generated.');
+                    html += `<button class="btn btn-success btn-block mt-3" onclick="saveGrade()">Finalize & Save Grade</button>`;
+                    content.innerHTML = html;
+
+                    document.getElementById('gradingModal').style.display = 'block';
+                } catch (error) {
+                    console.error('Grading Error:', error);
+                    alert('Sistem mengalami masalah: ' + error.message);
+                }
             }
-        }
-    </script>
+
+            function closeGradingModal() {
+                document.getElementById('gradingModal').style.display = 'none';
+            }
+
+            async function saveGrade() {
+                try {
+                    const attempts = await API.getQuizAttempts({ id: currentAttemptId });
+                    const attempt = attempts[0];
+                    if (!attempt) throw new Error('Attempt not found.');
+
+                    const answers = typeof attempt.answers === 'string' ? JSON.parse(attempt.answers) : attempt.answers;
+
+                    const inputs = document.querySelectorAll('.score-input');
+                    let totalEarned = 0;
+                    let totalMax = 0;
+
+                    // Update scores from inputs
+                    inputs.forEach(input => {
+                        const qId = parseInt(input.dataset.qid);
+                        const newScore = parseFloat(input.value);
+                        const ansIndex = answers.findIndex(a => a.questionId === qId);
+                        if (ansIndex > -1) {
+                            answers[ansIndex].score = newScore;
+                        }
+                    });
+
+                    // Recalculate Total
+                    answers.forEach(a => {
+                        totalEarned += parseFloat(a.score);
+                        totalMax += parseFloat(a.maxScore);
+                    });
+
+                    const finalScore = (totalEarned / totalMax) * 100;
+
+                    const quizRes = await API.getQuizzes({ id: attempt.quiz_id || attempt.quizId });
+                    const quiz = quizRes[0];
+
+                    await API.updateQuizAttempt(currentAttemptId, {
+                        score: finalScore,
+                        passed: finalScore >= (quiz.passing_score || 70),
+                        answers: answers,
+                        status: 'graded'
+                    });
+
+                    // If passed, update enrollment
+                    await checkCourseCompletion(attempt.user_id || attempt.userId, quiz.course_id, finalScore, quiz.passing_score || 70);
+
+                    closeGradingModal();
+                    loadSubmissions();
+                    alert('Grade updated successfully!');
+                } catch (err) {
+                    console.error('Error saving grade:', err);
+                    alert('Failed to save grade: ' + (err.error || err.message || 'Unknown error'));
+                }
+            }
+
+            async function checkCourseCompletion(userId, courseId, score, passingScore) {
+                if (score >= passingScore) {
+                    try {
+                        const enrollments = await API.getEnrollments({ userId, courseId });
+                        let enrollment = enrollments[0];
+
+                        if (!enrollment) {
+                            enrollment = await API.enroll({
+                                user_id: userId,
+                                course_id: courseId
+                            });
+                        }
+
+                        const compDate = new Date().toISOString().split('T')[0];
+                        await API.updateEnrollment(enrollment.id, {
+                            progress: 100,
+                            status: 'completed',
+                            completed_at: compDate
+                        });
+
+                        // Handle Certificate (Simplified for now, similar to learning.js)
+                        const settings = await API.getSettings();
+                        const certificates = settings.certificates || [];
+                        const courses = await API.getCourses();
+                        const course = courses.find(c => c.id === courseId);
+
+                        const existingCert = certificates.find(c => c.userId === userId && c.courseName === course.title);
+
+                        if (!existingCert) {
+                            const certCode = `CERT-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`;
+                            certificates.push({
+                                id: Date.now(),
+                                userId: userId,
+                                courseName: course.title,
+                                date: compDate,
+                                code: certCode
+                            });
+
+                            await API.saveSetting('certificates', certificates);
+                        }
+
+                        console.log('Course marked as completed and certificate generated.');
+                    } catch (err) {
+                        console.error('Error in course completion:', err);
+                    }
+                }
+            }
+        </script>
 </body>
 
 </html>

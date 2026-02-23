@@ -61,6 +61,24 @@ router.post('/courses/:courseId/modules', async (req, res) => {
     } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
+router.put('/modules/:id', async (req, res) => {
+    const { title, type, url, content, duration, sort_order } = req.body;
+    try {
+        const result = await pool.query(
+            `UPDATE course_modules SET title=$1, type=$2, url=$3, content=$4, duration=$5, sort_order=$6 WHERE id=$7 RETURNING *`,
+            [title, type, url, content, duration, sort_order, req.params.id]
+        );
+        res.json(result.rows[0]);
+    } catch (err) { res.status(500).json({ error: 'Server error' }); }
+});
+
+router.delete('/modules/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM course_modules WHERE id = $1', [req.params.id]);
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: 'Server error' }); }
+});
+
 // ── Enrollments ─────────────────────────────────────────────
 
 router.get('/enrollments', async (req, res) => {
@@ -101,37 +119,81 @@ router.put('/enrollments/:id', async (req, res) => {
 // ── Quizzes ──────────────────────────────────────────────────
 
 router.get('/quizzes', async (req, res) => {
-    const { courseId } = req.query;
+    const { courseId, id } = req.query;
     try {
-        let q = 'SELECT * FROM quizzes';
-        if (courseId) q += ` WHERE course_id = ${parseInt(courseId)}`;
-        const result = await pool.query(q);
+        let q = 'SELECT * FROM quizzes WHERE 1=1';
+        const params = []; let idx = 1;
+        if (courseId) { q += ` AND course_id = $${idx++}`; params.push(parseInt(courseId)); }
+        if (id) { q += ` AND id = $${idx++}`; params.push(parseInt(id)); }
+        const result = await pool.query(q, params);
         res.json(result.rows);
+    } catch (err) { res.status(500).json({ error: 'Server error: ' + err.message }); }
+});
+
+router.post('/quizzes', async (req, res) => {
+    const { course_id, title, questions, passing_score } = req.body;
+    try {
+        const result = await pool.query(
+            `INSERT INTO quizzes (course_id, title, questions, passing_score)
+             VALUES ($1, $2, $3, $4) RETURNING *`,
+            [course_id, title, JSON.stringify(questions || []), passing_score || 70]
+        );
+        res.status(201).json(result.rows[0]);
+    } catch (err) { res.status(500).json({ error: 'Server error' }); }
+});
+
+router.put('/quizzes/:id', async (req, res) => {
+    const { title, questions, passing_score } = req.body;
+    try {
+        const result = await pool.query(
+            `UPDATE quizzes SET title=$1, questions=$2, passing_score=$3 WHERE id=$4 RETURNING *`,
+            [title, JSON.stringify(questions), passing_score, req.params.id]
+        );
+        res.json(result.rows[0]);
     } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
 router.post('/quiz-attempts', async (req, res) => {
-    const { user_id, quiz_id, score, passed, answers } = req.body;
+    const { user_id, quiz_id, score, passed, answers, status } = req.body;
+    console.log('--- NEW QUIZ ATTEMPT RECVD ---');
+    console.log('Body:', JSON.stringify(req.body, null, 2));
     try {
         const result = await pool.query(
-            `INSERT INTO quiz_attempts (user_id, quiz_id, score, passed, answers) VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-            [user_id, quiz_id, score, passed, JSON.stringify(answers)]
+            `INSERT INTO quiz_attempts (user_id, quiz_id, score, passed, answers, status) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+            [user_id, quiz_id, score, passed, JSON.stringify(answers), status || 'graded']
         );
         res.status(201).json(result.rows[0]);
     } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
 router.get('/quiz-attempts', async (req, res) => {
-    const { userId, quizId } = req.query;
+    const { userId, quizId, id } = req.query;
     try {
         let q = 'SELECT * FROM quiz_attempts WHERE 1=1';
         const params = []; let idx = 1;
         if (userId) { q += ` AND user_id=$${idx++}`; params.push(userId); }
         if (quizId) { q += ` AND quiz_id=$${idx++}`; params.push(quizId); }
+        if (id) { q += ` AND id=$${idx++}`; params.push(id); }
         q += ' ORDER BY attempted_at DESC';
         const result = await pool.query(q, params);
         res.json(result.rows);
     } catch (err) { res.status(500).json({ error: 'Server error' }); }
+});
+
+router.put('/quiz-attempts/:id', async (req, res) => {
+    const { score, passed, answers, status } = req.body;
+    console.log('UPDATING ATTEMPT:', req.params.id, { score, passed, status });
+    try {
+        const result = await pool.query(
+            `UPDATE quiz_attempts SET score=$1, passed=$2, answers=$3, status=$4 WHERE id=$5 RETURNING *`,
+            [score, passed, JSON.stringify(answers), status, req.params.id]
+        );
+        console.log('UPDATE SUCCESS:', result.rows[0].id);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('UPDATE ERROR:', err);
+        res.status(500).json({ error: 'Server error: ' + err.message });
+    }
 });
 
 module.exports = router;

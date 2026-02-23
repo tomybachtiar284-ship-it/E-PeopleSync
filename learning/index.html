@@ -181,117 +181,142 @@
     <script>
     </script>
     <script src="../js/utils.js"></script>
+    <script src="../js/api.js"></script>
     <script>
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function () {
-            updateSidebarForRole();
-            var user = checkAuth(['employee', 'manager', 'admin', 'candidate']);
-            var data = getData();
+        // Use API object from api.js
+        // const API = 'http://localhost:3001'; // Removed local definition
 
-            if (user) {
-                initUserProfile();
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async function () {
+            updateSidebarForRole();
+            const user = checkAuth(['employee', 'manager', 'admin', 'candidate']);
+            if (!user) return;
+
+            initUserProfile();
+
+            try {
+                // Fetch Base Data using centralized API client
+                const [courses, enrollments, settings] = await Promise.all([
+                    API.getCourses(),
+                    API.getEnrollments(),
+                    API.getSettings()
+                ]);
+                const certificates = settings.certificates || [];
 
                 // Admin Features
                 if (user.role === 'admin') {
                     document.getElementById('btnCreateCourse').style.display = 'block';
                     document.getElementById('adminAnalytics').style.display = 'grid';
 
-                    // Populate Analytics
-                    document.getElementById('statTotalCourses').textContent = data.courses ? data.courses.length : 0;
-                    document.getElementById('statActiveLearners').textContent = data.enrollments ? data.enrollments.length : 0;
-                    document.getElementById('statCertificates').textContent = data.certificates ? data.certificates.length : 0;
+                    // Populate Analytics (Live API Data)
+                    document.getElementById('statTotalCourses').textContent = courses.length;
+                    document.getElementById('statActiveLearners').textContent = enrollments.length;
+                    document.getElementById('statCertificates').textContent = certificates.length;
                 }
+
+                // Render with fetched data
+                renderCourses(courses, enrollments, user);
+
+            } catch (err) {
+                console.error('Initial Load Error:', err);
+                renderCourses([], [], user);
             }
-            renderCourses();
         });
 
         // Modal Logic
-        function openCourseModal() {
-            var data = getData();
-            populateDropdown('courseCategory', data.courseCategories || ['Onboarding', 'Skill'], 'Category');
-            populateDropdown('courseLevel', data.courseLevels || ['Foundation', 'Practitioner', 'Specialist', 'Mastery'], 'Level');
-            document.getElementById('createCourseModal').style.display = 'block';
+        async function openCourseModal() {
+            try {
+                const settings = await API.getSettings();
+                populateDropdown('courseCategory', settings.course_categories || ['Onboarding', 'Skill'], 'Category');
+                populateDropdown('courseLevel', settings.course_levels || ['Foundation', 'Practitioner', 'Specialist', 'Mastery'], 'Level');
+                document.getElementById('createCourseModal').style.display = 'block';
+            } catch (err) {
+                console.error('Failed to load settings:', err);
+                populateDropdown('courseCategory', ['Onboarding', 'Skill'], 'Category');
+                populateDropdown('courseLevel', ['Foundation', 'Practitioner', 'Specialist', 'Mastery'], 'Level');
+                document.getElementById('createCourseModal').style.display = 'block';
+            }
         }
         function closeCourseModal() { document.getElementById('createCourseModal').style.display = 'none'; }
 
         // Create Course Logic
-        document.getElementById('createCourseForm').addEventListener('submit', function (e) {
+        document.getElementById('createCourseForm').addEventListener('submit', async function (e) {
             e.preventDefault();
-            var title = document.getElementById('courseTitle').value;
-            var desc = document.getElementById('courseDesc').value;
-            var cat = document.getElementById('courseCategory').value;
-            var level = document.getElementById('courseLevel').value;
-            var fileInput = document.getElementById('courseImage');
-            var file = fileInput.files[0];
+            const title = document.getElementById('courseTitle').value;
+            const desc = document.getElementById('courseDesc').value;
+            const cat = document.getElementById('courseCategory').value;
+            const level = document.getElementById('courseLevel').value;
+            const fileInput = document.getElementById('courseImage');
+            const file = fileInput.files[0];
 
-            function saveCourse(imgData) {
-                var data = getData();
-                var newCourse = {
-                    id: Date.now(),
-                    title: title,
-                    description: desc,
-                    category: cat,
-                    level: level,
-                    department: 'All',
-                    thumbnail: imgData || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-1.2.1',
-                    materials: []
-                };
+            async function submitCourse(imgData = '') {
+                try {
+                    const res = await API.createCourse({
+                        title,
+                        description: desc,
+                        category: cat,
+                        level,
+                        thumbnail: imgData || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'
+                    });
 
-                data.courses.push(newCourse);
-                data.quizzes.push({
-                    id: Date.now() + 1,
-                    courseId: newCourse.id,
-                    title: 'Final Quiz',
-                    questions: [{ id: 1, text: "Is this a new course?", options: ["Yes", "No"], answer: 0 }],
-                    passingScore: 50
-                });
-
-                saveData(data);
-                alert('Course Created Successfully!');
-                closeCourseModal();
-                location.reload();
+                    if (res) {
+                        alert('Course created successfully!');
+                        closeCourseModal();
+                        window.location.reload();
+                    } else {
+                        throw new Error('Failed to create course');
+                    }
+                } catch (err) {
+                    console.error('Error creating course:', err);
+                    alert('Gagal membuat kursus. Silakan coba lagi.');
+                }
             }
 
             if (file) {
-                var reader = new FileReader();
-                reader.onload = function (e) {
-                    saveCourse(e.target.result); // Pass Base64 string
-                };
+                const reader = new FileReader();
+                reader.onload = e => submitCourse(e.target.result);
                 reader.readAsDataURL(file);
             } else {
-                saveCourse(null);
+                submitCourse();
             }
         });
 
-        function renderCourses(filter) {
-            if (!filter) filter = 'all';
-            var grid = document.getElementById('courseGrid');
-            var data = getData();
-            var user = JSON.parse(localStorage.getItem('currentUser'));
-            var levelFilter = document.getElementById('filterLevel').value;
+        async function renderCourses(providedCourses, providedEnrollments, user, filter = 'all') {
+            const grid = document.getElementById('courseGrid');
+            const levelFilter = document.getElementById('filterLevel').value;
 
-            grid.innerHTML = '';
+            let courses = providedCourses;
+            let enrollments = providedEnrollments;
 
-            var courses = data.courses;
+            if (!courses || !enrollments) {
+                try {
+                    [courses, enrollments] = await Promise.all([
+                        API.getCourses(),
+                        API.getEnrollments({ userId: user.id })
+                    ]);
+                } catch (err) {
+                    console.error('Render Courses Fetch Error:', err);
+                    grid.innerHTML = '<p class="text-center col-12">Failed to load courses from server.</p>';
+                    return;
+                }
+            }
 
             // 1. Filter by Status (Tab)
             if (filter === 'progress') {
-                courses = courses.filter(function (c) {
-                    var e = data.enrollments.find(function (en) { return en.courseId === c.id && en.userId === user.id; });
+                courses = courses.filter(c => {
+                    const e = enrollments.find(en => (en.course_id === c.id || en.courseId === c.id) && (en.user_id === user.id || en.userId === user.id));
                     return e && e.status === 'in-progress';
                 });
             } else if (filter === 'completed') {
-                courses = courses.filter(function (c) {
-                    var e = data.enrollments.find(function (en) { return en.courseId === c.id && en.userId === user.id; });
+                courses = courses.filter(c => {
+                    const e = enrollments.find(en => (en.course_id === c.id || en.courseId === c.id) && (en.user_id === user.id || en.userId === user.id));
                     return e && e.status === 'completed';
                 });
             }
 
             // 2. Filter by Level (Dropdown)
             if (levelFilter) {
-                courses = courses.filter(function (c) {
-                    return c.level === levelFilter;
-                });
+                courses = courses.filter(c => c.level === levelFilter);
             }
 
             if (courses.length === 0) {
@@ -299,34 +324,37 @@
                 return;
             }
 
-            courses.forEach(function (course) {
-                var enrollment = data.enrollments.find(function (e) { return e.courseId === course.id && e.userId === user.id; });
+            grid.innerHTML = '';
 
-                var quiz = data.quizzes.find(function (q) { return q.courseId === course.id; });
-                var attempts = quiz ? (data.quizAttempts ? data.quizAttempts.filter(function (a) { return a.quizId === quiz.id && a.userId === user.id; }) : []) : [];
-                var latestAttempt = attempts.sort(function (a, b) { return b.id - a.id; })[0];
+            // For extra details (attempts), we fetch them for current user
+            const attempts = await API.getQuizAttempts({ userId: user.id });
 
-                var progress = enrollment ? enrollment.progress : 0;
-                var btnText = 'Start Course';
-                var btnClass = 'btn-primary';
+            courses.forEach(course => {
+                const enrollment = enrollments.find(e => (e.course_id === course.id || e.courseId === course.id) && (e.user_id === user.id || e.userId === user.id));
+                const courseAttempts = attempts.filter(a => a.course_id === course.id || a.courseId === course.id || a.quiz_id === course.id); // Loose matching for flexibility
+                const latestAttempt = courseAttempts.sort((a, b) => b.id - a.id)[0];
 
-                // Admin/Manager View Logic
+                let progress = enrollment ? enrollment.progress : 0;
+                let btnText = 'Start Course';
+                let btnClass = 'btn-primary';
+
                 if (!enrollment && (user.role === 'admin' || user.role === 'manager')) {
                     btnText = 'Preview Course';
                     btnClass = 'btn-outline-primary';
                 }
-                var statusBadge = '';
+
+                let statusBadge = '';
 
                 if (enrollment) {
                     if (enrollment.status === 'completed') {
                         btnText = 'Review Course';
                         btnClass = 'btn-success';
                         progress = 100;
-                    } else if (latestAttempt && latestAttempt.status === 'pending_review') {
+                    } else if (enrollment.status === 'submitted') {
                         btnText = 'Pending Review';
                         btnClass = 'btn-warning';
                         statusBadge = '<span class="badge badge-warning" style="font-size:10px; margin-left:5px;">In Review</span>';
-                    } else if (latestAttempt && latestAttempt.status === 'graded' && latestAttempt.score < quiz.passingScore) {
+                    } else if (latestAttempt && latestAttempt.score < 70) { // Simple threshold check
                         btnText = 'Retake Quiz';
                         btnClass = 'btn-danger';
                         statusBadge = '<span class="badge badge-danger" style="font-size:10px; margin-left:5px;">Failed</span>';
@@ -336,52 +364,46 @@
                     }
                 }
 
-                var editBtn = '';
+                let editBtn = '';
                 if (user.role === 'admin') {
-                    editBtn = '<a href="course_editor.html?id=' + course.id + '" class="btn btn-sm btn-secondary" style="background:#6c757d; color:white; text-align:center; padding:8px; text-decoration:none; border-radius:6px; width: 40px; display: flex; align-items: center; justify-content: center;" title="Manage Course"><i class="fas fa-edit"></i></a>';
+                    editBtn = `<a href="course_editor.html?id=${course.id}" class="btn btn-sm btn-secondary" style="background:#6c757d; color:white; text-align:center; padding:8px; text-decoration:none; border-radius:6px; width: 40px; display: flex; align-items: center; justify-content: center;" title="Manage Course"><i class="fas fa-edit"></i></a>`;
                 }
 
-                // Level Badge Color
-                var levelColor = '#888';
-                var levelLabel = course.level || 'Foundation'; // Default
-                if (levelLabel === 'Practitioner') levelColor = '#17a2b8';
-                if (levelLabel === 'Specialist') levelColor = '#ffc107';
-                if (levelLabel === 'Mastery') levelColor = '#dc3545';
+                const levelColor = course.level === 'Practitioner' ? '#17a2b8' : (course.level === 'Specialist' ? '#ffc107' : (course.level === 'Mastery' ? '#dc3545' : '#888'));
 
-                grid.innerHTML += '<div class="course-card">' +
-                    '<div class="course-img" style="background-image: url(\'' + course.thumbnail + '\')">' +
-                    '<span class="course-tag">' + (course.category || 'General') + '</span>' +
-                    '<span class="course-tag" style="left: auto; right: 10px; background-color:' + levelColor + '">' + levelLabel + '</span>' +
-                    '</div>' +
-                    '<div class="course-body">' +
-                    '<h4 style="margin-bottom:5px; font-weight:600;">' + course.title + '</h4>' +
-                    '<p style="font-size:13px; color:#666; margin-bottom:15px; line-height:1.4;">' + (course.description || 'Master this new competency.') + '</p>' +
-                    '<div class="d-flex justify-content-between" style="font-size:11px; font-weight:600; margin-bottom:5px;">' +
-                    '<span>YOUR PROGRESS ' + statusBadge + '</span>' +
-                    '<span>' + progress + '%</span>' +
-                    '</div>' +
-                    '<div class="progress-bar" style="height:4px; background:#e0f2f1; width:100%; border-radius:2px; margin-bottom:15px;">' +
-                    '<div style="width:' + progress + '%; background:var(--primary-color); height:100%; border-radius:2px;"></div>' +
-                    '</div>' +
-                    '<div class="d-flex" style="gap: 5px;">' +
-                    '<a href="course.html?id=' + course.id + '" class="btn btn-sm btn-block ' + btnClass + '" style="color:white; text-align:center; padding:8px; text-decoration:none; border-radius:6px; flex: 1;">' + btnText + '</a>' +
-                    editBtn +
-                    '</div>' +
-                    '</div>' +
-                    '</div>';
+                grid.innerHTML += `
+                    <div class="course-card">
+                        <div class="course-img" style="background-image: url('${course.thumbnail}')">
+                            <span class="course-tag">${course.category || 'General'}</span>
+                            <span class="course-tag" style="left: auto; right: 10px; background-color:${levelColor}">${course.level || 'Foundation'}</span>
+                        </div>
+                        <div class="course-body">
+                            <h4 style="margin-bottom:5px; font-weight:600;">${course.title}</h4>
+                            <p style="font-size:13px; color:#666; margin-bottom:15px; line-height:1.4;">${course.description || 'Master this new competency.'}</p>
+                            <div class="d-flex justify-content-between" style="font-size:11px; font-weight:600; margin-bottom:5px;">
+                                <span>YOUR PROGRESS ${statusBadge}</span>
+                                <span>${progress}%</span>
+                            </div>
+                            <div class="progress-bar" style="height:4px; background:#e0f2f1; width:100%; border-radius:2px; margin-bottom:15px;">
+                                <div style="width:${progress}%; background:var(--primary-color); height:100%; border-radius:2px;"></div>
+                            </div>
+                            <div class="d-flex" style="gap: 5px;">
+                                <a href="course.html?id=${course.id}" class="btn btn-sm btn-block ${btnClass}" style="color:white; text-align:center; padding:8px; text-decoration:none; border-radius:6px; flex: 1;">${btnText}</a>
+                                ${editBtn}
+                            </div>
+                        </div>
+                    </div>`;
             });
         }
 
-        function filterCourses(status) {
-            var tabs = document.querySelectorAll('.tab-btn');
-            for (var i = 0; i < tabs.length; i++) {
-                tabs[i].classList.remove('active');
-                var onclick = tabs[i].getAttribute('onclick');
-                if (onclick && onclick.indexOf("'" + status + "'") !== -1) {
-                    tabs[i].classList.add('active');
-                }
-            }
-            renderCourses(status);
+        async function filterCourses(status) {
+            const tabs = document.querySelectorAll('.tab-btn');
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+                if (tab.getAttribute('onclick').includes(`'${status}'`)) tab.classList.add('active');
+            });
+            const user = JSON.parse(localStorage.getItem('currentUser'));
+            renderCourses(null, null, user, status);
         }
     </script>
 </body>

@@ -8,9 +8,13 @@ const API_BASE = 'http://localhost:3001';
 // ── Core Helpers ─────────────────────────────────────────────
 
 async function apiRequest(method, endpoint, body = null) {
+    const token = localStorage.getItem('jwtToken');
     const options = {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token ? `Bearer ${token}` : ''
+        },
     };
     if (body) options.body = JSON.stringify(body);
 
@@ -85,11 +89,17 @@ const API = {
     deleteCourse: (id) => apiDelete(`/api/learning/courses/${id}`),
     getCourseModules: (courseId) => apiGet(`/api/learning/courses/${courseId}/modules`),
     addCourseModule: (courseId, data) => apiPost(`/api/learning/courses/${courseId}/modules`, data),
+    updateCourseModule: (id, data) => apiPut(`/api/learning/modules/${id}`, data),
+    deleteCourseModule: (id) => apiDelete(`/api/learning/modules/${id}`),
     getEnrollments: (params = {}) => apiGet('/api/learning/enrollments?' + new URLSearchParams(params)),
     enroll: (data) => apiPost('/api/learning/enrollments', data),
     updateEnrollment: (id, data) => apiPut(`/api/learning/enrollments/${id}`, data),
     getQuizzes: (params = {}) => apiGet('/api/learning/quizzes?' + new URLSearchParams(params)),
+    createQuiz: (data) => apiPost('/api/learning/quizzes', data),
+    updateQuiz: (id, data) => apiPut(`/api/learning/quizzes/${id}`, data),
+    getQuizAttempts: (params = {}) => apiGet('/api/learning/quiz-attempts?' + new URLSearchParams(params)),
     submitQuizAttempt: (data) => apiPost('/api/learning/quiz-attempts', data),
+    updateQuizAttempt: (id, data) => apiPut(`/api/learning/quiz-attempts/${id}`, data),
 
     // EVALUATIONS
     getEvaluations: (params = {}) => apiGet('/api/evaluations?' + new URLSearchParams(params)),
