@@ -550,9 +550,17 @@ async function processClock(type) {
 
         // Determine late status
         let isLate = false;
-        if (type === 'In' && shiftDef && shiftDef.clockIn) {
-            const [defH, defM] = shiftDef.clockIn.split(':').map(Number);
-            if (now.getHours() > defH || (now.getHours() === defH && now.getMinutes() > defM)) isLate = true;
+        let lateMinutes = 0;
+        if (type === 'In' && shiftDef && (shiftDef.clock_in || shiftDef.clockIn)) {
+            const schedTimeStr = shiftDef.clock_in || shiftDef.clockIn;
+            const [defH, defM] = schedTimeStr.split(':').map(Number);
+            const nowH = now.getHours();
+            const nowM = now.getMinutes();
+
+            if (nowH > defH || (nowH === defH && nowM > defM)) {
+                isLate = true;
+                lateMinutes = (nowH * 60 + nowM) - (defH * 60 + defM);
+            }
         }
 
         // Find existing log
@@ -567,6 +575,7 @@ async function processClock(type) {
                 date: today,
                 status: shiftCode,
                 is_late: isLate,
+                late_minutes: lateMinutes,
                 clock_in: type === 'In' ? time : (existing ? existing.clock_in : ''),
                 clock_out: type === 'Out' ? time : (existing ? existing.clock_out : ''),
                 location_in: type === 'In' ? 'Mobile App' : (existing ? existing.location_in : ''),
@@ -771,7 +780,7 @@ async function renderMobileHistory(type, el) {
                         <span class="hist-meta">Lokasi: ${l.location_in || l.locationIn || 'N/A'}</span>
                     </div>
                     <div class="hist-status-box">
-                        <span class="hist-badge ${(l.is_late || l.isLate) ? 'late' : 'ontime'}">${(l.is_late || l.isLate) ? 'Terlambat' : 'Tepat Waktu'}</span>
+                        <span class="hist-badge ${(l.is_late || l.isLate || l.late_minutes > 0) ? 'late' : 'ontime'}">${(l.is_late || l.isLate || l.late_minutes > 0) ? 'Terlambat' : 'Tepat Waktu'}</span>
                     </div>
                 </div>`).join('');
         } catch (e) {

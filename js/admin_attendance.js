@@ -409,10 +409,30 @@ async function deleteLog(id) {
 document.getElementById('editLogForm')?.addEventListener('submit', async function (e) {
     e.preventDefault();
     const id = document.getElementById('editLogId').value;
+    const clockInVal = document.getElementById('editLogClockIn').value;
     const body = {
-        clock_in: document.getElementById('editLogClockIn').value,
+        clock_in: clockInVal,
         clock_out: document.getElementById('editLogClockOut').value,
     };
+
+    // Auto-calculate late_minutes based on roster shift if available
+    const log = _cache.attendance.find(l => l.id == id);
+    if (log && clockInVal) {
+        const rosterDay = _cache.roster.find(r => r.user_id == log.user_id && r.date?.startsWith(log.date?.split('T')[0]));
+        const shiftCode = rosterDay ? rosterDay.shift_code : log.status;
+        const shiftDef = _cache.shifts.find(s => s.code === shiftCode);
+        if (shiftDef && (shiftDef.clock_in || shiftDef.clockIn)) {
+            const schedTime = shiftDef.clock_in || shiftDef.clockIn;
+            const [defH, defM] = schedTime.split(':').map(Number);
+            const [inH, inM] = clockInVal.split(':').map(Number);
+            if (inH > defH || (inH === defH && inM > defM)) {
+                body.late_minutes = (inH * 60 + inM) - (defH * 60 + defM);
+            } else {
+                body.late_minutes = 0;
+            }
+        }
+    }
+
     try {
         const res = await fetch(`${API}/api/attendance/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
         const updated = await res.json();
