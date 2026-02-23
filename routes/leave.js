@@ -49,6 +49,8 @@ router.post('/', async (req, res) => {
     }
 });
 
+const { createNotification } = require('../middleware/notifHelper');
+
 // PUT /api/leave/:id/approve
 router.put('/:id/approve', async (req, res) => {
     const { approved_by, status } = req.body; // status: 'Approved' | 'Rejected'
@@ -58,7 +60,19 @@ router.put('/:id/approve', async (req, res) => {
              WHERE id=$3 RETURNING *`,
             [status, approved_by, req.params.id]
         );
-        res.json(result.rows[0]);
+        const request = result.rows[0];
+
+        // Create notification for the employee
+        if (request) {
+            await createNotification(
+                request.user_id,
+                `Update Pengajuan Cuti`,
+                `Pengajuan ${request.type} Anda telah ${status === 'Approved' ? 'disetujui' : 'ditolak'} oleh ${approved_by}.`,
+                'leave'
+            );
+        }
+
+        res.json(request);
     } catch (err) {
         res.status(500).json({ error: 'Server error' });
     }

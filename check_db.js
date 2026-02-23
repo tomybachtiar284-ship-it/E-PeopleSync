@@ -1,11 +1,22 @@
-const pool = require('./db.js');
+const pool = require('./db');
+
 async function check() {
     try {
-        const res = await pool.query("SELECT id, name, basic_salary, role FROM users WHERE basic_salary IS NOT NULL OR role = 'employee'");
-        console.log('Users Data:', res.rows);
-        const res2 = await pool.query("SELECT * FROM payroll_records LIMIT 2");
-        console.log('Payroll Data:', res2.rows);
-        process.exit(0);
-    } catch (e) { console.error(e); process.exit(1); }
+        const res = await pool.query(`
+            SELECT column_name, data_type 
+            FROM information_schema.columns 
+            WHERE table_name = 'quiz_attempts'
+        `);
+        console.log('Columns in quiz_attempts:');
+        for (let row of res.rows) {
+            console.log(`[COLUMN] ${row.column_name} => ${row.data_type}`);
+        }
+    } catch (err) {
+        console.error(err);
+    } finally {
+        await pool.end();
+        process.exit();
+    }
 }
+
 check();

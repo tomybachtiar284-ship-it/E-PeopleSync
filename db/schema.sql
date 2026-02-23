@@ -221,9 +221,10 @@ CREATE TABLE IF NOT EXISTS quiz_attempts (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     quiz_id INTEGER REFERENCES quizzes(id) ON DELETE CASCADE,
-    score INTEGER,
+    score NUMERIC(5, 2),
     passed BOOLEAN DEFAULT FALSE,
     answers JSONB,
+    status VARCHAR(30) DEFAULT 'graded',
     attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 -- ============================================================

@@ -15,6 +15,8 @@ router.get('/', async (req, res) => {
     } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
+const { createNotification } = require('../middleware/notifHelper');
+
 // POST /api/evaluations
 router.post('/', async (req, res) => {
     const { user_id, kpi_score, radar_data, history_data, objectives, feedback_message, feedback_date, feedback_by, period } = req.body;
@@ -24,7 +26,19 @@ router.post('/', async (req, res) => {
              VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
             [user_id, kpi_score, JSON.stringify(radar_data), JSON.stringify(history_data), JSON.stringify(objectives), feedback_message, feedback_date, feedback_by, period]
         );
-        res.status(201).json(result.rows[0]);
+        const evaluation = result.rows[0];
+
+        // Create notification for the employee
+        if (evaluation) {
+            await createNotification(
+                user_id,
+                'Penilaian Performa Baru',
+                `Anda menerima penilaian baru dari ${feedback_by}. Cek skor KPI dan feedback Anda sekarang.`,
+                'performance'
+            );
+        }
+
+        res.status(201).json(evaluation);
     } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 

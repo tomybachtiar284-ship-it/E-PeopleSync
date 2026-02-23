@@ -180,6 +180,8 @@ router.get('/quiz-attempts', async (req, res) => {
     } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
+const { createNotification } = require('../middleware/notifHelper');
+
 router.put('/quiz-attempts/:id', async (req, res) => {
     const { score, passed, answers, status } = req.body;
     console.log('UPDATING ATTEMPT:', req.params.id, { score, passed, status });
@@ -188,8 +190,20 @@ router.put('/quiz-attempts/:id', async (req, res) => {
             `UPDATE quiz_attempts SET score=$1, passed=$2, answers=$3, status=$4 WHERE id=$5 RETURNING *`,
             [score, passed, JSON.stringify(answers), status, req.params.id]
         );
-        console.log('UPDATE SUCCESS:', result.rows[0].id);
-        res.json(result.rows[0]);
+        const attempt = result.rows[0];
+
+        // Create notification for the student
+        if (attempt && status === 'graded') {
+            await createNotification(
+                attempt.user_id,
+                'Kuis Telah Dinilai',
+                `Kuis Anda telah selesai dinilai oleh Admin. Skor akhir: ${score}.`,
+                'learning'
+            );
+        }
+
+        console.log('UPDATE SUCCESS:', attempt.id);
+        res.json(attempt);
     } catch (err) {
         console.error('UPDATE ERROR:', err);
         res.status(500).json({ error: 'Server error: ' + err.message });

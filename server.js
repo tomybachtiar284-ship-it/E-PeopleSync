@@ -28,6 +28,7 @@ const recruitmentRoute = require('./routes/recruitment');
 const newsRoute = require('./routes/news');
 const settingsRoute = require('./routes/settings');
 const documentsRoute = require('./routes/documents');
+const notificationsRoute = require('./routes/notifications');
 
 app.use('/api', authRoute);     // Covers /api/login (Public)
 app.use('/api/auth', authRoute); // Covers /api/auth/register-candidate (Public)
@@ -44,6 +45,7 @@ app.use('/api/recruitment', authMiddleware, recruitmentRoute);
 app.use('/api/news', authMiddleware, newsRoute);
 app.use('/api/settings', authMiddleware, settingsRoute);
 app.use('/api/documents', authMiddleware, documentsRoute);
+app.use('/api/notifications', authMiddleware, notificationsRoute);
 
 // ── Health Check ─────────────────────────────────────────────
 app.get('/api/health', (req, res) => {

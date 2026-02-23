@@ -3,7 +3,7 @@
  * Handles Course Listing, Content Viewing, Quizzes, and Certificates.
  */
 
-const API = 'http://localhost:3001';
+// const API = 'http://localhost:3001'; // Removed, use global API from api.js
 
 document.addEventListener('DOMContentLoaded', () => {
     const path = window.location.pathname;
@@ -24,19 +24,13 @@ async function loadCourseDetail() {
     const user = JSON.parse(localStorage.getItem('currentUser'));
 
     try {
-        const [courseRes, modRes, enrRes, quizRes, attemptsRes] = await Promise.all([
-            fetch(`${API}/api/learning/courses`),
-            fetch(`${API}/api/learning/courses/${currentCourseId}/modules`),
-            fetch(`${API}/api/learning/enrollments?courseId=${currentCourseId}&userId=${user.id}`),
-            fetch(`${API}/api/learning/quizzes?courseId=${currentCourseId}`),
-            fetch(`${API}/api/learning/quiz-attempts?userId=${user.id}`)
+        const [courses, modules, enrollments, quizzes, allAttempts] = await Promise.all([
+            API.getCourses(),
+            API.getCourseModules(currentCourseId),
+            API.getEnrollments({ courseId: currentCourseId, userId: user.id }),
+            API.getQuizzes({ courseId: currentCourseId }),
+            API.getQuizAttempts({ userId: user.id })
         ]);
-
-        const courses = await courseRes.json();
-        const modules = await modRes.json();
-        const enrollments = await enrRes.json();
-        const quizzes = await quizRes.json();
-        const allAttempts = attemptsRes.ok ? await attemptsRes.json() : [];
 
         const course = courses.find(c => c.id === currentCourseId);
 
@@ -138,43 +132,43 @@ async function loadCourseDetail() {
 
 async function startQuiz() {
     try {
-        const res = await fetch(`${API}/api/learning/quizzes?courseId=${currentCourseId}`);
-        const quizzes = await res.json();
+        const quizzes = await API.getQuizzes({ courseId: currentCourseId });
         const quiz = quizzes[0];
 
         if (!quiz || !quiz.questions || quiz.questions.length === 0) {
-            alert('No quiz available for this course.');
+            alert('Kuis belum tersedia untuk kursus ini. Silakan hubungi admin.');
             return;
         }
 
         // Hide materials, show quiz
         document.getElementById('materialContainer').style.display = 'none';
-        document.querySelector('button[onclick="startQuiz()"]').style.display = 'none';
+        const startBtn = document.querySelector('button[onclick="startQuiz()"]');
+        if (startBtn) startBtn.style.display = 'none';
 
         const quizArea = document.getElementById('quizArea');
         quizArea.style.display = 'block';
 
-        let html = `<h3>${quiz.title}</h3><form id="quizForm">`;
+        let html = `<h3>${quiz.title}</h3><form id="quizForm" class="mt-4">`;
         quiz.questions.forEach((q, index) => {
             html += `<div class="mb-4">
                         <p><strong>${index + 1}. ${q.text}</strong></p>`;
 
             if (q.type === 'essay') {
-                html += `<textarea class="form-control" name="q${q.id}" rows="4" placeholder="Type your answer here..." required></textarea>`;
+                html += `<textarea class="form-control" name="q${q.id}" rows="4" placeholder="Tulis jawaban Anda di sini..." required></textarea>`;
             } else {
                 // Default to multiple choice
                 if (q.options) {
                     q.options.forEach((opt, optIndex) => {
-                        html += `<div class="form-check">
-                                    <input class="form-check-input" type="radio" name="q${q.id}" value="${optIndex}" required>
-                                    <label class="form-check-label">${opt}</label>
+                        html += `<div class="form-check mb-2">
+                                    <input class="form-check-input" type="radio" name="q${q.id}" id="q${q.id}_${optIndex}" value="${optIndex}" required>
+                                    <label class="form-check-label" for="q${q.id}_${optIndex}">${opt}</label>
                                  </div>`;
                     });
                 }
             }
             html += `</div>`;
         });
-        html += `<button type="submit" class="btn btn-primary">Submit Quiz</button></form>`;
+        html += `<div class="text-right"><button type="submit" class="btn btn-primary btn-lg">Kirim Kuis</button></div></form>`;
 
         quizArea.innerHTML = html;
 
@@ -182,8 +176,12 @@ async function startQuiz() {
             e.preventDefault();
             calculateScore(quiz);
         });
+
+        // Scroll to quiz area
+        quizArea.scrollIntoView({ behavior: 'smooth' });
     } catch (err) {
         console.error('Error starting quiz:', err);
+        alert('Gagal memulai kuis.');
     }
 }
 
@@ -241,38 +239,24 @@ async function calculateScore(quiz) {
 
     try {
         // Save Attempt
-        await fetch(`${API}/api/learning/quiz-attempts`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                user_id: user.id,
-                quiz_id: quiz.id,
-                score: finalScore,
-                passed: finalScore >= (quiz.passing_score || 70),
-                answers: attemptAnswers
-            })
-        });
-
+        const payload = {
+            user_id: user.id,
+            quiz_id: quiz.id,
+            score: finalScore,
+            passed: finalScore >= (quiz.passing_score || 70),
+            answers: attemptAnswers,
+            status: status
+        };
+        console.log('SUBMITTING QUIZ ATTEMPT:', payload);
+        await API.submitQuizAttempt(payload);
         // Update Enrollment Status if Essay
         if (hasEssay) {
-            // Fetch first to see if enrollment exists
-            const enrRes = await fetch(`${API}/api/learning/enrollments?courseId=${quiz.course_id}&userId=${user.id}`);
-            const enrollments = await enrRes.json();
+            const enrollments = await API.getEnrollments({ courseId: quiz.course_id, userId: user.id });
 
             if (enrollments.length === 0) {
-                // Post new enrollment
-                await fetch(`${API}/api/learning/enrollments`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: user.id, course_id: quiz.course_id })
-                });
+                await API.enroll({ user_id: user.id, course_id: quiz.course_id });
             } else {
-                // Update
-                await fetch(`${API}/api/learning/enrollments/${enrollments[0].id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ progress: 99, status: 'submitted' })
-                });
+                await API.updateEnrollment(enrollments[0].id, { progress: 99, status: 'submitted' });
             }
 
             alert(`Quiz Submitted! Your provisional score is ${finalScore.toFixed(0)}. An admin will review your essay answers for final grading.`);
@@ -304,39 +288,25 @@ async function completeCourse(score) {
     const user = JSON.parse(localStorage.getItem('currentUser'));
 
     try {
-        const [courseRes, enrRes] = await Promise.all([
-            fetch(`${API}/api/learning/courses`),
-            fetch(`${API}/api/learning/enrollments?courseId=${currentCourseId}&userId=${user.id}`)
+        const [courses, enrollments] = await Promise.all([
+            API.getCourses(),
+            API.getEnrollments({ courseId: currentCourseId, userId: user.id })
         ]);
 
-        const courses = await courseRes.json();
         const course = courses.find(c => c.id === currentCourseId);
-        const enrollments = await enrRes.json();
-
         // Update Enrollment
         let enrollmentId;
         if (enrollments.length === 0) {
-            const res = await fetch(`${API}/api/learning/enrollments`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: user.id, course_id: currentCourseId })
-            });
-            const newEnr = await res.json();
+            const newEnr = await API.enroll({ user_id: user.id, course_id: currentCourseId });
             enrollmentId = newEnr.id;
         } else {
             enrollmentId = enrollments[0].id;
         }
 
         const compDate = new Date().toLocaleDateString('en-CA');
-        await fetch(`${API}/api/learning/enrollments/${enrollmentId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ progress: 100, status: 'completed', completed_at: compDate })
-        });
-
+        await API.updateEnrollment(enrollmentId, { progress: 100, status: 'completed', completed_at: compDate });
         // Generate Certificate
-        const setRes = await fetch(`${API}/api/settings`);
-        const settings = await setRes.json();
+        const settings = await API.getSettings();
         const certificates = settings.certificates || [];
 
         const existingCert = certificates.find(c => c.enrollmentId === enrollmentId || (c.userId === user.id && c.courseName === course.title));
@@ -352,13 +322,8 @@ async function completeCourse(score) {
                 code: certCode
             });
 
-            await fetch(`${API}/api/settings/certificates`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ value: certificates })
-            });
+            await API.saveSetting('certificates', certificates);
         }
-
         // UI Update
         if (document.getElementById('quizArea')) document.getElementById('quizArea').style.display = 'none';
         showCertificate(course);
@@ -391,14 +356,12 @@ async function downloadCertificate() {
     const user = JSON.parse(localStorage.getItem('currentUser'));
 
     try {
-        const [courseRes, setRes] = await Promise.all([
-            fetch(`${API}/api/learning/courses`),
-            fetch(`${API}/api/settings`)
+        const [courses, settings] = await Promise.all([
+            API.getCourses(),
+            API.getSettings()
         ]);
 
-        const courses = await courseRes.json();
         const course = courses.find(c => c.id === currentCourseId);
-        const settings = await setRes.json();
         const certs = settings.certificates || [];
         const cert = certs.find(c => c.userId === user.id && c.courseName === course.title);
 

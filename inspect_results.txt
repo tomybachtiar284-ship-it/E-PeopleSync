@@ -1,0 +1,91 @@
+--- Users ---
+ID: 16 | Name: Test Kandidat | Role: candidate
+ID: 1 | Name: Admin HR Updated | Role: admin
+ID: 2 | Name: TOBA | Role: employee
+
+--- Enrollments ---
+ID: 1 | User: 2 | Course: 1 | Status: submitted | Progress: 99
+ID: 2 | User: 1 | Course: 2 | Status: in_progress | Progress: 0
+
+--- Quizzes ---
+ID: 1 | Title: Onboarding Quiz
+Questions: [
+  {
+    "id": 1,
+    "text": "When was company founded?",
+    "type": "multiple-choice",
+    "answer": 1,
+    "options": [
+      "2019",
+      "2020",
+      "2021"
+    ]
+  },
+  {
+    "id": 2,
+    "text": "Describe our company mission in your own words.",
+    "type": "essay",
+    "keywords": [
+      "simplify",
+      "hr",
+      "management"
+    ]
+  }
+]
+---
+ID: 2 | Title: Sales Communication 101 Final Quiz
+Questions: [
+  {
+    "id": 1,
+    "text": "What is the main objective of the course \"Sales Communication 101\"?",
+    "type": "multiple",
+    "answer": 3,
+    "options": [
+      "To learn new skills",
+      "To complete onboarding",
+      "To improve performance",
+      "All of the above"
+    ]
+  },
+  {
+    "id": 2,
+    "text": "Explain in your own words what you learned from \"Sales Communication 101\".",
+    "type": "essay",
+    "keywords": [
+      "learn",
+      "skill",
+      "professional",
+      "growth"
+    ]
+  }
+]
+---
+
+--- Quiz Attempts ---
+ID: 3 | User: 1 | Quiz: 1 | Score: 50.00 | Status: graded
+Answers: {
+  "1": "1",
+  "2": "To empower every employee with modern HR solutions."
+}
+----------------------------------------
+ID: 2 | User: 1 | Quiz: 2 | Score: 75.00 | Status: graded
+Answers: [
+  {
+    "type": "multiple",
+    "score": 10,
+    "answer": "3",
+    "maxScore": 10,
+    "questionId": 1
+  },
+  {
+    "type": "essay",
+    "score": 5,
+    "answer": "I learned how to communicate effectively in sales scenarios.",
+    "maxScore": 10,
+    "questionId": 2
+  }
+]
+----------------------------------------
+ID: 1 | User: 2 | Quiz: 1 | Score: 80.00 | Status: graded
+Answers: []
+----------------------------------------
