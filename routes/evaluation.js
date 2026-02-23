@@ -17,12 +17,12 @@ router.get('/', async (req, res) => {
 
 // POST /api/evaluations
 router.post('/', async (req, res) => {
-    const { user_id, radar_data, history_data, objectives, feedback_message, feedback_date, feedback_by, period } = req.body;
+    const { user_id, kpi_score, radar_data, history_data, objectives, feedback_message, feedback_date, feedback_by, period } = req.body;
     try {
         const result = await pool.query(
-            `INSERT INTO evaluations (user_id, radar_data, history_data, objectives, feedback_message, feedback_date, feedback_by, period)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-            [user_id, JSON.stringify(radar_data), JSON.stringify(history_data), JSON.stringify(objectives), feedback_message, feedback_date, feedback_by, period]
+            `INSERT INTO evaluations (user_id, kpi_score, radar_data, history_data, objectives, feedback_message, feedback_date, feedback_by, period)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+            [user_id, kpi_score, JSON.stringify(radar_data), JSON.stringify(history_data), JSON.stringify(objectives), feedback_message, feedback_date, feedback_by, period]
         );
         res.status(201).json(result.rows[0]);
     } catch (err) { res.status(500).json({ error: 'Server error' }); }
@@ -30,12 +30,12 @@ router.post('/', async (req, res) => {
 
 // PUT /api/evaluations/:id
 router.put('/:id', async (req, res) => {
-    const { radar_data, history_data, objectives, feedback_message, feedback_date, feedback_by, period } = req.body;
+    const { kpi_score, radar_data, history_data, objectives, feedback_message, feedback_date, feedback_by, period } = req.body;
     try {
         const result = await pool.query(
-            `UPDATE evaluations SET radar_data=$1,history_data=$2,objectives=$3,feedback_message=$4,
-             feedback_date=$5,feedback_by=$6,period=$7,updated_at=CURRENT_TIMESTAMP WHERE id=$8 RETURNING *`,
-            [JSON.stringify(radar_data), JSON.stringify(history_data), JSON.stringify(objectives), feedback_message, feedback_date, feedback_by, period, req.params.id]
+            `UPDATE evaluations SET kpi_score=$1, radar_data=$2, history_data=$3, objectives=$4, feedback_message=$5,
+             feedback_date=$6, feedback_by=$7, period=$8, updated_at=CURRENT_TIMESTAMP WHERE id=$9 RETURNING *`,
+            [kpi_score, JSON.stringify(radar_data), JSON.stringify(history_data), JSON.stringify(objectives), feedback_message, feedback_date, feedback_by, period, req.params.id]
         );
         res.json(result.rows[0]);
     } catch (err) { res.status(500).json({ error: 'Server error' }); }
