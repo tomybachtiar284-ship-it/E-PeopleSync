@@ -1,0 +1,20 @@
+{
+  "id": 7,
+  "user_id": 16,
+  "date": "2026-02-21T16:00:00.000Z",
+  "clock_in": "08:00:00",
+  "clock_out": null,
+  "status": "Hadir",
+  "location": null,
+  "shift_code": "DT",
+  "late_minutes": 0,
+  "ot_hours": "0.00",
+  "notes": null,
+  "latitude_in": null,
+  "longitude_in": null,
+  "photo_in_url": null,
+  "latitude_out": null,
+  "longitude_out": null,
+  "photo_out_url": null,
+  "location_status": null
+}

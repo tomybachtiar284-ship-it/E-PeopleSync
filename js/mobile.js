@@ -336,7 +336,7 @@ async function showLeaveModal() {
     const modal = document.getElementById('leaveModal');
     if (!modal) return;
     modal.classList.add('active');
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toLocaleDateString('en-CA');
     document.getElementById('leaveStartDate').value = today;
     document.getElementById('leaveEndDate').value = today;
 
@@ -421,12 +421,73 @@ async function submitLeaveRequest(event) {
 }
 
 // ── Attendance Modal ────────────────────────────────────────────
-function showAttendanceModal() {
+let selfieStream = null;
+let currentLat = null;
+let currentLon = null;
+
+async function showAttendanceModal() {
     const modal = document.getElementById('attendanceModal');
     if (!modal) return;
     modal.classList.add('active');
     updateModalData();
-    checkClockStatus();
+    await checkClockStatus(); // Wait for status first to enable/disable buttons
+    await initCameraAndLocation();
+}
+
+async function initCameraAndLocation() {
+    const video = document.getElementById('selfieVideo');
+    const gpsStatus = document.getElementById('gpsStatus');
+    const btnIn = document.getElementById('btnClockIn');
+    const btnOut = document.getElementById('btnClockOut');
+
+    // Disable buttons while getting location
+    const wasInDisabled = btnIn.disabled;
+    const wasOutDisabled = btnOut.disabled;
+    btnIn.disabled = true;
+    btnOut.disabled = true;
+
+    try {
+        // Init Camera
+        selfieStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+        video.srcObject = selfieStream;
+
+        // Init GPS
+        gpsStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mencari Lokasi GPS...';
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                currentLat = position.coords.latitude;
+                currentLon = position.coords.longitude;
+                gpsStatus.innerHTML = `<i class="fas fa-map-marker-alt text-success"></i> Lokasi Valid`;
+                gpsStatus.style.background = "rgba(40, 167, 69, 0.8)";
+
+                // Re-enable based on clock status
+                btnIn.disabled = wasInDisabled;
+                btnOut.disabled = wasOutDisabled;
+            },
+            (error) => {
+                console.error("GPS Error:", error);
+                gpsStatus.innerHTML = '<i class="fas fa-exclamation-triangle text-danger"></i> Gagal dapatkan lokasi. Pastikan GPS aktif.';
+                gpsStatus.style.background = "rgba(220, 53, 69, 0.8)";
+                // We keep buttons disabled to prevent clocking in without GPS
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    } catch (err) {
+        console.error("Camera Error:", err);
+        gpsStatus.innerHTML = '<i class="fas fa-camera text-danger"></i> Gagal akses kamera.';
+    }
+}
+
+function closeAttendanceModal() {
+    const modal = document.getElementById('attendanceModal');
+    if (modal) modal.classList.remove('active');
+
+    if (selfieStream) {
+        selfieStream.getTracks().forEach(track => track.stop());
+        selfieStream = null;
+    }
+    const video = document.getElementById('selfieVideo');
+    if (video) video.srcObject = null;
 }
 
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
@@ -441,7 +502,7 @@ function updateModalData() {
 
 async function checkClockStatus() {
     const user = JSON.parse(localStorage.getItem('currentUser'));
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toLocaleDateString('en-CA');
     try {
         const res = await fetch(`${API}/api/attendance?userId=${user.id}&date=${today}`, { headers: getAuthHeaders() });
         const logs = await res.json();
@@ -468,8 +529,20 @@ async function processClock(type) {
     try {
         const user = JSON.parse(localStorage.getItem('currentUser'));
         const now = new Date();
-        const today = now.toISOString().split('T')[0];
+        const today = now.toLocaleDateString('en-CA');
         const time = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
+
+        // Capture Selfie to Base64
+        const video = document.getElementById('selfieVideo');
+        const canvas = document.getElementById('selfieCanvas');
+        let photoBase64 = null;
+        if (video && video.srcObject && canvas) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            photoBase64 = canvas.toDataURL('image/jpeg', 0.8);
+        }
 
         // Get effective shift
         const shiftCode = getEffectiveShiftCodeMobile(user, today);
@@ -497,7 +570,10 @@ async function processClock(type) {
                 clock_in: type === 'In' ? time : (existing ? existing.clock_in : ''),
                 clock_out: type === 'Out' ? time : (existing ? existing.clock_out : ''),
                 location_in: type === 'In' ? 'Mobile App' : (existing ? existing.location_in : ''),
-                location_out: type === 'Out' ? 'Mobile App' : ''
+                location_out: type === 'Out' ? 'Mobile App' : '',
+                lat: currentLat,
+                lon: currentLon,
+                photoBase64: photoBase64
             };
 
             await fetch(`${API}/api/attendance`, {
@@ -518,6 +594,7 @@ async function processClock(type) {
             });
 
             alert(`Berhasil Absen ${type} pada ${time}\nStatus: ${shiftCode}`);
+            closeAttendanceModal();
 
             // Force immediate UI update for better UX before network refresh
             const statusEl = document.getElementById('attendanceStatus');

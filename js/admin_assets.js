@@ -193,7 +193,7 @@ if (assetForm) {
             category: document.getElementById('assetCategory').value,
             status: document.getElementById('assetStatus').value,
             assigned_to: assignedTo || null,
-            date_assigned: assignedTo ? new Date().toISOString().split('T')[0] : null
+            date_assigned: assignedTo ? new Date().toLocaleDateString('en-CA') : null
         };
 
         try {

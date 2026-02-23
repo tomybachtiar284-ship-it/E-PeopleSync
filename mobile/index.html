@@ -424,7 +424,18 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 class="modal-title">Absensi Kehadiran</h3>
-                <i class="fas fa-times close-modal" onclick="closeModal('attendanceModal')"></i>
+                <i class="fas fa-times close-modal" onclick="closeAttendanceModal()"></i>
+            </div>
+
+            <!-- Geotagging & Selfie Area -->
+            <div class="camera-container"
+                style="position:relative; width:100%; height:200px; background:#000; border-radius:12px; margin-bottom:15px; overflow:hidden;">
+                <video id="selfieVideo" autoplay playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+                <canvas id="selfieCanvas" style="display:none;"></canvas>
+                <div id="gpsStatus"
+                    style="position:absolute; bottom:10px; left:10px; right:10px; background:rgba(0,0,0,0.6); color:white; font-size:11px; padding:5px 10px; border-radius:8px; text-align:center;">
+                    <i class="fas fa-spinner fa-spin"></i> Mencari Lokasi GPS...
+                </div>
             </div>
 
             <div class="attendance-card">
@@ -447,7 +458,7 @@
 
             <div class="notif-banner">
                 <i class="fas fa-info-circle"></i>
-                <span>Pastikan lokasi GPS aktif sebelum melakukan absensi.</span>
+                <span>Pastikan wajah Anda terlihat jelas dalam frame kamera.</span>
             </div>
         </div>
     </div>

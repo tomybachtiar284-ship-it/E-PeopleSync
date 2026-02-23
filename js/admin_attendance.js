@@ -47,7 +47,7 @@ function initAttendancePage() {
 
 // ── Stats ─────────────────────────────────────────────────────
 function renderStats() {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toLocaleDateString('en-CA');
     const workShifts = ['P', 'S', 'M', 'DT', 'Pagi', 'Siang', 'Malam', 'Daytime'];
     const leaveShifts = ['CT', 'SD', 'DL', 'I', 'Cuti', 'Sakit', 'Dinas Luar', 'Izin'];
     const logsToday = _cache.attendance.filter(l => l.date?.startsWith(today));
@@ -267,12 +267,29 @@ function renderLogs() {
     logs.forEach(log => {
         const isLate = log.late_minutes > 0;
         const tr = document.createElement('tr');
+
+        let photoHtml = '';
+        if (log.photo_in_url) {
+            photoHtml += `<a href="${API}${log.photo_in_url}" target="_blank" title="View In Photo"><img src="${API}${log.photo_in_url}" style="width:30px;height:30px;border-radius:4px;object-fit:cover;margin-right:2px;"></a>`;
+        }
+        if (log.photo_out_url) {
+            photoHtml += `<a href="${API}${log.photo_out_url}" target="_blank" title="View Out Photo"><img src="${API}${log.photo_out_url}" style="width:30px;height:30px;border-radius:4px;object-fit:cover;"></a>`;
+        }
+
         tr.innerHTML = `
             <td style="font-weight:600;">${log.name || 'Unknown'}</td>
-            <td style="font-size:13px;">${log.date?.split('T')[0] || ''}</td>
+            <td style="font-size:13px;">
+                ${log.date?.split('T')[0] || ''}<br>
+                <small style="color:#777;font-size:10px;"><i class="fas fa-map-marker-alt"></i> ${log.location || '-'}</small>
+            </td>
             <td style="font-weight:700;">${log.clock_in || '--:--'}</td>
             <td style="font-weight:700;">${log.clock_out || '--:--'}</td>
-            <td><span class="badge ${isLate ? 'badge-danger' : 'badge-success'}" style="padding:4px 10px;border-radius:6px;">${isLate ? 'Late' : 'On Time'}</span></td>
+            <td>
+                <div class="d-flex flex-column gap-1 align-items-center">
+                    <span class="badge ${isLate ? 'badge-danger' : 'badge-success'}" style="padding:4px 10px;border-radius:6px;">${isLate ? 'Late' : 'On Time'}</span>
+                    ${photoHtml ? `<div class="d-flex mt-1">${photoHtml}</div>` : ''}
+                </div>
+            </td>
             <td style="text-align:center;">
                 <button class="btn btn-sm btn-outline-primary me-1" onclick="editLog(${log.id})"><i class="fas fa-edit"></i></button>
                 <button class="btn btn-sm btn-outline-danger" onclick="deleteLog(${log.id})"><i class="fas fa-trash"></i></button>
@@ -443,7 +460,7 @@ async function autoFillRosterFromPatterns() {
 // ── Leave Request (Desktop) ───────────────────────────────────
 function openRequestModal() {
     document.getElementById('requestModal').style.display = 'block';
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toLocaleDateString('en-CA');
     document.getElementById('reqStart').value = today;
     document.getElementById('reqEnd').value = today;
     // Populate approvers from employees (managers)
@@ -565,7 +582,7 @@ function downloadAttendanceExcel() {
     _cache.attendance.slice().reverse().forEach(l => rows.push([l.name || 'Unknown', l.date?.split('T')[0] || '', l.clock_in || '-', l.clock_out || '-', l.status || '-', l.late_minutes > 0 ? 'Terlambat' : 'Tepat Waktu']));
     const ws = XLSX.utils.aoa_to_sheet(rows), wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Attendance');
-    XLSX.writeFile(wb, `Laporan_Kehadiran_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(wb, `Laporan_Kehadiran_${new Date().toLocaleDateString('en-CA')}.xlsx`);
 }
 
 function downloadLeaveHistoryExcel() {
@@ -575,7 +592,7 @@ function downloadLeaveHistoryExcel() {
     hist.slice().reverse().forEach(r => rows.push([r.emp_name || r.empName || '-', r.type || '-', r.start_date || '-', r.end_date || '-', r.reason || '-', r.status || '-']));
     const ws = XLSX.utils.aoa_to_sheet(rows), wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Leave History');
-    XLSX.writeFile(wb, `Laporan_Cuti_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(wb, `Laporan_Cuti_${new Date().toLocaleDateString('en-CA')}.xlsx`);
 }
 
 function downloadFullReport() {

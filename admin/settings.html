@@ -8,6 +8,11 @@
     <link rel="stylesheet" href="../css/styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet Map CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 </head>
 
 <body>
@@ -88,6 +93,7 @@
                     <button class="btn btn-outline-primary active" onclick="switchTab('users')">User Management</button>
                     <button class="btn btn-outline-primary" onclick="switchTab('master')">Master Data</button>
                     <button class="btn btn-outline-primary" onclick="switchTab('payroll')">Payroll Settings</button>
+                    <button class="btn btn-outline-primary" onclick="switchTab('attendance')">Attendance Config</button>
                     <button class="btn btn-outline-primary" onclick="switchTab('patterns')">Shift Patterns</button>
                     <button class="btn btn-outline-primary" onclick="switchTab('shifts')">Working Hours</button>
                 </div>
@@ -207,6 +213,51 @@
                                     Settings</button>
                                 <button type="button" class="btn btn-outline-danger"
                                     onclick="resetPayrollSettings()">Reset to Default</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Attendance GPS Settings Section -->
+                <div id="tab-attendance" style="display: none;">
+                    <div class="card" style="max-width: 800px;">
+                        <h3 class="mb-4">Geofencing & GPS Settings</h3>
+                        <p style="font-size: 13px; color: #666; margin-bottom: 20px;">
+                            Configure the fixed central office coordinates and allowed clocking radius. Mobile
+                            attendance will use these values to validate employee location.
+                            <br><strong>Tip:</strong> Click anywhere on the map to set coordinates automatically.
+                        </p>
+
+                        <!-- Interactive Map Container -->
+                        <div id="gpsMap"
+                            style="height: 350px; width: 100%; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ddd; z-index: 1;">
+                        </div>
+
+                        <form id="attendanceSettingsForm">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Office Latitude</label>
+                                        <input type="number" step="any" id="set_office_lat" class="form-control"
+                                            placeholder="-6.1753924" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Office Longitude</label>
+                                        <input type="number" step="any" id="set_office_lon" class="form-control"
+                                            placeholder="106.8271528" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Maximum Allowed Radius (Meters)</label>
+                                <input type="number" step="1" id="set_max_radius" class="form-control" placeholder="100"
+                                    required>
+                            </div>
+                            <div class="mt-4">
+                                <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Update
+                                    Configuration</button>
                             </div>
                         </form>
                     </div>

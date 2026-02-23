@@ -178,6 +178,19 @@
             justify-content: center;
         }
 
+        .active-tab {
+            background: #00897b !important;
+            color: #fff !important;
+            border: none;
+        }
+
+        #sheetFilterContainer .btn-secondary {
+            background: #e2e8f0;
+            color: #475569;
+            border: none;
+            font-weight: 500;
+        }
+
         @media print {
             .no-print {
                 display: none !important;
@@ -295,145 +308,157 @@
                     </div>
                 </div>
 
-                <!-- Shift Scheduler (Roster) -->
+                <!-- Sheet Tabs -->
                 <div class="card mb-4">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <div>
-                            <h3>Monthly Shift Scheduler</h3>
-                            <p style="font-size: 13px; color: #888;">Manage work rotations and rosters for this
-                                month.</p>
-                        </div>
+                    <div class="d-flex gap-2 p-2 overflow-auto" id="sheetFilterContainer">
+                        <button class="btn btn-sm btn-secondary active-tab"
+                            onclick="switchAttTab('scheduler', this)">Monthly Shift Scheduler</button>
+                        <button class="btn btn-sm btn-secondary" onclick="switchAttTab('leave', this)">Leave Approval
+                            Queue</button>
+                        <button class="btn btn-sm btn-secondary" onclick="switchAttTab('logs', this)">Attendance
+                            Logs</button>
                     </div>
-                    <div class="d-flex flex-wrap gap-2">
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-outline-primary" onclick="changeMonth(-1)"><i
-                                    class="fas fa-chevron-left"></i></button>
-                            <span id="currentMonthYear"
-                                style="font-weight: 700; font-size: 15px; color: #1e293b; min-width: 140px; text-align: center; padding-top: 8px; display: inline-block;">February
-                                2026</span>
-                            <button class="btn btn-outline-primary" onclick="changeMonth(1)"><i
-                                    class="fas fa-chevron-right"></i></button>
-                        </div>
-                        <div class="d-flex gap-2 flex-wrap">
-                            <button class="btn btn-outline-info" onclick="downloadRosterTemplate()"><i
-                                    class="fas fa-file-excel"></i> Template</button>
-                            <button class="btn btn-outline-primary" onclick="triggerRosterImport()"><i
-                                    class="fas fa-file-import"></i> Import</button>
-                            <input type="file" id="rosterImportInput" style="display:none;" accept=".xlsx, .xls"
-                                onchange="handleRosterImport(event)">
-                            <button class="btn btn-primary" onclick="autoFillRosterFromPatterns()"
-                                style="background: #059669; border-color: #059669; color: #fff; font-weight: 600;">
-                                <i class="fas fa-magic"></i> Auto-Fill Patterns
-                            </button>
-                            <button class="btn btn-outline-warning" onclick="openBulkModal()">Bulk Assign</button>
-                            <button class="btn btn-success" onclick="downloadFullReport()"
-                                style="font-weight: 700; background:#16a34a; border-color:#16a34a; color:#fff;">
-                                <i class="fas fa-download"></i> Full Report
-                            </button>
-                            <button class="btn btn-outline-danger" onclick="clearMonth()">Clear All</button>
-                            <button class="btn btn-primary" style="background: var(--premium-navy);"
-                                onclick="saveRoster()">Save Schedule</button>
-                        </div>
-                    </div>
+                </div>
 
-                    <div class="roster-container mt-4">
-                        <table class="roster-table" id="rosterTable">
-                            <thead>
-                                <tr id="rosterHeader">
+                <div id="tabScheduler" class="att-tab-content">
+                    <div class="card h-100" style="overflow: hidden;">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div>
+                                <h3>Monthly Shift Scheduler</h3>
+                                <p style="font-size: 13px; color: #888;">Manage work rotations and rosters for this
+                                    month.</p>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2 mb-4">
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-primary" onclick="changeMonth(-1)"><i
+                                        class="fas fa-chevron-left"></i></button>
+                                <span id="currentMonthYear"
+                                    style="font-weight: 700; font-size: 15px; color: #1e293b; min-width: 140px; text-align: center; padding-top: 8px; display: inline-block;">February
+                                    2026</span>
+                                <button class="btn btn-outline-primary" onclick="changeMonth(1)"><i
+                                        class="fas fa-chevron-right"></i></button>
+                            </div>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button class="btn btn-outline-info" onclick="downloadRosterTemplate()"><i
+                                        class="fas fa-file-excel"></i> Template</button>
+                                <button class="btn btn-outline-primary" onclick="triggerRosterImport()"><i
+                                        class="fas fa-file-import"></i> Import</button>
+                                <input type="file" id="rosterImportInput" style="display:none;" accept=".xlsx, .xls"
+                                    onchange="handleRosterImport(event)">
+                                <button class="btn btn-primary" onclick="autoFillRosterFromPatterns()"
+                                    style="background: #059669; border-color: #059669; color: #fff; font-weight: 600;">
+                                    <i class="fas fa-magic"></i> Auto-Fill Patterns
+                                </button>
+                                <button class="btn btn-outline-warning" onclick="openBulkModal()">Bulk
+                                    Assign</button>
+                                <button class="btn btn-success" onclick="downloadFullReport()"
+                                    style="font-weight: 700; background:#16a34a; border-color:#16a34a; color:#fff;">
+                                    <i class="fas fa-download"></i> Full Report
+                                </button>
+                                <button class="btn btn-outline-danger" onclick="clearMonth()">Clear All</button>
+                                <button class="btn btn-primary" style="background: var(--premium-navy);"
+                                    onclick="saveRoster()">Save Schedule</button>
+                            </div>
+                        </div>
+
+                        <div class="roster-container" style="overflow-x: auto; width: 100%;">
+                            <table class="roster-table" id="rosterTable">
+                                <thead>
+                                    <tr id="rosterHeader">
+                                        <!-- Populated by JS -->
+                                    </tr>
+                                </thead>
+                                <tbody id="rosterBody">
                                     <!-- Populated by JS -->
-                                </tr>
-                            </thead>
-                            <tbody id="rosterBody">
-                                <!-- Populated by JS -->
-                            </tbody>
-                        </table>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
+                </div> <!-- End tabScheduler -->
 
-                <div class="row">
+                <div id="tabLeave" class="att-tab-content" style="display: none;">
                     <!-- Leave Approval Queue -->
-                    <div class="col-md-7 mb-4">
-                        <div class="card h-100">
-                            <div class="d-flex justify-content-between align-items-center mb-4">
-                                <h3>Leave Approval Queue</h3>
-                                <div class="badge badge-warning" id="pendingCountBadge">0 Pending</div>
-                            </div>
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead style="background: #f8f9fa;">
-                                        <tr>
-                                            <th>Employee</th>
-                                            <th>Type</th>
-                                            <th>Period</th>
-                                            <th>Reason</th>
-                                            <th style="text-align: center;">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="leaveApprovalBody">
-                                        <!-- Populated via JS -->
-                                    </tbody>
-                                </table>
-                            </div>
+                    <div class="card mb-4" style="height: auto;">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h3>Leave Approval Queue</h3>
+                            <div class="badge badge-warning" id="pendingCountBadge">0 Pending</div>
+                        </div>
+                        <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                            <table class="table table-hover">
+                                <thead style="background: #f8f9fa;">
+                                    <tr>
+                                        <th>Employee</th>
+                                        <th>Type</th>
+                                        <th>Period</th>
+                                        <th>Reason</th>
+                                        <th style="text-align: center;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leaveApprovalBody">
+                                    <!-- Populated via JS -->
+                                </tbody>
+                            </table>
+                        </div>
 
-                            <h4 class="mt-4 mb-3">Recent Approval History</h4>
-                            <div class="table-responsive">
-                                <table class="table table-hover" style="font-size: 13px;">
-                                    <thead style="background: #f8f9fa;">
-                                        <tr>
-                                            <th>Employee</th>
-                                            <th>Type</th>
-                                            <th>Period</th>
-                                            <th>Reason</th>
-                                            <th>Status</th>
-                                            <th style="text-align: center;">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="leaveHistoryBody">
-                                        <!-- Populated via JS -->
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div class="mt-3 text-end">
-                                <button class="btn btn-sm btn-outline-info" onclick="downloadLeaveHistoryExcel()">
-                                    <i class="fas fa-file-excel"></i> Export History
-                                </button>
-                            </div>
+                        <h4 class="mt-4 mb-3">Recent Approval History</h4>
+                        <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                            <table class="table table-hover" style="font-size: 13px;">
+                                <thead style="background: #f8f9fa;">
+                                    <tr>
+                                        <th>Employee</th>
+                                        <th>Type</th>
+                                        <th>Period</th>
+                                        <th>Reason</th>
+                                        <th>Status</th>
+                                        <th style="text-align: center;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leaveHistoryBody">
+                                    <!-- Populated via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-3 text-end">
+                            <button class="btn btn-sm btn-outline-info" onclick="downloadLeaveHistoryExcel()">
+                                <i class="fas fa-file-excel"></i> Export History
+                            </button>
                         </div>
                     </div>
+                </div> <!-- End tabLeave -->
 
+                <div id="tabLogs" class="att-tab-content" style="display: none;">
                     <!-- Attendance Logs -->
-                    <div class="col-md-5 mb-4">
-                        <div class="card h-100">
-                            <div class="d-flex justify-content-between align-items-center mb-4">
-                                <h3>Attendance Logs</h3>
-                                <button class="btn btn-sm btn-outline-primary" onclick="downloadAttendanceExcel()">
-                                    <i class="fas fa-file-excel"></i> Export Logs
-                                </button>
-                            </div>
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead style="background: #f8f9fa;">
-                                        <tr>
-                                            <th>Employee</th>
-                                            <th>Date</th>
-                                            <th>In</th>
-                                            <th>Out</th>
-                                            <th>Status</th>
-                                            <th style="text-align: center;">Edit</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="attendanceLogsBody">
-                                        <!-- Populated via JS -->
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div class="mt-3">
-                                <p style="font-size: 12px; color: #888;">Showing the last 15 scans. Use Full Report for
-                                    complete history.</p>
-                            </div>
+                    <div class="card mb-4" style="height: auto;">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h3>Attendance Logs</h3>
+                            <button class="btn btn-sm btn-outline-primary" onclick="downloadAttendanceExcel()">
+                                <i class="fas fa-file-excel"></i> Export Logs
+                            </button>
+                        </div>
+                        <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
+                            <table class="table table-hover">
+                                <thead style="background: #f8f9fa;">
+                                    <tr>
+                                        <th>Employee</th>
+                                        <th>Date</th>
+                                        <th>In</th>
+                                        <th>Out</th>
+                                        <th>Status</th>
+                                        <th style="text-align: center;">Edit</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="attendanceLogsBody">
+                                    <!-- Populated via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-3">
+                            <p style="font-size: 12px; color: #888;">Showing the last 15 scans. Use Full Report for
+                                complete history.</p>
                         </div>
                     </div>
-                </div>
+                </div> <!-- End tabLogs -->
 
 
 
@@ -445,7 +470,8 @@
                     <div class="modal-content"
                         style="background:#fff; margin:10% auto; padding:25px; border-radius:12px; width:350px;">
                         <h4>Bulk Assign Shifts</h4>
-                        <p style="font-size: 12px; color: #666; margin-bottom: 20px;">Assign a shift to ALL employees
+                        <p style="font-size: 12px; color: #666; margin-bottom: 20px;">Assign a shift to ALL
+                            employees
                             for the entire
                             month.</p>
 
@@ -491,7 +517,8 @@
                     style="display:none; position:fixed; z-index:100; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.5);">
                     <div class="modal-content"
                         style="background:#fff; margin:10% auto; padding:25px; border-radius:12px; width:400px;">
-                        <h3 style="color: var(--premium-navy); font-weight: 800; margin-bottom: 20px;">Edit Attendance
+                        <h3 style="color: var(--premium-navy); font-weight: 800; margin-bottom: 20px;">Edit
+                            Attendance
                             Log</h3>
                         <form id="editLogForm">
                             <input type="hidden" id="editLogId">
@@ -567,6 +594,14 @@
                 <script src="../js/admin_attendance.js"></script>
                 <script src="../js/receipt.js"></script>
                 <script>
+                    function switchAttTab(tabId, btn) {
+                        document.querySelectorAll('.att-tab-content').forEach(el => el.style.display = 'none');
+                        document.getElementById('tab' + tabId.charAt(0).toUpperCase() + tabId.slice(1)).style.display = 'block';
+
+                        document.querySelectorAll('#sheetFilterContainer .btn-secondary').forEach(el => el.classList.remove('active-tab'));
+                        btn.classList.add('active-tab');
+                    }
+
                     document.addEventListener('DOMContentLoaded', () => {
                         renderModernHeader();
                         renderModernFooter();

@@ -71,15 +71,17 @@ function switchTab(tab) {
     document.getElementById('tab-users').style.display = tab === 'users' ? 'block' : 'none';
     document.getElementById('tab-master').style.display = tab === 'master' ? 'block' : 'none';
     document.getElementById('tab-payroll').style.display = tab === 'payroll' ? 'block' : 'none';
+    document.getElementById('tab-attendance').style.display = tab === 'attendance' ? 'block' : 'none';
     document.getElementById('tab-patterns').style.display = tab === 'patterns' ? 'block' : 'none';
     document.getElementById('tab-shifts').style.display = tab === 'shifts' ? 'block' : 'none';
 
     const buttons = document.querySelectorAll('.tabs button');
     buttons.forEach(btn => btn.classList.remove('active'));
-    const idx = ['users', 'master', 'payroll', 'patterns', 'shifts'].indexOf(tab);
+    const idx = ['users', 'master', 'payroll', 'attendance', 'patterns', 'shifts'].indexOf(tab);
     if (buttons[idx]) buttons[idx].classList.add('active');
 
     if (tab === 'payroll') loadPayrollSettings();
+    if (tab === 'attendance') loadAttendanceSettings();
     if (tab === 'patterns') renderPatternGrid();
     if (tab === 'shifts') renderShiftDefinitions();
 }
@@ -131,6 +133,97 @@ document.getElementById('payrollSettingsForm')?.addEventListener('submit', async
         });
         alert('Payroll settings updated successfully!');
     } catch { alert('Gagal menyimpan setelan payroll.'); }
+});
+
+// ── Attendance GPS Settings Tab ────────────────────────────────
+let gpsMap = null;
+let gpsMarker = null;
+let gpsCircle = null;
+
+async function loadAttendanceSettings() {
+    try {
+        const res = await fetch(`${API}/api/settings`);
+        const data = await res.json();
+        const config = tryParse(data['attendanceConfig'], {
+            officeLat: -6.1753924,
+            officeLon: 106.8271528,
+            maxRadius: 100
+        });
+
+        const latInput = document.getElementById('set_office_lat');
+        const lonInput = document.getElementById('set_office_lon');
+        const radInput = document.getElementById('set_max_radius');
+
+        latInput.value = config.officeLat;
+        lonInput.value = config.officeLon;
+        radInput.value = config.maxRadius;
+
+        // Leaflet Map Initialization
+        setTimeout(() => {
+            if (!gpsMap) {
+                gpsMap = L.map('gpsMap').setView([config.officeLat, config.officeLon], 16);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '© OpenStreetMap'
+                }).addTo(gpsMap);
+
+                gpsMarker = L.marker([config.officeLat, config.officeLon]).addTo(gpsMap);
+                gpsCircle = L.circle([config.officeLat, config.officeLon], {
+                    color: 'red',
+                    fillColor: '#f03',
+                    fillOpacity: 0.2,
+                    radius: config.maxRadius
+                }).addTo(gpsMap);
+
+                // Map Click Event
+                gpsMap.on('click', function (e) {
+                    const lat = e.latlng.lat;
+                    const lon = e.latlng.lng;
+                    latInput.value = lat.toFixed(7);
+                    lonInput.value = lon.toFixed(7);
+                    updateMapVisuals();
+                });
+
+                // Input Changes Event
+                [latInput, lonInput, radInput].forEach(input => {
+                    input.addEventListener('input', updateMapVisuals);
+                });
+            } else {
+                gpsMap.invalidateSize();
+                updateMapVisuals();
+            }
+        }, 300); // Slight delay to ensure tab is visible and map calculates size correctly
+    } catch (e) { console.error('loadAttendanceSettings:', e.message); }
+}
+
+function updateMapVisuals() {
+    if (!gpsMap || !gpsMarker || !gpsCircle) return;
+    const lat = parseFloat(document.getElementById('set_office_lat').value) || 0;
+    const lon = parseFloat(document.getElementById('set_office_lon').value) || 0;
+    const rad = parseInt(document.getElementById('set_max_radius').value) || 0;
+
+    const newLatLng = new L.LatLng(lat, lon);
+    gpsMarker.setLatLng(newLatLng);
+    gpsCircle.setLatLng(newLatLng);
+    gpsCircle.setRadius(rad);
+    gpsMap.panTo(newLatLng);
+}
+
+document.getElementById('attendanceSettingsForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const config = {
+        officeLat: parseFloat(document.getElementById('set_office_lat').value),
+        officeLon: parseFloat(document.getElementById('set_office_lon').value),
+        maxRadius: parseInt(document.getElementById('set_max_radius').value)
+    };
+    try {
+        await fetch(`${API}/api/settings/attendanceConfig`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ value: config })
+        });
+        alert('Attendance GPS Configuration updated successfully!');
+    } catch { alert('Gagal menyimpan konfigurasi absensi.'); }
 });
 
 // ── User Management Tab ──────────────────────────────────────

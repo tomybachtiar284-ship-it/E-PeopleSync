@@ -327,7 +327,7 @@ async function completeCourse(score) {
             enrollmentId = enrollments[0].id;
         }
 
-        const compDate = new Date().toISOString().split('T')[0];
+        const compDate = new Date().toLocaleDateString('en-CA');
         await fetch(`${API}/api/learning/enrollments/${enrollmentId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },

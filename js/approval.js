@@ -106,7 +106,7 @@ async function syncToRosterAPI(req) {
     for (let dt = new Date(start); dt <= end; dt.setDate(dt.getDate() + 1)) {
         changes.push({
             user_id: req.user_id || req.userId,
-            date: dt.toISOString().split('T')[0],
+            date: dt.toLocaleDateString('en-CA'),
             shift_code
         });
     }
