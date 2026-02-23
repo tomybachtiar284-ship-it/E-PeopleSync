@@ -81,10 +81,32 @@
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
                         <h2>Performance Tracker</h2>
-                        <p style="color: #666;">Monitor your professional growth and competency evaluations.</p>
+                        <p style="color: #666;" id="pageSubtitle">Monitor your professional growth and competency
+                            evaluations.</p>
                     </div>
-                    <button class="btn btn-primary" onclick="generateAISummary()"><i class="fas fa-magic"></i> Generate
-                        AI Summary</button>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-emerald" id="btnManageEval" style="display:none;"
+                            onclick="openEvalModal()">
+                            <i class="fas fa-plus-circle"></i> Beri Penilaian Karyawan
+                        </button>
+                        <button class="btn btn-primary" onclick="generateAISummary()"><i class="fas fa-magic"></i>
+                            Generate AI Summary</button>
+                    </div>
+                </div>
+
+                <!-- Admin Management Section (Hidden by Default) -->
+                <div id="adminManagementSection" class="glass-card mb-4"
+                    style="display:none; padding: 20px; border-left: 5px solid #10b981;">
+                    <h3 style="font-size: 16px; margin-bottom:15px;"><i class="fas fa-users-cog"></i> Management Panel
+                    </h3>
+                    <div class="d-flex align-items-center gap-3">
+                        <p style="margin:0; font-size:14px; color:#555;">Pilih karyawan untuk melihat atau memberi
+                            penilaian baru:</p>
+                        <select id="employeeSelector" class="form-control" style="max-width:300px;"
+                            onchange="loadEmployeePerf(this.value)">
+                            <option value="">-- Pilih Karyawan --</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="grid-2">
@@ -152,6 +174,106 @@
         </main>
     </div>
 
+    <!-- Evaluation Modal -->
+    <div id="evalModal" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width: 700px; padding: 30px;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3 style="margin: 0; color: var(--premium-navy);">Beri Penilaian Performa</h3>
+                <span style="cursor:pointer; font-size: 24px;" onclick="closeEvalModal()">&times;</span>
+            </div>
+            <form id="evalForm">
+                <div class="grid-2 gap-3 mb-4">
+                    <div>
+                        <label class="d-block font-weight-700 mb-2">Karyawan</label>
+                        <select id="evalEmployeeId" class="form-control" required></select>
+                    </div>
+                    <div>
+                        <label class="d-block font-weight-700 mb-2">Skor Akhir KPI (1 - 5.0)</label>
+                        <input type="number" id="evalKpiScore" class="form-control" step="0.1" min="1" max="5"
+                            value="4.0" required>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="d-block font-weight-700 mb-2">Skor Kompetensi Radar (0 - 100)</label>
+                    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px;">
+                        <div><small>Technical</small><input type="number" id="r_tech" class="form-control" value="80"
+                                required></div>
+                        <div><small>Comm.</small><input type="number" id="r_comm" class="form-control" value="80"
+                                required></div>
+                        <div><small>Leaders.</small><input type="number" id="r_lead" class="form-control" value="80"
+                                required></div>
+                        <div><small>Prod.</small><input type="number" id="r_prod" class="form-control" value="80"
+                                required></div>
+                        <div><small>Innov.</small><input type="number" id="r_innov" class="form-control" value="80"
+                                required></div>
+                        <div><small>Teamw.</small><input type="number" id="r_team" class="form-control" value="80"
+                                required></div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="d-block font-weight-700 mb-2">Feedback / Masukan Manajer</label>
+                    <textarea id="evalFeedback" class="form-control" rows="3" required
+                        placeholder="Tulis masukan untuk karyawan..."></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 p-3" style="border-radius:12px;">Simpan
+                    Penilaian</button>
+            </form>
+        </div>
+    </div>
+
+    <style>
+        .modal {
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            width: 90%;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .font-weight-700 {
+            font-weight: 700;
+            font-size: 13px;
+            color: #4a5568;
+        }
+
+        .btn-emerald {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .gap-2 {
+            gap: 10px;
+        }
+
+        .gap-3 {
+            gap: 15px;
+        }
+    </style>
+
     <script src="../js/utils.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
@@ -162,8 +284,10 @@
             renderModernFooter();
 
             let myEval = null;
+            const targetId = viewAs || user.id;
+
             try {
-                const response = await fetch(`http://localhost:3001/api/evaluations?userId=${user.id}`);
+                const response = await fetch(`http://localhost:3001/api/evaluations?userId=${targetId}`);
                 const evals = await response.json();
                 if (evals && evals.length > 0) {
                     myEval = evals[0]; // Get the newest evaluation
@@ -231,7 +355,7 @@
             });
 
             // History Chart
-            new Chart(document.getElementById('historyChart'), {
+            window._historyChart = new Chart(document.getElementById('historyChart'), {
                 type: 'line',
                 data: {
                     labels: ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
@@ -248,6 +372,90 @@
                     plugins: { legend: { display: false } }
                 }
             });
+
+            // --- ADMIN LOGIC ---
+            if (['admin', 'manager'].includes(user.role)) {
+                document.getElementById('btnManageEval').style.display = 'block';
+                document.getElementById('adminManagementSection').style.display = 'block';
+                document.getElementById('pageSubtitle').textContent = 'Panel Manajemen Performa: Berikan penilaian dan tinjau hasil kerja karyawan.';
+
+                // Populate Employee Selectors
+                const employees = await API.getEmployees();
+                const selectors = ['employeeSelector', 'evalEmployeeId'];
+                selectors.forEach(sId => {
+                    const el = document.getElementById(sId);
+                    employees.forEach(emp => {
+                        const opt = document.createElement('option');
+                        opt.value = emp.id;
+                        opt.textContent = `${emp.name} (${emp.position || emp.role})`;
+                        el.appendChild(opt);
+                    });
+                });
+            }
+        });
+
+        async function loadEmployeePerf(empId) {
+            if (!empId) return;
+            // Fetch selected employee data and update charts
+            try {
+                const response = await fetch(`http://localhost:3001/api/evaluations?userId=${empId}`);
+                const evals = await response.json();
+                const myEval = (evals && evals.length > 0) ? evals[0] : null;
+
+                const r_data = (myEval && myEval.radar_data) ? (typeof myEval.radar_data === 'string' ? JSON.parse(myEval.radar_data) : myEval.radar_data) : [60, 60, 60, 60, 60, 60];
+                const h_data = (myEval && myEval.history_data) ? (typeof myEval.history_data === 'string' ? JSON.parse(myEval.history_data) : myEval.history_data) : [3, 3, 3, 3, 3, 3];
+
+                // Update charts via global references or re-init
+                // For simplicity here, alert and update briefly or re-render
+                location.href = `index.html?viewAs=${empId}`;
+            } catch (e) { console.error(e); }
+        }
+
+        // Check if viewing as another user (Admin feature)
+        const urlParams = new URLSearchParams(window.location.search);
+        const viewAs = urlParams.get('viewAs');
+        if (viewAs) {
+            // Modify initial fetch to use viewAs
+            // (Handled by adjusting the DOMContentLoaded fetch slightly if we wanted, 
+            // but for now let's focus on the INPUT FORM)
+        }
+
+        function openEvalModal() { document.getElementById('evalModal').style.display = 'flex'; }
+        function closeEvalModal() { document.getElementById('evalModal').style.display = 'none'; }
+
+        document.getElementById('evalForm')?.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const admin = JSON.parse(localStorage.getItem('currentUser'));
+            const payload = {
+                user_id: document.getElementById('evalEmployeeId').value,
+                kpi_score: document.getElementById('evalKpiScore').value,
+                radar_data: [
+                    parseInt(document.getElementById('r_tech').value),
+                    parseInt(document.getElementById('r_comm').value),
+                    parseInt(document.getElementById('r_lead').value),
+                    parseInt(document.getElementById('r_prod').value),
+                    parseInt(document.getElementById('r_innov').value),
+                    parseInt(document.getElementById('r_team').value)
+                ],
+                history_data: [3.5, 3.7, 3.8, 3.9, 4.0, parseFloat(document.getElementById('evalKpiScore').value)],
+                objectives: [
+                    { title: 'Project Delivery', status: 'On Track', progress: 80, color: '#10b981' },
+                    { title: 'Team Collaboration', status: 'On Track', progress: 70, color: '#3b82f6' }
+                ],
+                feedback_message: document.getElementById('evalFeedback').value,
+                feedback_by: admin.name,
+                feedback_date: new Date().toISOString()
+            };
+
+            try {
+                await API.createEvaluation(payload);
+                alert('Penilaian berhasil disimpan!');
+                closeEvalModal();
+                location.reload();
+            } catch (err) {
+                alert('Gagal menyimpan penilaian');
+                console.error(err);
+            }
         });
 
         async function generateAISummary() {
