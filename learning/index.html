@@ -93,6 +93,34 @@
                     </div>
                 </div>
 
+                <!-- Admin Monitoring Panel (Detailed View) -->
+                <div class="card mb-4" id="adminMonitoring" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3 style="margin:0;"><i class="fas fa-user-check text-primary mr-2"></i> Student Completion
+                            Monitor</h3>
+                        <div class="small text-muted">Real-time data from PostgreSQL</div>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                            <thead>
+                                <tr style="background: #f8f9fa; border-bottom: 2px solid #eee;">
+                                    <th style="padding: 12px; text-align: left;">Student Name</th>
+                                    <th style="padding: 12px; text-align: left;">Course Title</th>
+                                    <th style="padding: 12px; text-align: left;">Status</th>
+                                    <th style="padding: 12px; text-align: left;">Score</th>
+                                    <th style="padding: 12px; text-align: left;">Completed Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="monitoringTableBody">
+                                <tr>
+                                    <td colspan="5" style="text-align:center; padding:20px; color:#999;">Loading
+                                        monitoring data...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
                         <h2>Learning Hub</h2>
@@ -212,6 +240,10 @@
                     document.getElementById('statTotalCourses').textContent = courses.length;
                     document.getElementById('statActiveLearners').textContent = enrollments.length;
                     document.getElementById('statCertificates').textContent = certificates.length;
+
+                    // Show & Load Monitoring Panel
+                    document.getElementById('adminMonitoring').style.display = 'block';
+                    loadAdminMonitoring(courses, enrollments);
                 }
 
                 // Render with fetched data
@@ -404,6 +436,53 @@
             });
             const user = JSON.parse(localStorage.getItem('currentUser'));
             renderCourses(null, null, user, status);
+        }
+
+        async function loadAdminMonitoring(allCourses, allEnrollments) {
+            try {
+                const [users, attempts] = await Promise.all([
+                    API.getEmployees(),
+                    API.getQuizAttempts()
+                ]);
+
+                const completedEnrollments = allEnrollments.filter(e => e.status === 'completed');
+                const tbody = document.getElementById('monitoringTableBody');
+                tbody.innerHTML = '';
+
+                if (completedEnrollments.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#999;">No completions recorded yet.</td></tr>';
+                    return;
+                }
+
+                // Sort by completed_at desc
+                completedEnrollments.sort((a, b) => new Date(b.completed_at || 0) - new Date(a.completed_at || 0));
+
+                completedEnrollments.forEach(en => {
+                    const user = users.find(u => u.id === en.user_id || u.id === en.userId);
+                    const course = allCourses.find(c => c.id === en.course_id || c.id === en.courseId);
+
+                    // Match score from attempts
+                    const userAttempts = attempts.filter(a =>
+                        (a.user_id === en.user_id || a.userId === en.userId) &&
+                        (a.quiz_id === en.course_id || a.quizId === en.courseId)
+                    );
+                    const maxScore = userAttempts.length > 0 ? Math.max(...userAttempts.map(a => parseFloat(a.score))) : 'N/A';
+
+                    const row = document.createElement('tr');
+                    row.style.borderBottom = '1px solid #eee';
+                    row.innerHTML = `
+                        <td style="padding: 12px;"><strong>${user ? user.name : 'Unknown'}</strong></td>
+                        <td style="padding: 12px;">${course ? course.title : 'Deleted Course'}</td>
+                        <td style="padding: 12px;"><span class="badge badge-success">Completed</span></td>
+                        <td style="padding: 12px; font-weight:bold;">${maxScore !== 'N/A' ? parseFloat(maxScore).toFixed(0) : '0'}</td>
+                        <td style="padding: 12px; color:#666;">${en.completed_at ? new Date(en.completed_at).toLocaleDateString('id-ID') : '-'}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (err) {
+                console.error('Monitoring Load Error:', err);
+                document.getElementById('monitoringTableBody').innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:red;">Gagal memuat data monitoring.</td></tr>';
+            }
         }
     </script>
 </body>
