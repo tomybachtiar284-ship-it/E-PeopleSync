@@ -317,10 +317,12 @@ function renderApprovalQueue() {
     pending.forEach(req => {
         const st = statusMap[req.status] || `<span class="badge badge-secondary">${req.status}</span>`;
         const tr = document.createElement('tr');
+        const startDate = req.start_date?.split('T')[0] || '-';
+        const endDate = req.end_date?.split('T')[0] || '-';
         tr.innerHTML = `
-            <td style="font-weight:700;">${req.emp_name || req.empName || 'No Name'}</td>
+            <td style="font-weight:700;">${req.emp_name || req.empName || req.name || 'No Name'}</td>
             <td><div class="d-flex flex-column gap-1"><span class="shift-badge ${(req.type || 'off').toLowerCase()}" style="font-size:10px;width:40px;">${req.type || '-'}</span>${st}</div></td>
-            <td style="font-size:13px;">${req.start_date || '-'} s/d ${req.end_date || '-'}</td>
+            <td style="font-size:13px;">${startDate} s/d ${endDate}</td>
             <td title="${req.reason}"><div style="max-width:200px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;font-size:12px;color:#666;">${req.reason || ''}</div></td>
             <td style="text-align:center;">
                 <div class="d-flex justify-content-center gap-1">
@@ -336,10 +338,12 @@ function renderApprovalQueue() {
     processed.slice().reverse().slice(0, 20).forEach(req => {
         const isApp = (req.status || '').toLowerCase() === 'approved';
         const tr = document.createElement('tr');
+        const startDate = req.start_date?.split('T')[0] || '-';
+        const endDate = req.end_date?.split('T')[0] || '-';
         tr.innerHTML = `
-            <td style="font-weight:600;">${req.emp_name || req.empName || 'No Name'}</td>
+            <td style="font-weight:600;">${req.emp_name || req.empName || req.name || 'No Name'}</td>
             <td><span class="shift-badge ${(req.type || 'off').toLowerCase()}" style="font-size:10px;width:40px;">${req.type || '-'}</span></td>
-            <td style="font-size:12px;">${req.start_date || '-'} - ${req.end_date || '-'}</td>
+            <td style="font-size:12px;">${startDate} - ${endDate}</td>
             <td><div style="max-width:150px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;font-size:11px;color:#777;">${req.reason || '-'}</div></td>
             <td><span class="badge ${isApp ? 'badge-success' : 'badge-danger'}" style="padding:4px 10px;border-radius:6px;">${req.status || '-'}</span></td>
             <td style="text-align:center;"><button class="btn btn-sm btn-outline-danger" onclick="deleteRequest(${req.id})"><i class="fas fa-trash"></i></button></td>`;

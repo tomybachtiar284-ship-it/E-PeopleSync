@@ -61,8 +61,20 @@ async function loadMobileShifts() {
     try {
         const res = await fetch(`${API_BASE}/api/settings`);
         const data = await res.json();
-        _mShifts = data['shiftDefinitions'] ? JSON.parse(data['shiftDefinitions']) : [];
-    } catch { _mShifts = []; }
+        _mShifts = data['shiftDefinitions'] ? (typeof data['shiftDefinitions'] === 'string' ? JSON.parse(data['shiftDefinitions']) : data['shiftDefinitions']) : [];
+
+        // Load Company Approvers for Leave Dropdowns
+        let approversRaw = data['companyApprovers'] || [];
+        if (typeof approversRaw === 'string') {
+            try { _mApprovers = JSON.parse(approversRaw); } catch { _mApprovers = []; }
+        } else {
+            _mApprovers = approversRaw;
+        }
+    } catch (err) {
+        console.error('loadMobileShifts error:', err);
+        _mShifts = [];
+        _mApprovers = [];
+    }
 }
 
 async function loadMobileRoster(user) {
@@ -439,26 +451,21 @@ async function showLeaveModal() {
     document.getElementById('leaveStartDate').value = today;
     document.getElementById('leaveEndDate').value = today;
 
-    // Load approvers from API
-    try {
-        const res = await fetch(`${API_BASE}/api/employees?role=manager`);
-        const admR = await fetch(`${API_BASE}/api/employees?role=admin`);
-        const mgrs = await res.json();
-        const adms = await admR.json();
-        _mApprovers = [...mgrs, ...adms];
-    } catch { _mApprovers = []; }
-
+    // Dropdowns are now populated from _mApprovers (loaded from Settings in loadMobileShifts)
     const spvSelect = document.getElementById('reqSupervisorMobile');
     const mgrSelect = document.getElementById('reqManagerMobile');
-    if (spvSelect) spvSelect.innerHTML = '<option value="">-- Pilih SPV --</option>' + _mApprovers.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
-    if (mgrSelect) mgrSelect.innerHTML = '<option value="">-- Pilih Manager --</option>' + _mApprovers.map(u => `<option value="${u.id}">${u.name}</option>`).join('');
+
+    const approverOptions = _mApprovers.map((u, idx) => `<option value="${idx}">${u.name} (${u.position || 'Atasan'})</option>`).join('');
+
+    if (spvSelect) spvSelect.innerHTML = '<option value="">-- Pilih SPV --</option>' + approverOptions;
+    if (mgrSelect) mgrSelect.innerHTML = '<option value="">-- Pilih Manager --</option>' + approverOptions;
 }
 
 function autoFillPositionMobile(type) {
-    const id = document.getElementById(type === 'supervisor' ? 'reqSupervisorMobile' : 'reqManagerMobile').value;
+    const idx = document.getElementById(type === 'supervisor' ? 'reqSupervisorMobile' : 'reqManagerMobile').value;
     const pos = document.getElementById(type === 'supervisor' ? 'reqSupervisorPositionMobile' : 'reqManagerPositionMobile');
-    if (!pos) return;
-    const selected = _mApprovers.find(a => a.id == id);
+    if (!pos || idx === "") return;
+    const selected = _mApprovers[parseInt(idx)];
     pos.value = selected ? (selected.position || 'Approver') : '';
 }
 
@@ -484,8 +491,10 @@ async function submitLeaveRequest(event) {
         alert('Mohon lengkapi semua data pengajuan.'); return;
     }
 
-    const spvObj = _mApprovers.find(a => a.id == spvSelect.value);
-    const mgrObj = _mApprovers.find(a => a.id == mgrSelect.value);
+    const spvIdx = spvSelect.value;
+    const mgrIdx = mgrSelect.value;
+    const spvObj = _mApprovers[parseInt(spvIdx)];
+    const mgrObj = _mApprovers[parseInt(mgrIdx)];
 
     const payload = {
         user_id: user.id,
@@ -493,12 +502,12 @@ async function submitLeaveRequest(event) {
         emp_name: user.name,
         type, start_date: start, end_date: end, reason,
         status: 'waiting_supervisor',
-        supervisor_id: spvSelect.value,
+        supervisor_id: spvIdx,
         supervisor_name: spvObj ? spvObj.name : '',
-        supervisor_email: spvObj ? (spvObj.email_company || spvObj.email_personal || '') : '',
-        manager_id: mgrSelect.value,
+        supervisor_email: spvObj ? (spvObj.email || '') : '',
+        manager_id: mgrIdx,
         manager_name: mgrObj ? mgrObj.name : '',
-        manager_email: mgrObj ? (mgrObj.email_company || mgrObj.email_personal || '') : '',
+        manager_email: mgrObj ? (mgrObj.email || '') : '',
     };
 
     try {
@@ -507,16 +516,19 @@ async function submitLeaveRequest(event) {
             body: JSON.stringify(payload)
         });
         const newReq = await res.json();
-        const approvalLink = `${window.location.origin}/dashboard/approvers.html?requestId=${newReq.id}&role=supervisor`;
-        console.log(`%c[SIMULASI EMAIL TL]`, 'color:#00796b;font-weight:bold;');
-        console.log(`Kepada: ${payload.supervisor_email}`);
-        console.log(`Link Persetujuan: ${approvalLink}`);
-        alert(`Pengajuan berhasil dikirim ke Team Leader: ${payload.supervisor_name}!`);
-        showTrialLink(approvalLink);
+
+        // The backend now handles email simulation and token generation.
+        // We just notify the employee that their request is being processed.
+
+        alert(`Pengajuan berhasil dikirim! Link persetujuan telah dikirimkan ke email Team Leader: ${payload.supervisor_name}.`);
+
         closeModal('leaveModal');
         document.getElementById('leaveForm').reset();
         renderMobileHistory('leave');
-    } catch { alert('Gagal mengirim pengajuan. Coba lagi.'); }
+    } catch (err) {
+        console.error('Submit leave error:', err);
+        alert('Gagal mengirim pengajuan. Silakan cek koneksi Anda.');
+    }
 }
 
 // ── Attendance Modal ────────────────────────────────────────────

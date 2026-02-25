@@ -36,7 +36,7 @@ app.use('/api/auth', authRoute); // Covers /api/auth/register-candidate (Public)
 // Protected Routes
 app.use('/api/employees', authMiddleware, usersRoute);
 app.use('/api/attendance', authMiddleware, attendanceRoute);
-app.use('/api/leave', authMiddleware, leaveRoute);
+app.use('/api/leave', leaveRoute);
 app.use('/api/payroll', authMiddleware, payrollRoute);
 app.use('/api/assets', authMiddleware, assetsRoute);
 app.use('/api/learning', authMiddleware, learningRoute);

@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Persetujuan Pengajuan Cuti | E-PeopleSync</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --success: #10b981;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+            --glass: rgba(255, 255, 255, 0.9);
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: #1e293b;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 500px;
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .view-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .card {
+            background: #f1f5f9;
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 25px;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .detail-label {
+            color: #64748b;
+        }
+
+        .detail-value {
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            color: #475569;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1.5px solid #cbd5e1;
+            box-sizing: border-box;
+            font-family: inherit;
+            transition: 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-approve {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-reject {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        #statusMsg {
+            text-align: center;
+            margin-top: 20px;
+            font-weight: 600;
+            display: none;
+        }
+
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 3px solid var(--primary);
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: none;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="header">
+            <div class="logo">E-PeopleSync</div>
+            <div class="view-title">Persetujuan Cuti Eksternal</div>
+        </div>
+
+        <div id="loading" class="loader"></div>
+
+        <div id="mainView" style="display: none;">
+            <div class="card">
+                <div class="detail-item">
+                    <span class="detail-label">Nama Karyawan</span>
+                    <span id="empName" class="detail-value">...</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Jenis Cuti</span>
+                    <span id="leaveType" class="detail-value">...</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Periode</span>
+                    <span id="leavePeriod" class="detail-value">...</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Alasan</span>
+                    <span id="leaveReason" class="detail-value">...</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="nid">Verifikasi NID Karyawan</label>
+                <input type="password" id="nid" placeholder="Sebutkan NID Karyawan untuk verifikasi">
+                <p style="font-size: 11px; color: #94a3b8; margin-top: 5px;">*Demi keamanan, silakan masukkan NID
+                    karyawan yang bersangkutan.</p>
+            </div>
+
+            <div class="form-group">
+                <label for="note">Catatan (Pilihan)</label>
+                <textarea id="note" rows="3" placeholder="Tambahkan pesan atau instruksi..."></textarea>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-reject" onclick="processAction('reject')">
+                    <i class="fas fa-times"></i> Reject
+                </button>
+                <button class="btn btn-approve" onclick="processAction('approve')">
+                    <i class="fas fa-check"></i> Approve
+                </button>
+            </div>
+        </div>
+
+        <div id="statusMsg"></div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        const API_BASE = '/api'; // Using relative path since it's same origin
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!token) {
+                showError('Link tidak valid atau token hilang.');
+                return;
+            }
+            await loadDetails();
+        });
+
+        async function loadDetails() {
+            showLoader(true);
+            try {
+                const res = await fetch(`${API_BASE}/leave/external/${token}`);
+                if (!res.ok) throw new Error('Data tidak ditemukan atau sudah diproses.');
+                const data = await res.json();
+
+                document.getElementById('empName').textContent = data.emp_name;
+                document.getElementById('leaveType').textContent = data.type;
+                const start = new Date(data.start_date).toLocaleDateString('id-ID');
+                const end = new Date(data.end_date).toLocaleDateString('id-ID');
+                document.getElementById('leavePeriod').textContent = `${start} - ${end}`;
+                document.getElementById('leaveReason').textContent = data.reason;
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('mainView').style.display = 'block';
+            } catch (e) {
+                showError(e.message);
+            }
+        }
+
+        async function processAction(action) {
+            const nid = document.getElementById('nid').value;
+            const note = document.getElementById('note').value;
+
+            if (!nid) {
+                alert('Mohon masukkan NID karyawan untuk verifikasi.');
+                return;
+            }
+
+            if (!confirm(`Konfirmasi untuk ${action} pengajuan ini?`)) return;
+
+            showLoader(true);
+            document.getElementById('mainView').style.opacity = '0.5';
+            document.getElementById('mainView').style.pointerEvents = 'none';
+
+            try {
+                const res = await fetch(`${API_BASE}/leave/external/process`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token, nid, action, note })
+                });
+
+                const result = await res.json();
+                if (res.ok) {
+                    showSuccess(`Berhasil! ${result.message}`);
+                } else {
+                    alert(result.error || 'Terjadi kesalahan.');
+                    showLoader(false);
+                    document.getElementById('mainView').style.opacity = '1';
+                    document.getElementById('mainView').style.pointerEvents = 'auto';
+                }
+            } catch (e) {
+                alert('Gagal memproses pengajuan.');
+                showLoader(false);
+            }
+        }
+
+        function showLoader(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('statusMsg');
+            el.style.display = 'block';
+            el.style.color = '#ef4444';
+            el.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${msg}`;
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function showSuccess(msg) {
+            const el = document.getElementById('statusMsg');
+            el.style.display = 'block';
+            el.style.color = '#10b981';
+            el.innerHTML = `<i class="fas fa-check-circle"></i> ${msg}`;
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('mainView').style.display = 'none';
+        }
+    </script>
+
+</body>
+
+</html>
